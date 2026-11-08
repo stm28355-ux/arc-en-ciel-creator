@@ -12,9 +12,12 @@ import { createBattle, startBattle, step, pace, paceBag, waveSummary, rechargeUn
 import { loadSave, writeSave, clearSave, regionSave, newSave } from './core/save.js';
 import { draw, CELL, facilityIcon, FACILITY_COLOR } from './ui/render.js';
 
-const VERSION = 'v0.2.0';
+const VERSION = 'v0.2.1';
 const STEP = 1 / 60;
 const AUTO_RETRY_DELAY = 1500; // ミリ秒
+// 自動で再挑戦している間の速さの上限。周回が攻略後の自動獲得より速くなりすぎないようにする
+const AUTO_SPEED_CAP = 2;
+const speedOf = (s) => (save.settings.autoRetry ? Math.min(s.speed, AUTO_SPEED_CAP) : s.speed);
 
 const app = document.getElementById('app');
 const bankEl = document.getElementById('bank');
@@ -403,7 +406,7 @@ function loop(s, t) {
   s.last = t;
   const b = s.battle;
   if (b.phase === 'running' && !s.paused) {
-    s.acc = (s.acc ?? 0) + dt * s.speed;
+    s.acc = (s.acc ?? 0) + dt * speedOf(s);
     const wave = b.wavesStarted;
     while (s.acc >= STEP && b.phase === 'running') {
       step(b, STEP, s.resolved);
@@ -504,7 +507,10 @@ function renderHud(s) {
       : b.phase === 'running'
         ? `<button data-act="pause" class="${s.paused ? 'on' : ''}">${s.paused ? '再開' : '一時停止'}</button>`
         : '';
-  const speeds = [1, 2, 4, 8].map((v) => `<button data-act="speed" data-v="${v}" class="${s.speed === v ? 'on' : ''}">${v}倍</button>`).join('');
+  const cap = save.settings.autoRetry ? AUTO_SPEED_CAP : Infinity;
+  const speeds = [1, 2, 4, 8]
+    .map((v) => `<button data-act="speed" data-v="${v}" class="${speedOf(s) === v ? 'on' : ''}" ${v > cap ? `disabled title="自動で再挑戦の間は${AUTO_SPEED_CAP}倍まで"` : ''}>${v}倍</button>`)
+    .join('');
   const stats = `
     <span class="stat">${s.region.name}</span>
     <span class="stat ${b.baseHp <= 1 ? 'hp-bad' : ''}">拠点 <b>${b.baseHp}</b>/${b.baseMax}</span>
@@ -516,7 +522,7 @@ function renderHud(s) {
   const ctrl = `${startBtn}
     ${b.phase !== 'ready' ? '<button data-act="retry">やり直す</button>' : ''}
     ${speeds}
-    <label class="toggle"><input type="checkbox" data-act="auto" ${save.settings.autoRetry ? 'checked' : ''}> 自動で再挑戦</label>`;
+    <label class="toggle" title="自動で再挑戦の間は${AUTO_SPEED_CAP}倍速まで"><input type="checkbox" data-act="auto" ${save.settings.autoRetry ? 'checked' : ''}> 自動で再挑戦（${AUTO_SPEED_CAP}倍まで）</label>`;
   if (!hud.firstChild) hud.innerHTML = '<button data-act="home">← 地域選択</button><span class="hud-stats"></span><span class="spacer"></span><span class="hud-ctrl row"></span>';
   const st = hud.querySelector('.hud-stats');
   const ct = hud.querySelector('.hud-ctrl');
@@ -533,7 +539,7 @@ function renderHud(s) {
 const STATUS_LABEL = {
   active: ['動いている', 'placed'],
   materials: ['停止（資材不足）', 'stopped'],
-  'no-worker': ['停止（作業場所にモンスターがいない）', 'stopped'],
+  'no-worker': ['停止（作業場所に、施設の方を向いたモンスターがいない）', 'stopped'],
   'needs-smithy': ['停止（鍛冶場が動いていない）', 'stopped'],
 };
 
@@ -571,11 +577,12 @@ function renderSide(s) {
       })
       .join('')}</div></div>`;
     if (placed?.uid) {
-      const i = s.layout.monsters.filter((m) => !working.has(m.uid)).findIndex((m) => m.uid === placed.uid);
+      const i = s.layout.monsters.findIndex((m) => m.uid === placed.uid);
       const u = s.resolved.units.find((u) => u.id === placed.uid);
       const y = i >= 0 ? Object.entries(prod.perMonster[i]).filter(([, n]) => n) : [];
       body += `<div class="card info"><h3>${MONSTERS[placed.kind].name} <small>${DIR_NAME[placed.dir]}向き</small></h3>
-        ${u ? `<p>攻撃 ${u.atk.toFixed(1)} · 間隔 ${u.interval.toFixed(2)}秒（毎秒 ${(u.atk / u.interval).toFixed(1)}）</p>` : '<p>鍛冶場で作業中（攻撃も生産もしない）</p>'}
+        <p>攻撃 ${u.atk.toFixed(1)} · 間隔 ${u.interval.toFixed(2)}秒（毎秒 ${(u.atk / u.interval).toFixed(1)}）</p>
+        ${working.has(placed.uid) ? '<p>鍛冶場で作業中（攻撃と生産もそのまま）</p>' : ''}
         <p>資材：${y.length ? y.map(([id, n]) => `${ELEMENT[id].name}+${n}`).join(' ') : 'なし'}</p>
         ${rotateRow(s, '別のマスを押すと移動。動かすと攻撃は溜め直し')}
         <div class="row" style="margin-top:6px"><button data-act="remove-monster" data-uid="${placed.uid}">外す</button></div></div>`;
@@ -645,7 +652,7 @@ function renderSide(s) {
     <li>置いたモンスターや施設を押すと選べます。別のマスを押すと移動、その場で回転もできます。戦闘中でも動かせますが、攻撃は溜め直しになります。</li>
     <li>資源地（◆）のまわり8マスに置くと資材 +2、攻撃範囲のマスに入れると +1。モンスターと同じ属性なら +1。</li>
     <li>資材で施設を建てます。資材が減ると、足りない施設のうち最後に建てたものが止まります。</li>
-    <li>鍛冶場（製造施設）は、前の2マス（点線）にモンスターを置くと動きます。動いている間だけ剣の台座が建てられ、効果が出ます。作業中のモンスターは攻撃も生産もしません。</li>
+    <li>鍛冶場（製造施設）は、前の2マス（点線）に、攻撃範囲が鍛冶場に重なる向きでモンスターを置くと動きます。動いている間だけ剣の台座が建てられ、効果が出ます。作業中のモンスターも攻撃と生産をします。</li>
     <li>連戦の角笛は重ねて置けます。1個で2ウェーブずつ、2個で3ウェーブずつまとめて出ます。</li>
     <li>ボス（王の印）を通すと、拠点は全損です。【強】の敵は拠点を2減らします。</li>
     <li>獲得ペース ＝ 手に入れたエレメント ÷ 全ウェーブを倒すのにかかった時間。一時停止中はタイマーが止まります。負けても手に入れたエレメントは持ち帰ります。</li>

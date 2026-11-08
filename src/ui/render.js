@@ -218,8 +218,8 @@ function drawMonster(ctx, m, unit, working) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(def.name[0], cx, cy + 1);
+  facing(ctx, cx, cy, m.dir, 11);
   if (working) label(ctx, '作業', cx, cy + 12);
-  else facing(ctx, cx, cy, m.dir, 11);
   if (unit?.buffed.sword) mark(ctx, cx - 11, cy - 11, '#ffd36b');
   if (unit?.buffed.flag) mark(ctx, cx + 11, cy - 11, '#9ff0b0');
 }

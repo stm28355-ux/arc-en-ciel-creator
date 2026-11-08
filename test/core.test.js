@@ -101,11 +101,11 @@ test('建設：資材が足りないと、足りない属性を使う施設の�
   assert.equal(canAfford({ none: 2 }, { none: 3 }), false);
 });
 
-test('鍛冶場：作業場所にモンスターがいる間だけ動き、剣の台座が効く。作業中のモンスターは攻撃も生産もしない', () => {
+test('鍛冶場：作業場所にいて攻撃範囲が鍛冶場に重なるモンスターがいる間だけ動き、剣の台座が効く', () => {
   const sample = LAYOUTS['鍛冶場＋剣（コウモリが作業）'];
   const r = resolveLayout(map, sample);
   assert.ok(r.working.has('m3'));
-  assert.ok(!r.units.some((u) => u.id === 'm3'));
+  assert.ok(r.units.some((u) => u.id === 'm3'), '作業中も攻撃する');
   assert.equal(r.status.get('f1'), 'active');
   assert.equal(r.status.get('f2'), 'active');
   const buffed = r.units.filter((u) => u.buffed.sword).map((u) => u.id).sort();
@@ -119,6 +119,16 @@ test('鍛冶場：作業場所にモンスターがいる間だけ動き、剣�
   assert.equal(r2.status.get('f2'), 'needs-smithy');
   assert.equal(r2.alloc.used.none, 0);
   assert.ok(!r2.units.some((u) => u.buffed.sword));
+});
+
+test('鍛冶場：作業場所にいても、攻撃範囲が鍛冶場を向いていなければ動かない。作業中も生産する', () => {
+  const smithy = F('f1', 'smithy', 5, 14, 'up'); // 作業場所は (5,13) と (6,13)。(5,13) は土の資源地なので (6,13) を使う
+  const facing = (dir) => resolveLayout(map, { monsters: [M('m1', 'slime', 6, 13, dir), M('m5', 'turtle', 15, 9, 'left')], facilities: [smithy] });
+  assert.equal(facing('up').status.get('f1'), 'no-worker', '上向きのスライムは鍛冶場（下）に届かない');
+  const down = facing('down');
+  assert.equal(down.status.get('f1'), 'active');
+  assert.ok(down.working.has('m1'));
+  assert.equal(down.prod.perMonster[0].earth, 2, '作業中でも、となりの土の資源地から資材が入る');
 });
 
 test('追い風の旗は向いている方の6マスにいるモンスターだけを速くする', () => {

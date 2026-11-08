@@ -36,8 +36,8 @@ export function canPlace(map, layout, item, ignore) {
 
 /**
  * 戻り値：
- *   working:   Set<uid>         製造施設の作業場所にいるモンスター（攻撃も生産もしない）
- *   prod:      production() の戻り値（作業中でないモンスターだけ）
+ *   working:   Set<uid>         製造施設で作業しているモンスター（作業場所にいて、攻撃範囲が施設に重なる）
+ *   prod:      production() の戻り値
  *   alloc:     allocate() の戻り値
  *   status:    Map<id, 'active'|'materials'|'no-worker'|'needs-smithy'>
  *   units:     戦闘で攻撃するもの [{ id, source, x, y, element, atk, interval, targets:Set, buffed }]
@@ -46,23 +46,22 @@ export function canPlace(map, layout, item, ignore) {
 export function resolveLayout(map, layout) {
   const facilities = layout.facilities;
 
-  // 製造施設の作業場所にいるモンスター
+  const all = layout.monsters.map((m) => ({ ...m, element: MONSTERS[m.kind].element, targets: new Set(targetsOf(m).map(keyOf)) }));
+
+  // 製造施設の作業：作業場所にいて、攻撃範囲が製造施設のマスに重なっているモンスター。
+  // 作業していても、攻撃も生産もする（作業場所の縛りで、変わった配置を考える面白さを出す）
   const workCells = new Map(); // 'x,y' → 製造施設
   for (const f of facilities) for (const c of cellsOf(FACILITIES[f.kind].shape, f.x, f.y, f.dir, 'work')) workCells.set(keyOf(c), f);
   const working = new Set();
   const workerOf = new Map(); // 製造施設 id → uid
-  for (const m of layout.monsters) {
+  for (const m of all) {
     const f = workCells.get(keyOf(m));
-    if (f) {
-      working.add(m.uid);
-      if (!workerOf.has(f.id)) workerOf.set(f.id, m.uid);
-    }
+    if (!f || !footprintOf(f).some((c) => m.targets.has(keyOf(c)))) continue;
+    working.add(m.uid);
+    if (!workerOf.has(f.id)) workerOf.set(f.id, m.uid);
   }
 
-  const free = layout.monsters
-    .filter((m) => !working.has(m.uid))
-    .map((m) => ({ ...m, element: MONSTERS[m.kind].element, targets: new Set(targetsOf(m).map(keyOf)) }));
-  const prod = production(map.nodes, free);
+  const prod = production(map.nodes, all);
 
   // 資材を割り当てる。鍛冶場が動いていなければ、鍛冶場が要る施設は資材を使わずに止める
   const withCost = (list) => list.map((f) => ({ ...f, cost: FACILITIES[f.kind].cost }));
@@ -87,7 +86,7 @@ export function resolveLayout(map, layout) {
     .filter((f) => FACILITIES[f.kind].buff)
     .map((f) => ({ buff: FACILITIES[f.kind].buff, cells: new Set(targetsOf(f).map(keyOf)) }));
   const units = [];
-  for (const m of free) {
+  for (const m of all) {
     const def = MONSTERS[m.kind];
     let atkAdd = 0;
     let speedAdd = 0;
