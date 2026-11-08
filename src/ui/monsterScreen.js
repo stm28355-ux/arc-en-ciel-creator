@@ -11,7 +11,8 @@ import { skillsOf, fusionCandidates, inheritableSkills, fuse, evolutionOf, evolu
 const MIX_ELEMENTS = LEVEL_ELEMENTS; // 今の表で使えるのは第1地方の3属性
 
 /**
- * api = { save, persist(), confirm(text), chip(id, text), costText(cost), shapePreview(rows, size) }
+ * api = { save, persist(), rerender(), confirm(text, onYes, yesLabel), chip(id, text), costText(cost), shapePreview(rows, size) }
+ *   confirm はページの中に確認を出し、「はい」のときだけ onYes を呼ぶ（すぐには返らない）
  * state = { tab: 'roster'|'mix'|'fuse'|'codex', selected: uid|null, mix: {id: n}, born: kind|null,
  *           fuse: { a: uid|null, b: uid|null, kind: kind|null, extra: [skill] } }
  */
@@ -59,10 +60,16 @@ export function onMonsterAction(api, state, act, data) {
       const m = save.roster.find((r) => r.uid === data.uid);
       if (!m || !evolutionProgress(m)?.ok) return false;
       const to = MONSTERS[EVOLUTIONS[m.kind].to].name;
-      if (!api.confirm(`${MONSTERS[m.kind].name}を${to}に進化させますか？ レベルは1に戻ります。`)) return false;
-      evolve(save, m.uid);
-      api.persist();
-      return true;
+      api.confirm(
+        `${MONSTERS[m.kind].name}を${to}に進化させますか？ レベルは1に戻ります。`,
+        () => {
+          evolve(save, m.uid);
+          api.persist();
+          api.rerender();
+        },
+        '進化する',
+      );
+      return false;
     }
     case 'mix-add': {
       const id = data.id;
@@ -117,12 +124,18 @@ export function onMonsterAction(api, state, act, data) {
       const a = save.roster.find((m) => m.uid === f.a);
       const b = save.roster.find((m) => m.uid === f.b);
       const text = `${MONSTERS[a.kind].name} Lv${a.level} と ${MONSTERS[b.kind].name} Lv${b.level} を融合して、${MONSTERS[f.kind].name}（Lv1）にしますか？ 2体は消えます。`;
-      if (!api.confirm(text)) return false;
-      const child = fuse(save, f.a, f.b, f.kind, f.extra);
-      state.born = child.kind;
-      state.fuse = { a: null, b: null, kind: null, extra: [] };
-      api.persist();
-      return true;
+      api.confirm(
+        text,
+        () => {
+          const child = fuse(save, f.a, f.b, f.kind, f.extra);
+          state.born = child.kind;
+          state.fuse = { a: null, b: null, kind: null, extra: [] };
+          api.persist();
+          api.rerender();
+        },
+        '融合する',
+      );
+      return false;
     }
     case 'codex-go': {
       const cost = codexCost(data.kind);

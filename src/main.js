@@ -14,7 +14,7 @@ import { draw, CELL, facilityIcon, FACILITY_COLOR } from './ui/render.js';
 import { renderMonsterScreen, onMonsterAction } from './ui/monsterScreen.js';
 import { recordBattle, skillsOf } from './core/breeding.js';
 
-const VERSION = 'v0.4.0';
+const VERSION = 'v0.4.1';
 const STEP = 1 / 60;
 const AUTO_RETRY_DELAY = 1500; // ミリ秒
 // 自動で再挑戦している間の速さの上限。周回が攻略後の自動獲得より速くなりすぎないようにする
@@ -56,14 +56,42 @@ setInterval(() => {
   renderBank();
 }, 1000);
 
-document.getElementById('reset-save').addEventListener('click', () => {
-  if (!confirm('セーブを消して、最初からにしますか？')) return;
+// ---------- ページの中に出す確認 ----------
+// ブラウザの confirm() は、アプリ内のブラウザなどでは出ずに「キャンセル」扱いになることがあるので使わない
+function askConfirm(text, onYes, yesLabel = 'はい') {
+  const el = document.createElement('div');
+  el.className = 'modal';
+  el.innerHTML = `<div class="box" role="dialog" aria-modal="true"><p></p><div class="row"><button class="primary" data-yes>${yesLabel}</button><button data-no>やめる</button></div></div>`;
+  el.querySelector('p').textContent = text;
+  const close = () => {
+    el.remove();
+    window.removeEventListener('keydown', onKey, true);
+  };
+  const onKey = (ev) => {
+    if (ev.key === 'Escape') {
+      ev.stopPropagation();
+      close();
+    }
+  };
+  el.addEventListener('click', (ev) => {
+    if (ev.target.closest('[data-yes]')) {
+      close();
+      onYes();
+    } else if (ev.target.closest('[data-no]') || ev.target === el) close();
+  });
+  window.addEventListener('keydown', onKey, true);
+  document.body.appendChild(el);
+  el.querySelector('[data-yes]').focus();
+}
+
+document.getElementById('reset-save').addEventListener('click', () => askConfirm('セーブを消して、最初からにしますか？', resetSave, '消す'));
+function resetSave() {
   clearSave();
   save = newSave();
   screen = { name: 'home' };
   Object.assign(monsterState, { tab: 'roster', selected: null, mix: {}, born: null, fuse: null });
   goHome();
-});
+}
 
 // ---------- 共通の小さな部品 ----------
 const chip = (id, text) => `<span class="chip"><span class="dot" style="background:${ELEMENT[id].color}"></span>${text}</span>`;
@@ -104,7 +132,10 @@ const monsterApi = {
     writeSave(save);
     renderBank();
   },
-  confirm: (text) => window.confirm(text),
+  confirm: (text, onYes, yesLabel) => askConfirm(text, onYes, yesLabel),
+  rerender() {
+    if (screen.name === 'monsters') renderMonsterScreen(app, monsterApi, monsterState);
+  },
   chip,
   costText,
   shapePreview,
@@ -467,11 +498,17 @@ function onAction(s, act, data, el) {
       s.sel = null;
       return changed(s);
     case 'clear-all':
-      if (!confirm('置いたモンスターと施設を全部外しますか？')) return;
-      L.monsters = [];
-      L.facilities = [];
-      s.sel = null;
-      return changed(s);
+      askConfirm(
+        '置いたモンスターと施設を全部外しますか？',
+        () => {
+          L.monsters = [];
+          L.facilities = [];
+          s.sel = null;
+          changed(s);
+        },
+        '外す',
+      );
+      return;
     default:
       return;
   }
