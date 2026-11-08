@@ -49,7 +49,8 @@ export function canPlace(map, layout, item, ignore) {
 }
 
 /**
- * layout.monsters の各要素は { uid, kind, x, y, dir, level?, skills? }（level がなければ1、skills がなければ自分の技だけ）。
+ * layout.monsters の各要素は { uid, kind, x, y, dir, level?, skills?, atkMul? }（level がなければ1、skills がなければ自分の技だけ。atkMul は研究の攻撃力）。
+ * layout.carrySlots：研究で持ち込める資源地の数（なければ置いた分だけ全部効く）。持ち込みの資源地は facilities に kind 'carry' で入る。
  * 戻り値：
  *   working:   Set<uid>         製造施設で作業しているモンスター（作業場所にいて、攻撃範囲が施設に重なる）
  *   prod:      production() の戻り値
@@ -58,6 +59,7 @@ export function canPlace(map, layout, item, ignore) {
  *   units:     戦闘で攻撃するもの [{ id, owner?, skill?, source, x, y, element, atk, interval, targets:Set, buffed }]
  *              モンスターは技1つにつき1ユニット（id = 'uid:技'、owner = uid）
  *   groupSize: 1度にまとめて出すウェーブの数（1 + 動いている角笛の数）
+ *   carried:   資材が入る持ち込みの資源地 [{ x, y, element }]
  */
 export function resolveLayout(map, layout) {
   const facilities = layout.facilities;
@@ -77,7 +79,11 @@ export function resolveLayout(map, layout) {
     if (!workerOf.has(f.id)) workerOf.set(f.id, m.uid);
   }
 
-  const prod = production(map.nodes, all);
+  // 持ち込みの資源地（研究）。持ち込める数より多く置いていれば、あとから置いたものは効かない
+  const carrySlots = layout.carrySlots ?? Infinity;
+  const carryOn = new Set(facilities.filter((f) => f.kind === 'carry').slice(0, carrySlots).map((f) => f.id));
+  const carried = facilities.filter((f) => carryOn.has(f.id)).map((f) => ({ x: f.x, y: f.y, element: f.element }));
+  const prod = production([...map.nodes, ...carried], all);
 
   // 資材を割り当てる。鍛冶場が動いていなければ、鍛冶場が要る施設は資材を使わずに止める
   const withCost = (list) => list.map((f) => ({ ...f, cost: FACILITIES[f.kind].cost }));
@@ -90,7 +96,8 @@ export function resolveLayout(map, layout) {
   const status = new Map();
   for (const f of facilities) {
     const def = FACILITIES[f.kind];
-    if (blocked.has(f.id)) status.set(f.id, 'needs-smithy');
+    if (def.type === 'carry') status.set(f.id, carryOn.has(f.id) ? 'active' : 'research-off');
+    else if (blocked.has(f.id)) status.set(f.id, 'needs-smithy');
     else if (!alloc.active.has(f.id)) status.set(f.id, 'materials');
     else if (def.type === 'production' && !workerOf.has(f.id)) status.set(f.id, 'no-worker');
     else status.set(f.id, 'active');
@@ -120,7 +127,7 @@ export function resolveLayout(map, layout) {
         x: m.x,
         y: m.y,
         element: def.element,
-        atk: atkAt(skill, m.level) * (1 + atkAdd),
+        atk: atkAt(skill, m.level) * (1 + atkAdd) * (m.atkMul ?? 1),
         interval: MONSTERS[skill].interval / (1 + speedAdd),
         targets: new Set(skillTargets(m, skill).map(keyOf)),
         buffed: { sword: atkAdd > 0, flag: speedAdd > 0 },
@@ -134,5 +141,5 @@ export function resolveLayout(map, layout) {
   }
   const groupSize = 1 + running.filter((f) => FACILITIES[f.kind].effect === 'group').length;
 
-  return { working, workerOf, prod, alloc, status, units, groupSize };
+  return { working, workerOf, prod, alloc, status, units, groupSize, carried };
 }

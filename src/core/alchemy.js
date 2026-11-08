@@ -73,12 +73,23 @@ export function codexCost(kind) {
 
 // ---------- レベルアップ ----------
 
-export const LEVEL_CAP = 15; // 限界突破（研究、フェーズ5）で 30・40 に上がる
-export const LEVEL_ELEMENTS = ['none', 'wind', 'earth']; // レベル1〜15は第1地方のエレメントで上げる
+export const LEVEL_CAP = 15; // 研究しないときの上限。限界突破（研究）で 30・40 に上がる（core/research.js の levelCap）
+export const LEVEL_ELEMENTS = ['none', 'wind', 'earth']; // レベル1〜30は第1地方のエレメントで上げる
+export const LEVEL_ELEMENTS_2 = ['water', 'thunder']; // レベル31〜40は第2地方のエレメントで上げる
+export const LEVEL_TIER2_FROM = 30; // このレベルから上げるときは第2地方のエレメント
 
-/** level から level+1 に上げるのに要るエレメントの数。 */
+/** level から level+1 に上げるときに使えるエレメント。 */
+export function levelElements(level) {
+  return level >= LEVEL_TIER2_FROM ? LEVEL_ELEMENTS_2 : LEVEL_ELEMENTS;
+}
+
+/**
+ * level から level+1 に上げるのに要るエレメントの数。
+ * 15までは1.2倍ずつ上がる。15から先（限界突破）は、15→16 の値段に1レベルごと6ずつ足す（倍々にすると40まで届かないため）
+ */
 export function levelUpCost(level) {
-  return Math.ceil(3 * 1.2 ** (level - 1));
+  if (level < LEVEL_CAP) return Math.ceil(3 * 1.2 ** (level - 1));
+  return Math.ceil(3 * 1.2 ** (LEVEL_CAP - 1)) + 6 * (level - LEVEL_CAP);
 }
 
 /** レベルによる攻撃力の倍率。レベル15で約2.1倍。 */
@@ -97,7 +108,7 @@ export function atkAt(kind, level = 1) {
  */
 export function levelUpPayment(elements, monsterElement, level) {
   let need = levelUpCost(level);
-  const order = [...LEVEL_ELEMENTS].sort((a, b) => (b === monsterElement) - (a === monsterElement) || (elements[b] ?? 0) - (elements[a] ?? 0));
+  const order = [...levelElements(level)].sort((a, b) => (b === monsterElement) - (a === monsterElement) || (elements[b] ?? 0) - (elements[a] ?? 0));
   const payment = {};
   for (const id of order) {
     const take = Math.min(need, Math.floor(elements[id] ?? 0));

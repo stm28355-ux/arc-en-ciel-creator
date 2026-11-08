@@ -46,8 +46,16 @@ export const FACILITIES = {
     effect: 'group',
     shape: ['o'],
   },
+  // 研究「資源地の持ち込み」で置ける資源地。資材は使わない。element は置くときに選ぶ（攻略した地域の資源地の属性）
+  carry: {
+    name: '持ち込みの資源地',
+    type: 'carry',
+    cost: {},
+    desc: '研究で持ち込んだ資源地。地域の資源地と同じく、まわり8マスや攻撃範囲に入れたモンスターから資材が入る',
+    shape: ['o'],
+  },
 };
 
 export const FACILITY_ORDER = ['beam', 'smithy', 'sword', 'flag', 'horn'];
 
-export const FACILITY_TYPE_NAME = { combat: '戦闘施設', progress: '進行施設', production: '製造施設' };
+export const FACILITY_TYPE_NAME = { combat: '戦闘施設', progress: '進行施設', production: '製造施設', carry: '持ち込み' };

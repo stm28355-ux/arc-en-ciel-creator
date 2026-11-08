@@ -542,3 +542,6 @@ details.help ul {
 .rule-line {
   margin: 10px 0 4px;
 }
+.card.research.off {
+  opacity: 0.7;
+}

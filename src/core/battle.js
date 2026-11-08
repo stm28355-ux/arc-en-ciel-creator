@@ -4,15 +4,16 @@ import { ENEMIES } from '../data/enemies.js';
 import { emptyBag, bagTotal } from '../data/elements.js';
 import { pointOnPath, pathLength } from './map.js';
 
-export function createBattle(region, map) {
+/** opts.baseHpAdd：研究で増えた拠点の耐久 */
+export function createBattle(region, map, { baseHpAdd = 0 } = {}) {
   return {
     phase: 'ready', // ready → running → won | lost
     waves: region.waves,
     waveGap: region.waveGap,
     pathLen: pathLength(map.path),
     path: map.path,
-    baseHp: region.baseHp,
-    baseMax: region.baseHp,
+    baseHp: region.baseHp + baseHpAdd,
+    baseMax: region.baseHp + baseHpAdd,
     time: 0, // 獲得ペース用のタイマー。step を呼ばない間（一時停止中）は進まない
     wavesStarted: 0,
     pending: [], // まだ出ていない敵 { at, enemy, wave }

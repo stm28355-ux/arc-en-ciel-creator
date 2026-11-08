@@ -13,8 +13,10 @@ import { loadSave, writeSave, clearSave, regionSave, newSave } from './core/save
 import { draw, CELL, facilityIcon, FACILITY_COLOR } from './ui/render.js';
 import { renderMonsterScreen, onMonsterAction } from './ui/monsterScreen.js';
 import { recordBattle, skillsOf } from './core/breeding.js';
+import { researchEffects } from './core/research.js';
+import { renderResearchScreen, onResearchAction } from './ui/researchScreen.js';
 
-const VERSION = 'v0.4.2';
+const VERSION = 'v0.5.0';
 const STEP = 1 / 60;
 const AUTO_RETRY_DELAY = 1500; // ミリ秒
 // 自動で再挑戦している間の速さの上限。周回が攻略後の自動獲得より速くなりすぎないようにする
@@ -33,9 +35,11 @@ const navEl = document.getElementById('nav');
 const guideEl = document.getElementById('guide');
 
 // ---------- 持っているエレメントと、攻略済み地域からの自動の獲得（ページを開いている間だけ） ----------
+// 研究「獲得ペース」で増える
 function incomeBag() {
+  const mul = researchEffects(save).paceMul;
   let bag = {};
-  for (const r of Object.values(save.regions)) if (r.cleared) bag = addBag(bag, r.paceBag);
+  for (const r of Object.values(save.regions)) if (r.cleared) bag = addBag(bag, r.paceBag, mul);
   return bag;
 }
 function renderBank() {
@@ -114,13 +118,15 @@ function guideStep() {
 function renderGuide() {
   const step = guideStep();
   guideEl.innerHTML = step ? `<div class="guide"><b>はじめに</b> ${step}</div>` : '';
-  for (const b of navEl.querySelectorAll('[data-nav]')) b.classList.toggle('on', (b.dataset.nav === 'monsters') === (screen.name === 'monsters'));
+  const cur = screen.name === 'monsters' || screen.name === 'research' ? screen.name : 'regions';
+  for (const b of navEl.querySelectorAll('[data-nav]')) b.classList.toggle('on', b.dataset.nav === cur);
 }
 
 navEl.addEventListener('click', (ev) => {
   const b = ev.target.closest('[data-nav]');
   if (!b) return;
   if (b.dataset.nav === 'monsters') goMonsters();
+  else if (b.dataset.nav === 'research') goResearch();
   else goHome();
 });
 
@@ -148,6 +154,25 @@ function goMonsters() {
   renderMonsterScreen(app, monsterApi, monsterState);
 }
 
+// ---------- 研究 ----------
+const researchApi = {
+  get save() {
+    return save;
+  },
+  persist() {
+    writeSave(save);
+    renderBank();
+  },
+  costText,
+};
+
+function goResearch() {
+  if (screen.name === 'map') leaveMap(screen);
+  screen = { name: 'research' };
+  renderBank();
+  renderResearchScreen(app, researchApi);
+}
+
 // ---------- ホーム：地方と地域の選択 ----------
 function goHome() {
   if (screen.name === 'map') leaveMap(screen);
@@ -169,7 +194,7 @@ function goHome() {
           <span class="name">${r.name}</span>
           <span>${els}</span>
           ${status}
-          ${r.waves ? `<span class="meta">ウェーブ ${r.waves.length} · 拠点の耐久 ${r.baseHp}</span>` : ''}
+          ${r.waves ? `<span class="meta">ウェーブ ${r.waves.length} · 拠点の耐久 ${r.baseHp + researchEffects(save).baseHpAdd}</span>` : ''}
         </button>`;
       })
       .join('');
@@ -184,7 +209,8 @@ function openRegion(regionId) {
   const rs = regionSave(save, regionId);
   // 古いセーブには向きがないので上向きにする
   for (const it of [...rs.layout.monsters, ...rs.layout.facilities]) it.dir ??= 'up';
-  rs.layout.monsters = rs.layout.monsters.filter((m) => save.roster.some((r) => r.uid === m.uid));
+  // 手持ちにいないモンスターは外す。v0.4 の版でレベルなども保存していたので、置き場所だけにする
+  rs.layout.monsters = rs.layout.monsters.filter((m) => save.roster.some((r) => r.uid === m.uid)).map(({ uid, kind, x, y, dir }) => ({ uid, kind, x, y, dir }));
   save.settings ??= { autoRetry: false };
   const s = {
     name: 'map',
@@ -192,7 +218,7 @@ function openRegion(regionId) {
     map,
     rs,
     layout: rs.layout,
-    battle: createBattle(region, map),
+    battle: createBattle(region, map, researchEffects(save)),
     banked: false,
     paused: false,
     speed: 1,
@@ -245,10 +271,20 @@ app.addEventListener('click', (ev) => {
     if (onMonsterAction(monsterApi, monsterState, m.dataset.mact, m.dataset)) renderMonsterScreen(app, monsterApi, monsterState);
     return;
   }
+  const r = ev.target.closest('[data-ract]');
+  if (r && screen.name === 'research') {
+    if (r.tagName === 'BUTTON' && onResearchAction(researchApi, r.dataset.ract, r.dataset, r)) renderResearchScreen(app, researchApi);
+    return;
+  }
   const el = ev.target.closest('[data-act]');
   if (el && screen.name === 'map') onAction(screen, el.dataset.act, el.dataset, el);
 });
 app.addEventListener('change', (ev) => {
+  const r = ev.target.closest('[data-ract]');
+  if (r && screen.name === 'research') {
+    if (onResearchAction(researchApi, r.dataset.ract, r.dataset, r)) renderResearchScreen(app, researchApi);
+    return;
+  }
   const el = ev.target.closest('[data-act]');
   if (el && screen.name === 'map') onAction(screen, el.dataset.act, el.dataset, el);
 });
@@ -272,14 +308,28 @@ function cellAt(cv, ev, map) {
   return { x, y };
 }
 
-/** 手持ちのレベルと技を配置に入れて計算する。 */
+/** 手持ちのレベルと技、研究の効き目（攻撃力・レベルの上限・持ち込める資源地の数）を配置に入れて計算する。 */
 function withLevels(layout) {
-  return { ...layout, monsters: layout.monsters.map(withRoster) };
+  return { ...layout, monsters: layout.monsters.map(withRoster), carrySlots: researchEffects(save).carrySlots };
 }
 function withRoster(m) {
   const r = save.roster.find((x) => x.uid === m.uid);
-  return { ...m, level: r?.level ?? 1, skills: r ? skillsOf(r) : [m.kind] };
+  const fx = researchEffects(save);
+  // 限界突破を OFF にしていると、上限より上のレベルでも上限のレベルとして戦う
+  return { ...m, level: Math.min(r?.level ?? 1, fx.levelCap), skills: r ? skillsOf(r) : [m.kind], atkMul: fx.atkMul };
 }
+
+/** 持ち込める資源地の属性：攻略した地域の資源地の属性 */
+function carryElements() {
+  const have = new Set();
+  for (const [id, r] of Object.entries(save.regions)) if (r.cleared) for (const e of REGIONS[id].elements) have.add(e);
+  return ELEMENTS.map((e) => e.id).filter((id) => have.has(id));
+}
+const carriedCount = (s) => s.layout.facilities.filter((f) => f.kind === 'carry').length;
+const carryRoom = (s) => carriedCount(s) < researchEffects(save).carrySlots;
+
+/** 施設の名前（持ち込みの資源地は属性つき） */
+const facilityName = (f) => (f.kind === 'carry' ? `${ELEMENT[f.element].name}の資源地（持ち込み）` : FACILITIES[f.kind].name);
 
 function refresh(s) {
   s.resolved = resolveLayout(s.map, withLevels(s.layout));
@@ -335,8 +385,8 @@ function ghostAt(s, c) {
   }
   if (sel.type === 'build') {
     const def = FACILITIES[sel.kind];
-    const item = { id: 'ghost', kind: sel.kind, x: c.x, y: c.y, dir: s.placeDir };
-    const ok = canPlace(s.map, s.layout, item) && canAfford(s.resolved.alloc.remaining, def.cost) && requirementMet(s, sel.kind);
+    const item = { id: 'ghost', kind: sel.kind, x: c.x, y: c.y, dir: s.placeDir, ...(sel.element ? { element: sel.element } : {}) };
+    const ok = canPlace(s.map, s.layout, item) && canAfford(s.resolved.alloc.remaining, def.cost) && requirementMet(s, sel.kind) && (sel.kind !== 'carry' || carryRoom(s));
     return { item, ok };
   }
   if (sel.type === 'facility') {
@@ -358,13 +408,18 @@ function onCellClick(s, c) {
         const def = FACILITIES[s.sel.kind];
         if (!canAfford(s.resolved.alloc.remaining, def.cost)) return hint(s, '資材が足りません');
         if (!requirementMet(s, s.sel.kind)) return hint(s, '鍛冶場が動いていないので建てられません');
+        if (s.sel.kind === 'carry' && !carryRoom(s)) return hint(s, '持ち込める数まで置いています');
       }
       return hint(s, 'そこには置けません（道・資源地・木・池・ほかのものがあるマス）');
     }
     if (s.sel.type === 'monster') {
       const placed = placedMonster(s, s.sel.uid);
       if (placed) Object.assign(placed, { x: c.x, y: c.y });
-      else L.monsters.push({ ...g.item });
+      else {
+        // 配置に残すのは置き場所だけ（レベル・技・研究の効き目は withRoster で毎回入れる）
+        const { uid, kind, x, y, dir } = g.item;
+        L.monsters.push({ uid, kind, x, y, dir });
+      }
       const id = s.sel.uid;
       s.sel = null;
       return changed(s, [id]);
@@ -428,7 +483,7 @@ function bankRun(s) {
 function resetBattle(s) {
   clearTimeout(s.autoTimer);
   bankRun(s);
-  s.battle = createBattle(s.region, s.map);
+  s.battle = createBattle(s.region, s.map, researchEffects(save));
   s.banked = false;
   s.recorded = false;
   s.result = null;
@@ -483,6 +538,11 @@ function onAction(s, act, data, el) {
     case 'pick-build':
       s.sel = s.sel?.kind === data.kind ? null : { type: 'build', kind: data.kind };
       break;
+    case 'pick-carry': {
+      const same = s.sel?.type === 'build' && s.sel.kind === 'carry' && s.sel.element === data.element;
+      s.sel = same ? null : { type: 'build', kind: 'carry', element: data.element };
+      break;
+    }
     case 'pick-facility':
       s.sel = s.sel?.id === data.id ? null : { type: 'facility', id: data.id };
       break;
@@ -659,6 +719,7 @@ const STATUS_LABEL = {
   materials: ['停止（資材不足）', 'stopped'],
   'no-worker': ['停止（作業場所に、施設の方を向いたモンスターがいない）', 'stopped'],
   'needs-smithy': ['停止（鍛冶場が動いていない）', 'stopped'],
+  'research-off': ['資材が入らない（研究「資源地の持ち込み」がOFFか、持ち込める数より多い）', 'stopped'],
 };
 
 function rotateRow(s, text) {
@@ -707,6 +768,20 @@ function renderSide(s) {
         <div class="row" style="margin-top:6px"><button data-act="remove-monster" data-uid="${placed.uid}">外す</button></div></div>`;
     }
   } else {
+    const slots = researchEffects(save).carrySlots;
+    const nCarry = carriedCount(s);
+    if (slots || nCarry) {
+      const els = carryElements();
+      const btns = els
+        .map((id) => {
+          const on = s.sel?.type === 'build' && s.sel.kind === 'carry' && s.sel.element === id;
+          return `<button class="${on ? 'on' : ''}" data-act="pick-carry" data-element="${id}" ${nCarry < slots || on ? '' : 'disabled'}>${chip(id, `${ELEMENT[id].name}の資源地`)}</button>`;
+        })
+        .join('');
+      body += `<div class="card"><h3>資源地を持ち込む <small>${nCarry} / ${slots} 置いている</small></h3>
+        ${els.length ? `<div class="row">${btns}</div>` : '<p class="hint">地域を攻略すると、その地域の資源地を持ち込めます</p>'}
+        <p class="hint">研究「資源地の持ち込み」で置けます。資材は使いません。地域の資源地と同じく、まわり8マスや攻撃範囲に入れたモンスターから資材が入ります。</p></div>`;
+    }
     body += `<div class="card"><h3>施設を建てる <small>資材を使う</small></h3><div class="list">${FACILITY_ORDER.map((kind) => {
       const def = FACILITIES[kind];
       const sel = s.sel?.type === 'build' && s.sel.kind === kind;
@@ -726,8 +801,8 @@ function renderSide(s) {
           const [text, cls] = STATUS_LABEL[status.get(f.id)];
           const sel = s.sel?.type === 'facility' && s.sel.id === f.id;
           return `<button class="item ${sel ? 'sel' : ''}" data-act="pick-facility" data-id="${f.id}">
-            <span class="icon sq" style="background:${FACILITY_COLOR[def.type]}">${facilityIcon(f.kind)}</span>
-            <span>${def.name}</span>
+            <span class="icon sq" style="background:${f.kind === 'carry' ? ELEMENT[f.element].color : FACILITY_COLOR[def.type]}">${facilityIcon(f.kind)}</span>
+            <span>${facilityName(f)}</span>
             <span class="state ${cls}">${text}</span>
           </button>`;
         })
@@ -735,11 +810,11 @@ function renderSide(s) {
     }
     if (placed?.id) {
       const def = FACILITIES[placed.kind];
-      body += `<div class="card info"><h3>${def.name} <small>${DIR_NAME[placed.dir]}向き</small></h3>
+      body += `<div class="card info"><h3>${facilityName(placed)} <small>${DIR_NAME[placed.dir]}向き</small></h3>
         <p>${def.desc}</p>
         <p class="${status.get(placed.id) === 'active' ? '' : 'neg'}">${STATUS_LABEL[status.get(placed.id)][0]}</p>
         ${rotateRow(s, '別のマスを押すと移動')}
-        <div class="row" style="margin-top:6px"><button data-act="remove-facility" data-id="${placed.id}">取り壊す</button></div></div>`;
+        <div class="row" style="margin-top:6px"><button data-act="remove-facility" data-id="${placed.id}">${placed.kind === 'carry' ? '外す' : '取り壊す'}</button></div></div>`;
     }
   }
 
@@ -772,6 +847,7 @@ function renderSide(s) {
     <li>資源地（◆）のまわり8マスに置くと資材 +2、攻撃範囲のマスに入れると +1。モンスターと同じ属性なら +1。</li>
     <li>資材で施設を建てます。資材が減ると、足りない施設のうち最後に建てたものが止まります。</li>
     <li>鍛冶場（製造施設）は、前の2マス（点線）に、攻撃範囲が鍛冶場に重なる向きでモンスターを置くと動きます。動いている間だけ剣の台座が建てられ、効果が出ます。作業中のモンスターも攻撃と生産をします。</li>
+    <li>研究「資源地の持ち込み」をすると、建設タブから、攻略した地域の資源地を置けます。資材は使いません。</li>
     <li>連戦の角笛は重ねて置けます。1個で2ウェーブずつ、2個で3ウェーブずつまとめて出ます。</li>
     <li>ボス（王の印）を通すと、拠点は全損です。【強】の敵は拠点を2減らします。</li>
     <li>獲得ペース ＝ 手に入れたエレメント ÷ 全ウェーブを倒すのにかかった時間。一時停止中はタイマーが止まります。負けても手に入れたエレメントは持ち帰ります。</li>

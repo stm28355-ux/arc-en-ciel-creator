@@ -9,9 +9,9 @@ import { cellsOf, rotate } from '../core/shape.js';
 
 export const CELL = 32;
 
-const FACILITY_ICON = { beam: '光', sword: '剣', flag: '旗', horn: '笛', smithy: '鍛' };
+const FACILITY_ICON = { beam: '光', sword: '剣', flag: '旗', horn: '笛', smithy: '鍛', carry: '◆' };
 export const facilityIcon = (kind) => FACILITY_ICON[kind] ?? '施';
-export const FACILITY_COLOR = { combat: '#f0d9a7', progress: '#c9a7f0', production: '#a7d8f0' };
+export const FACILITY_COLOR = { combat: '#f0d9a7', progress: '#c9a7f0', production: '#a7d8f0', carry: '#e0e0e0' };
 
 /**
  * view = { map, battle, layout, resolved, hover:{x,y}|null,
@@ -22,7 +22,9 @@ export function draw(ctx, view) {
   ctx.save();
   ctx.clearRect(0, 0, map.w * CELL, map.h * CELL);
   drawGround(ctx, map);
-  drawNodes(ctx, map, view.nodeYield ?? resolved.prod.perNode);
+  // 地域の資源地と、研究で持ち込んだ資源地
+  const carried = layout.facilities.filter((f) => f.kind === 'carry').map((f) => ({ x: f.x, y: f.y, element: f.element, carried: true, off: resolved.status.get(f.id) !== 'active' }));
+  drawNodes(ctx, [...map.nodes, ...carried], view.nodeYield ?? resolved.prod.perNode);
   drawBase(ctx, map, view.battle);
 
   // 製造施設の作業場所
@@ -38,7 +40,7 @@ export function draw(ctx, view) {
 
   if (view.focus) drawTargets(ctx, view.focus, 'rgba(143,184,255,0.28)', 'rgba(143,184,255,0.9)');
 
-  for (const f of layout.facilities) drawFacility(ctx, f, resolved.status.get(f.id));
+  for (const f of layout.facilities) if (f.kind !== 'carry') drawFacility(ctx, f, resolved.status.get(f.id));
   for (const m of layout.monsters) drawMonster(ctx, m, resolved.units.find((u) => u.owner === m.uid), resolved.working.has(m.uid));
 
   if (view.ghost) {
@@ -46,6 +48,7 @@ export function draw(ctx, view) {
     drawTargets(ctx, item, ok ? 'rgba(255,255,255,0.18)' : 'rgba(255,90,90,0.15)', ok ? 'rgba(255,255,255,0.8)' : 'rgba(255,90,90,0.8)');
     ctx.globalAlpha = 0.65;
     if (item.uid) drawMonster(ctx, item, null, false);
+    else if (item.kind === 'carry') drawNodes(ctx, [{ ...item, carried: true }], new Map());
     else drawFacility(ctx, item, 'active');
     ctx.globalAlpha = 1;
     if (!ok) for (const c of footprintOf(item)) cross(ctx, c.x, c.y);
@@ -120,10 +123,20 @@ function drawGround(ctx, map) {
   ctx.fillText('▶', s.x * CELL + CELL / 2, s.y * CELL + CELL / 2);
 }
 
-function drawNodes(ctx, map, perNode) {
-  for (const n of map.nodes) {
+function drawNodes(ctx, nodes, perNode) {
+  for (const n of nodes) {
     const cx = n.x * CELL + CELL / 2;
     const cy = n.y * CELL + CELL / 2;
+    const alpha = ctx.globalAlpha;
+    if (n.off) ctx.globalAlpha *= 0.4;
+    if (n.carried) {
+      // 持ち込んだ資源地：点線の枠で地域の資源地と見分ける
+      ctx.setLineDash([3, 3]);
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(n.x * CELL + 1.5, n.y * CELL + 1.5, CELL - 3, CELL - 3);
+      ctx.setLineDash([]);
+    }
     ctx.fillStyle = 'rgba(0,0,0,0.25)';
     ctx.fillRect(n.x * CELL, n.y * CELL, CELL, CELL);
     ctx.fillStyle = ELEMENT[n.element].color;
@@ -142,6 +155,8 @@ function drawNodes(ctx, map, perNode) {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(ELEMENT[n.element].name, cx, cy + 1);
+    ctx.globalAlpha = alpha;
+    if (n.off) label(ctx, 'OFF', cx, cy + 12);
     const y = perNode.get(`${n.x},${n.y}`);
     if (y) label(ctx, `+${y}`, cx + 10, cy - 11);
   }

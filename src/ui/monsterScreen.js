@@ -5,7 +5,8 @@ import { RECIPES, HINTS, MIX_MIN_TOTAL, MIX_MAX_TOTAL } from '../data/recipes.js
 import { FAMILY_ORDER, RARE_FUSIONS, familyName } from '../data/families.js';
 import { REGIONS } from '../data/regions.js';
 import { EVOLUTIONS, EVOLVED_FROM } from '../data/evolutions.js';
-import { mixResult, canPay, pay, codexCost, levelUpCost, levelUpPayment, atkAt, LEVEL_CAP, LEVEL_ELEMENTS } from '../core/alchemy.js';
+import { mixResult, canPay, pay, codexCost, levelUpCost, levelUpPayment, levelElements, atkAt, LEVEL_CAP, LEVEL_ELEMENTS, LEVEL_TIER2_FROM } from '../core/alchemy.js';
+import { levelCap, researchedLevel } from '../core/research.js';
 import { addMonster } from '../core/save.js';
 import { skillsOf, fusionCandidates, fusionRule, fusionMembers, inheritableSkills, fuse, evolutionOf, evolutionProgress, evolve, MAX_SKILLS } from '../core/breeding.js';
 
@@ -49,7 +50,7 @@ export function onMonsterAction(api, state, act, data) {
       return true;
     case 'levelup': {
       const m = save.roster.find((r) => r.uid === data.uid);
-      if (!m || m.level >= LEVEL_CAP) return false;
+      if (!m || m.level >= levelCap(save)) return false;
       const payment = levelUpPayment(save.elements, MONSTERS[m.kind].element, m.level);
       if (!payment) return false;
       save.elements = pay(save.elements, payment);
@@ -197,17 +198,27 @@ function rosterView(api, state) {
   let detail = '<div class="card"><p class="hint">モンスターを選ぶと、くわしい情報・レベルアップ・進化が出ます。</p></div>';
   if (sel) {
     const def = MONSTERS[sel.kind];
-    const atMax = sel.level >= LEVEL_CAP;
+    const cap = levelCap(save);
+    const atMax = sel.level >= cap;
+    const tier = sel.level >= LEVEL_TIER2_FROM ? '第2地方（水・雷）' : '第1地方';
+    const order = levelElements(sel.level).includes(def.element) ? `${ELEMENT[def.element].name}から先に使う` : '多く持っているものから使う';
+    const nextLimit = cap >= 40 ? null : cap >= 30 ? ['limit2', '限界突破 II', 40] : ['limit1', '限界突破 I', 30];
+    const maxText = !nextLimit
+      ? 'レベルの上限です'
+      : researchedLevel(save, nextLimit[0])
+        ? `レベルの上限です（研究「${nextLimit[1]}」を OFF にしています）`
+        : `レベルの上限です（研究「${nextLimit[1]}」で${nextLimit[2]}まで上がります）`;
     const payment = atMax ? null : levelUpPayment(save.elements, def.element, sel.level);
     const cost = atMax ? 0 : levelUpCost(sel.level);
     detail = `<div class="card info">
-      <h3>${def.name} <small>Lv${sel.level} / ${LEVEL_CAP}</small></h3>
+      <h3>${def.name} <small>Lv${sel.level} / ${cap}</small></h3>
+      ${sel.level > cap ? `<p class="hint">研究「限界突破」が OFF なので、戦闘では Lv${cap} として戦います</p>` : ''}
       <p>属性：${ELEMENT[def.element].name} · ${famRank(sel.kind)}</p>
       ${skillsBlock(api, sel)}
       ${
         atMax
-          ? '<p class="hint">レベルの上限です（限界突破は研究で解放されます）</p>'
-          : `<p>レベルアップ：第1地方のエレメント ${cost}（${ELEMENT[def.element].name}から先に使う）。攻撃 +8%</p>
+          ? `<p class="hint">${maxText}</p>`
+          : `<p>レベルアップ：${tier}のエレメント ${cost}（${order}）。攻撃 +8%</p>
              <p class="hint">${payment ? `使う内訳：${api.costText(payment)}` : 'エレメントが足りません'}</p>
              <button class="primary" data-mact="levelup" data-uid="${sel.uid}" ${payment ? '' : 'disabled'}>レベルアップ</button>`
       }

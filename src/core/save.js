@@ -16,6 +16,8 @@ export function newSave() {
     codex: {}, // 図鑑：一度手に入れたモンスター kind → true
     regions: {}, // regionId → { cleared, clears, bestPace, paceBag, layout }
     settings: { autoRetry: false },
+    research: {}, // 研究したレベル id → n（src/data/research.js）
+    researchOff: {}, // OFF にしている研究 id → true（縛りプレイ用）
   };
 }
 
