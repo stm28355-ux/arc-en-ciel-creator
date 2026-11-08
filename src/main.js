@@ -14,7 +14,7 @@ import { draw, CELL, facilityIcon, FACILITY_COLOR } from './ui/render.js';
 import { renderMonsterScreen, onMonsterAction } from './ui/monsterScreen.js';
 import { recordBattle, skillsOf } from './core/breeding.js';
 
-const VERSION = 'v0.4.1';
+const VERSION = 'v0.4.2';
 const STEP = 1 / 60;
 const AUTO_RETRY_DELAY = 1500; // ミリ秒
 // 自動で再挑戦している間の速さの上限。周回が攻略後の自動獲得より速くなりすぎないようにする

@@ -1,9 +1,7 @@
 // 融合・技の継承・進化。画面なしで動く。
-import { addBag } from '../data/elements.js';
 import { MONSTERS } from '../data/monsters.js';
-import { CODEX_COST } from '../data/recipes.js';
-import { EVOLUTIONS, EVOLVED_FROM } from '../data/evolutions.js';
-import { mixResult } from './alchemy.js';
+import { EVOLUTIONS } from '../data/evolutions.js';
+import { FAMILY_TABLE, FUSION_RANK_UP, RARE_FUSIONS, pairKey } from '../data/families.js';
 
 export const MAX_SKILLS = 3;
 
@@ -12,18 +10,55 @@ export function skillsOf(m) {
   return m.skills?.length ? m.skills : [m.kind];
 }
 
-/** 融合の配合を決める「そのモンスターのもとになるエレメント」。進化後は進化前のもの。 */
-export function makeupOf(kind) {
-  return CODEX_COST[EVOLVED_FROM[kind] ?? kind];
+// ---------- 融合のルール（src/data/families.js） ----------
+
+/** 子の系統：同じ系統どうしならその系統、違えば表で決まる。 */
+export function childFamily(fa, fb) {
+  return fa === fb ? fa : FAMILY_TABLE[pairKey(fa, fb)];
+}
+
+/** その系統の、融合のルールで生まれるモンスター（位階の低い順）。 */
+export function fusionMembers(family) {
+  return Object.keys(MONSTERS)
+    .filter((k) => MONSTERS[k].fusion && MONSTERS[k].family === family)
+    .sort((x, y) => MONSTERS[x].rank - MONSTERS[y].rank);
 }
 
 /**
- * 融合で生まれるモンスターの候補。
- * 親のどちらか（同じモンスターのままにできる）と、2体のもとのエレメントを合わせた配合から決まるモンスター。
+ * 融合のルールで決まる子。{ family, rank, kind }
+ * rank は親2体の位階の平均（切り捨て）＋1。kind はその系統の融合モンスターのうち、位階が rank 以上で一番近いもの。
+ * なければ一番上のもの。その系統に融合モンスターがまだいなければ null。
+ */
+export function fusionRule(kindA, kindB) {
+  const A = MONSTERS[kindA];
+  const B = MONSTERS[kindB];
+  const family = childFamily(A.family, B.family);
+  const rank = Math.floor((A.rank + B.rank) / 2) + FUSION_RANK_UP;
+  const members = fusionMembers(family);
+  const kind = members.find((k) => MONSTERS[k].rank >= rank) ?? members.at(-1) ?? null;
+  return { family, rank, kind };
+}
+
+/** ルールの外の、特別な組み合わせで生まれる子（なければ null）。 */
+export function rareFusion(kindA, kindB) {
+  const hit = RARE_FUSIONS.find(({ parents: [p, q] }) => (p === kindA && q === kindB) || (p === kindB && q === kindA));
+  return hit?.kind ?? null;
+}
+
+/**
+ * 融合で生まれるモンスターの候補。[{ kind, how }]
+ *   how: 'rare' 特別な組み合わせ / 'rule' 融合のルール / 'parent' 親と同じ（同じモンスターのままにできる）
  */
 export function fusionCandidates(a, b) {
-  const mixed = mixResult(addBag(makeupOf(a.kind), makeupOf(b.kind)), { anyTotal: true }).kind;
-  return [...new Set([a.kind, b.kind, mixed].filter(Boolean))];
+  const list = [];
+  const push = (kind, how) => {
+    if (kind && !list.some((c) => c.kind === kind)) list.push({ kind, how });
+  };
+  push(rareFusion(a.kind, b.kind), 'rare');
+  push(fusionRule(a.kind, b.kind).kind, 'rule');
+  push(a.kind, 'parent');
+  push(b.kind, 'parent');
+  return list;
 }
 
 /** 引き継げる技（生まれるモンスター自身の技は必ず持つので除く）。 */
@@ -41,7 +76,7 @@ export function fuse(save, uidA, uidB, resultKind, extra = []) {
   const a = save.roster.find((m) => m.uid === uidA);
   const b = save.roster.find((m) => m.uid === uidB);
   if (!a || !b) throw new Error('手持ちにいない');
-  if (!fusionCandidates(a, b).includes(resultKind)) throw new Error('候補にないモンスター');
+  if (!fusionCandidates(a, b).some((c) => c.kind === resultKind)) throw new Error('候補にないモンスター');
   const pool = inheritableSkills(a, b, resultKind);
   const keep = [...new Set(extra)].filter((k) => pool.includes(k));
   if (keep.length > MAX_SKILLS - 1) throw new Error(`引き継げる技は${MAX_SKILLS - 1}つまで`);

@@ -536,3 +536,9 @@ details.help ul {
   justify-content: flex-end;
   margin-top: 10px;
 }
+.family-head {
+  margin: 16px 0 8px;
+}
+.rule-line {
+  margin: 10px 0 4px;
+}

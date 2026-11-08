@@ -1,7 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { newSave, addMonster } from '../src/core/save.js';
-import { fusionCandidates, inheritableSkills, fuse, evolve, evolutionProgress, recordBattle, skillsOf } from '../src/core/breeding.js';
+import { fusionCandidates, fusionRule, fusionMembers, childFamily, inheritableSkills, fuse, evolve, evolutionProgress, recordBattle, skillsOf } from '../src/core/breeding.js';
+import { MONSTERS } from '../src/data/monsters.js';
+import { FAMILIES, FAMILY_ORDER, RARE_FUSIONS } from '../src/data/families.js';
 import { resolveLayout } from '../src/core/layout.js';
 import { parseMap } from '../src/core/map.js';
 import { REGIONS } from '../src/data/regions.js';
@@ -15,29 +17,78 @@ function saveWith(...kinds) {
   return { s, ms };
 }
 
-test('融合の候補：親のどちらかと、2体のもとのエレメントを合わせた配合のモンスター', () => {
-  const { ms } = saveWith('slime', 'bat');
-  // 無12 + 風12 → 同じ量なので無が一番、風が二番 → のはらの精
-  assert.deepEqual(fusionCandidates(ms[0], ms[1]), ['slime', 'bat', 'sprite']);
+const kinds = (list) => list.map((c) => `${c.how}:${c.kind}`);
+
+test('系統と位階のデータ：どのモンスターにも系統と位階がある。表は45通りそろっている', () => {
+  for (const [k, d] of Object.entries(MONSTERS)) {
+    assert.ok(FAMILIES[d.family], `${k} の系統`);
+    assert.ok(Number.isInteger(d.rank) && d.rank >= 1, `${k} の位階`);
+  }
+  for (let i = 0; i < FAMILY_ORDER.length; i++)
+    for (let j = i + 1; j < FAMILY_ORDER.length; j++) assert.ok(FAMILIES[childFamily(FAMILY_ORDER[i], FAMILY_ORDER[j])], `${FAMILY_ORDER[i]}×${FAMILY_ORDER[j]}`);
+  // 融合のルールで生まれるモンスターは、系統の中で位階が重ならない（どれが生まれるかが1つに決まる）
+  for (const f of FAMILY_ORDER) {
+    const ranks = fusionMembers(f).map((k) => MONSTERS[k].rank);
+    assert.equal(new Set(ranks).size, ranks.length, f);
+  }
+  for (const r of RARE_FUSIONS) {
+    assert.ok(MONSTERS[r.kind].rare, r.kind);
+    for (const p of r.parents) assert.ok(MONSTERS[p], p);
+  }
+});
+
+test('融合のルール：今いるモンスターどうしなら、何かが必ず生まれる。融合モンスターは全部どこかの組み合わせで生まれる', () => {
+  const all = Object.keys(MONSTERS);
+  const born = new Set();
+  for (const a of all)
+    for (const b of all) {
+      const r = fusionRule(a, b);
+      assert.ok(r.kind, `${a}×${b} → ${r.family}`);
+      assert.equal(fusionRule(b, a).kind, r.kind, '親の順番は関係ない');
+      born.add(r.kind);
+    }
+  for (const k of all.filter((x) => MONSTERS[x].fusion)) assert.ok(born.has(k), k);
+});
+
+test('融合のルール：子の系統は表で、位階は親の平均＋1で決まる', () => {
+  // ゲル(位階1)×けもの(位階1) → けもの系、位階2 → けもの系の融合モンスターで位階2以上の一番近いもの
+  assert.deepEqual(fusionRule('slime', 'bat'), { family: 'beast', rank: 2, kind: 'hedgehog' });
+  // 同じ系統どうしは、その系統
+  assert.deepEqual(fusionRule('slime', 'slime'), { family: 'gel', rank: 2, kind: 'stoneslime' });
+  // 位階3×位階4 → 平均3.5を切り捨てて3、＋1で4 → 位階5のオーロラゲル
+  assert.deepEqual(fusionRule('stoneslime', 'prism'), { family: 'gel', rank: 4, kind: 'auroragel' });
+  // 一番上より高くなるときは、一番上のもの
+  assert.equal(fusionRule('cloudbird', 'cloudbird').kind, 'cloudbird');
+  // いわ×植物 → いわ系
+  assert.equal(fusionRule('golem', 'sprite').kind, 'mossgolem');
+});
+
+test('融合の候補：特別な組み合わせ・融合のルール・親と同じ', () => {
+  const { ms } = saveWith('slime', 'bat', 'turtle', 'swallow');
+  assert.deepEqual(kinds(fusionCandidates(ms[0], ms[1])), ['rule:hedgehog', 'parent:slime', 'parent:bat']);
+  // いわガメ×かぜきりツバメは、特別な組み合わせ（順番は関係ない）
+  assert.deepEqual(kinds(fusionCandidates(ms[2], ms[3])), ['rare:skyshell', 'rule:falcon', 'parent:turtle', 'parent:swallow']);
+  assert.deepEqual(kinds(fusionCandidates(ms[3], ms[2])), ['rare:skyshell', 'rule:falcon', 'parent:swallow', 'parent:turtle']);
   const { ms: same } = saveWith('slime', 'slime');
-  assert.deepEqual(fusionCandidates(same[0], same[1]), ['slime'], '同じモンスターどうしは、そのまま');
+  assert.deepEqual(kinds(fusionCandidates(same[0], same[1])), ['rule:stoneslime', 'parent:slime']);
 });
 
 test('融合：2体は手持ちと配置から消え、レベル1の子が生まれる。技は最大3つ', () => {
   const { s, ms } = saveWith('slime', 'bat', 'hawk');
   s.regions.grassland = { layout: { monsters: [{ uid: ms[0].uid, kind: 'slime', x: 1, y: 1, dir: 'up' }], facilities: [] } };
   ms[0].level = 10;
-  const child = fuse(s, ms[0].uid, ms[1].uid, 'sprite', ['slime', 'bat']);
+  assert.throws(() => fuse(s, ms[0].uid, ms[1].uid, 'sprite'), /候補にない/);
+  const child = fuse(s, ms[0].uid, ms[1].uid, 'hedgehog', ['slime', 'bat']);
   assert.equal(child.level, 1);
-  assert.deepEqual(child.skills, ['sprite', 'slime', 'bat']);
+  assert.deepEqual(child.skills, ['hedgehog', 'slime', 'bat']);
   assert.equal(s.roster.length, 2);
   assert.equal(s.regions.grassland.layout.monsters.length, 0, '配置していた親も消える');
-  assert.equal(s.codex.sprite, true);
+  assert.equal(s.codex.hedgehog, true);
   // 子をさらに融合：技の候補は子と相手の技を合わせたもの
   const pool = inheritableSkills(child, ms[2], 'hawk');
-  assert.deepEqual(pool.sort(), ['bat', 'slime', 'sprite']);
-  assert.throws(() => fuse(s, child.uid, ms[2].uid, 'hawk', ['slime', 'bat', 'sprite']), /2つまで/);
-  assert.throws(() => fuse(s, child.uid, child.uid, 'sprite'), /同じモンスター/);
+  assert.deepEqual(pool.sort(), ['bat', 'hedgehog', 'slime']);
+  assert.throws(() => fuse(s, child.uid, ms[2].uid, 'hawk', ['slime', 'bat', 'hedgehog']), /2つまで/);
+  assert.throws(() => fuse(s, child.uid, child.uid, 'hedgehog'), /同じモンスター/);
 });
 
 test('技を3つ持つモンスターは、技ごとに別々に攻撃する。資源地は全部の範囲で見る', () => {

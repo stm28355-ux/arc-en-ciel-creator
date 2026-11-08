@@ -24,12 +24,11 @@ function matchesSpecial(mix, ratio) {
  * 配合から生まれるモンスター。
  * 戻り値：{ kind, level, waste } か { kind: null, reason }
  *   合計が MIX_MIN_TOTAL を超えた分は、レベルアップの値段どおりにレベルへ変える（余りは waste）
- * anyTotal: true なら合計の上限・下限を見ない（融合で使う）
  */
-export function mixResult(mix, { anyTotal = false } = {}) {
+export function mixResult(mix) {
   const total = ELEMENT_IDS.reduce((s, id) => s + (mix[id] ?? 0), 0);
-  if (!anyTotal && total < MIX_MIN_TOTAL) return { kind: null, reason: `エレメントを合計${MIX_MIN_TOTAL}以上入れてください` };
-  if (!anyTotal && total > MIX_MAX_TOTAL) return { kind: null, reason: `入れられるのは合計${MIX_MAX_TOTAL}まで` };
+  if (total < MIX_MIN_TOTAL) return { kind: null, reason: `エレメントを合計${MIX_MIN_TOTAL}以上入れてください` };
+  if (total > MIX_MAX_TOTAL) return { kind: null, reason: `入れられるのは合計${MIX_MAX_TOTAL}まで` };
   const r = mixKind(mix);
   if (!r.kind) return r;
   return { ...r, ...mixLevel(total) };

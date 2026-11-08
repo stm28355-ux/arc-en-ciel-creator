@@ -14,8 +14,13 @@ test('表のモンスターは全部データがあり、図鑑錬成の値段�
     assert.ok(CODEX_COST[r.kind], r.kind);
     parseShape(MONSTERS[r.kind].shape);
   }
-  const reachable = new Set([...RECIPES.map((r) => r.kind), ...Object.values(EVOLUTIONS).map((e) => e.to)]);
-  assert.equal(reachable.size, Object.keys(MONSTERS).length, 'どのモンスターも、調合か進化で手に入る');
+  const byMix = RECIPES.map((r) => r.kind);
+  const byEvolution = Object.values(EVOLUTIONS).map((e) => e.to);
+  const byFusion = Object.keys(MONSTERS).filter((k) => MONSTERS[k].fusion || MONSTERS[k].rare);
+  const reachable = new Set([...byMix, ...byEvolution, ...byFusion]);
+  assert.equal(reachable.size, Object.keys(MONSTERS).length, 'どのモンスターも、調合・進化・融合のどれかで手に入る');
+  assert.equal(byMix.length + byEvolution.length + byFusion.length, reachable.size, '手に入れ方は1つだけ');
+  for (const k of byEvolution) assert.ok(MONSTERS[k].evolved, k);
   for (const kind of Object.keys(MONSTERS)) assert.ok(CODEX_COST[kind], `図鑑錬成の値段 ${kind}`);
 });
 

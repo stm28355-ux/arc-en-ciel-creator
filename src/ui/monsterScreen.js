@@ -2,11 +2,12 @@
 import { ELEMENT, ELEMENTS } from '../data/elements.js';
 import { MONSTERS } from '../data/monsters.js';
 import { RECIPES, HINTS, MIX_MIN_TOTAL, MIX_MAX_TOTAL } from '../data/recipes.js';
+import { FAMILY_ORDER, RARE_FUSIONS, familyName } from '../data/families.js';
 import { REGIONS } from '../data/regions.js';
 import { EVOLUTIONS, EVOLVED_FROM } from '../data/evolutions.js';
 import { mixResult, canPay, pay, codexCost, levelUpCost, levelUpPayment, atkAt, LEVEL_CAP, LEVEL_ELEMENTS } from '../core/alchemy.js';
 import { addMonster } from '../core/save.js';
-import { skillsOf, fusionCandidates, inheritableSkills, fuse, evolutionOf, evolutionProgress, evolve, MAX_SKILLS } from '../core/breeding.js';
+import { skillsOf, fusionCandidates, fusionRule, fusionMembers, inheritableSkills, fuse, evolutionOf, evolutionProgress, evolve, MAX_SKILLS } from '../core/breeding.js';
 
 const MIX_ELEMENTS = LEVEL_ELEMENTS; // 今の表で使えるのは第1地方の3属性
 
@@ -123,7 +124,8 @@ export function onMonsterAction(api, state, act, data) {
       if (!f.a || !f.b || !f.kind) return false;
       const a = save.roster.find((m) => m.uid === f.a);
       const b = save.roster.find((m) => m.uid === f.b);
-      const text = `${MONSTERS[a.kind].name} Lv${a.level} と ${MONSTERS[b.kind].name} Lv${b.level} を融合して、${MONSTERS[f.kind].name}（Lv1）にしますか？ 2体は消えます。`;
+      const childName = save.codex[f.kind] ? MONSTERS[f.kind].name : '？？？';
+      const text = `${MONSTERS[a.kind].name} Lv${a.level} と ${MONSTERS[b.kind].name} Lv${b.level} を融合して、${childName}（Lv1）にしますか？ 2体は消えます。`;
       api.confirm(
         text,
         () => {
@@ -155,6 +157,15 @@ function icon(kind) {
   const def = MONSTERS[kind];
   return `<span class="icon" style="background:${ELEMENT[def.element].color}">${def.name[0]}</span>`;
 }
+
+function unknownIcon() {
+  return '<span class="icon" style="background:#4a4a55;color:#ddd">？</span>';
+}
+
+/** 「ゲル系・位階3」 */
+const famRank = (kind) => `${familyName(MONSTERS[kind].family)}・位階${MONSTERS[kind].rank}`;
+
+const HOW_LABEL = { rare: '特別な組み合わせ！', rule: '融合のルール', parent: '親と同じ' };
 
 function whereIs(save, uid) {
   for (const [id, r] of Object.entries(save.regions)) if (r.layout.monsters.some((m) => m.uid === uid)) return REGIONS[id].name;
@@ -191,7 +202,7 @@ function rosterView(api, state) {
     const cost = atMax ? 0 : levelUpCost(sel.level);
     detail = `<div class="card info">
       <h3>${def.name} <small>Lv${sel.level} / ${LEVEL_CAP}</small></h3>
-      <p>属性：${ELEMENT[def.element].name}</p>
+      <p>属性：${ELEMENT[def.element].name} · ${famRank(sel.kind)}</p>
       ${skillsBlock(api, sel)}
       ${
         atMax
@@ -279,7 +290,7 @@ function fuseView(api, state) {
       const tag = f.a === m.uid ? '親1' : f.b === m.uid ? '親2' : '';
       return `<button class="item ${tag ? 'sel' : ''}" data-mact="fuse-pick" data-uid="${m.uid}">
         ${icon(m.kind)}<span>${MONSTERS[m.kind].name} Lv${m.level}</span><span class="state placed">${tag}</span>
-        <span class="sub">技「${skillNames(m)}」</span>
+        <span class="sub">${famRank(m.kind)} · 技「${skillNames(m)}」</span>
       </button>`;
     })
     .join('');
@@ -287,10 +298,13 @@ function fuseView(api, state) {
   if (f.a && f.b) {
     const a = save.roster.find((m) => m.uid === f.a);
     const b = save.roster.find((m) => m.uid === f.b);
+    const A = MONSTERS[a.kind];
+    const B = MONSTERS[b.kind];
+    const rule = fusionRule(a.kind, b.kind);
     const kinds = fusionCandidates(a, b)
-      .map((k) => {
-        const from = k === a.kind || k === b.kind ? '親と同じ' : '配合から';
-        return `<button class="item ${f.kind === k ? 'sel' : ''}" data-mact="fuse-kind" data-kind="${k}">${icon(k)}<span>${MONSTERS[k].name}</span><span class="state">${from}</span></button>`;
+      .map(({ kind: k, how }) => {
+        const who = save.codex[k] ? `${icon(k)}<span>${MONSTERS[k].name}</span>` : `${unknownIcon()}<span>？？？</span>`;
+        return `<button class="item ${f.kind === k ? 'sel' : ''}" data-mact="fuse-kind" data-kind="${k}">${who}<span class="state ${how === 'rare' ? 'placed' : ''}">${HOW_LABEL[how]}</span><span class="sub">${famRank(k)}</span></button>`;
       })
       .join('');
     let skills = '';
@@ -305,51 +319,97 @@ function fuseView(api, state) {
             })
             .join('')
         : '<p class="hint">引き継げる技はありません</p>';
+      const own = save.codex[f.kind] ? `自分の技「${MONSTERS[f.kind].skill}」` : '自分の技（生まれるまでわかりません）';
       skills = `<div class="card"><h3>引き継ぐ技 <small>あと${MAX_SKILLS - 1 - f.extra.length}つ選べる</small></h3>
-        <p>自分の技「${MONSTERS[f.kind].skill}」は必ず持ちます。</p>
+        <p>${own}は必ず持ちます。</p>
         <div class="list">${items}</div>
         <div class="row" style="margin-top:8px"><button class="primary" data-mact="fuse-go">融合する</button><span class="hint">2体は消え、Lv1で生まれます</span></div>
       </div>`;
     }
     right = `<div class="card"><h3>生まれるモンスター <small>1つ選ぶ</small></h3><div class="list">${kinds}</div>
-      <p class="hint">親と同じモンスターのままにもできます。「配合から」は、2体のもとになるエレメントを合わせた調合の結果です。</p></div>${skills}`;
+      <p class="rule-line">${familyName(A.family)}（位階${A.rank}）× ${familyName(B.family)}（位階${B.rank}）→ <b>${familyName(rule.family)}・位階${rule.rank}</b></p>
+      <p class="hint">融合のルール：子の系統は2体の系統の組み合わせで、位階は2体の位階の平均（切り捨て）＋1で決まります。その系統で、位階がそれ以上の一番近い「融合でしか生まれないモンスター」が生まれます。親と同じモンスターのままにもできます。</p></div>${skills}`;
   }
   return `${born}<div class="two-col"><div class="card"><h3>手持ち <small>2体選ぶ</small></h3><div class="list">${list}</div></div><div>${right}</div></div>`;
 }
 
 // ---------- 図鑑 ----------
 
-function recipeText(r) {
+const ACQ_ORDER = (d) => (d.rare ? 4 : d.fusion ? 3 : d.evolved ? 2 : d.special ? 1 : 0);
+const BADGE = (d) => (d.rare ? 'レア' : d.fusion ? '融合' : d.evolved ? '進化' : d.special ? '特殊' : '');
+
+/** 融合のルールで、そのモンスターが生まれる子の位階の範囲 */
+function fusionRangeText(kind) {
+  const d = MONSTERS[kind];
+  const members = fusionMembers(d.family);
+  const i = members.indexOf(kind);
+  const lo = i > 0 ? MONSTERS[members[i - 1]].rank + 1 : null;
+  const hi = i < members.length - 1 ? d.rank : null;
+  if (!lo && !hi) return `${familyName(d.family)}になる融合なら、子の位階に関係なく`;
+  const range = lo && hi ? (lo === hi ? `${hi}` : `${lo}〜${hi}`) : hi ? `${hi}以下` : `${lo}以上`;
+  return `${familyName(d.family)}になる融合で、子の位階が${range}`;
+}
+
+function recipeText(kind) {
+  const d = MONSTERS[kind];
   const n = (id) => ELEMENT[id].name;
-  if (r.evolved) return `${MONSTERS[r.from].name}が進化（${EVOLUTIONS[r.from].text}）`;
+  if (d.evolved) {
+    const from = EVOLVED_FROM[kind];
+    return `${MONSTERS[from].name}が進化（${EVOLUTIONS[from].text}）`;
+  }
+  if (d.fusion) return fusionRangeText(kind);
+  if (d.rare) {
+    const [p, q] = RARE_FUSIONS.find((r) => r.kind === kind).parents;
+    return `${MONSTERS[p].name}と${MONSTERS[q].name}を融合`;
+  }
+  const r = RECIPES.find((x) => x.kind === kind);
   if (r.special) return `${Object.keys(r.special).map(n).join('・')}を同じ量ずつ`;
   if (r.types === 1) return `${n(r.first)}だけ`;
   if (r.types === 2) return `${n(r.first)}が一番多く、${n(r.second)}が二番目`;
   return `無・風・土の3種類で、${n(r.first)}が一番多い`;
 }
 
+/** まだ手に入れていないモンスターのヒント */
+function hintText(kind) {
+  const d = MONSTERS[kind];
+  if (d.evolved) return HINTS.evolved;
+  if (d.fusion) return `${HINTS.fusion}（${fusionRangeText(kind)}）`;
+  if (d.rare) return HINTS.rare;
+  const r = RECIPES.find((x) => x.kind === kind);
+  return r.special ? HINTS.special : HINTS[`types${r.types}`];
+}
+
+function codexCard(api, save, kind, no) {
+  const def = MONSTERS[kind];
+  if (!save.codex[kind]) return `<div class="card codex unknown"><h3>No.${no} ？？？ <small>位階${def.rank}</small></h3><p class="hint">${hintText(kind)}</p></div>`;
+  const cost = codexCost(kind);
+  const badge = BADGE(def) ? `<span class="badge">${BADGE(def)}</span>` : '';
+  return `<div class="card codex">
+      <h3>No.${no} ${def.name} <small>位階${def.rank}</small> ${badge}</h3>
+      <div class="detail-shape">${api.shapePreview(def.shape)}<span>${ELEMENT[def.element].name} · 攻撃${def.atk} · 間隔${def.interval}秒 · 技「${def.skill}」</span></div>
+      <p class="hint">作り方：${recipeText(kind)}</p>
+      <div class="row"><button data-mact="codex-go" data-kind="${kind}" ${canPay(save.elements, cost) ? '' : 'disabled'}>図鑑錬成</button>${api.costText(cost)}</div>
+    </div>`;
+}
+
 function codexView(api, state) {
   const { save } = api;
   const born = state.born ? `<div class="card born">${icon(state.born)} <b>${MONSTERS[state.born].name}</b> を図鑑錬成しました。</div>` : '';
-  // 図鑑の並び：ふつうの表の順、特殊、進化で手に入るもの
-  const evolved = Object.values(EVOLUTIONS).map((e) => ({ kind: e.to, evolved: true, from: EVOLVED_FROM[e.to] }));
-  const order = [...RECIPES.filter((r) => !r.special), ...RECIPES.filter((r) => r.special), ...evolved];
-  const cards = order
-    .map((r, i) => {
-      const def = MONSTERS[r.kind];
-      if (!save.codex[r.kind]) {
-        const hint = r.evolved ? HINTS.evolved : r.special ? HINTS.special : HINTS[`types${r.types}`];
-        return `<div class="card codex unknown"><h3>No.${i + 1} ？？？</h3><p class="hint">${hint}</p></div>`;
-      }
-      const cost = codexCost(r.kind);
-      const badge = def.special ? '<span class="badge">特殊</span>' : def.evolved ? '<span class="badge">進化</span>' : '';
-      return `<div class="card codex">
-      <h3>No.${i + 1} ${def.name} ${badge}</h3>
-      <div class="detail-shape">${api.shapePreview(def.shape)}<span>${ELEMENT[def.element].name} · 攻撃${def.atk} · 間隔${def.interval}秒 · 技「${def.skill}」</span></div>
-      <p class="hint">作り方：${recipeText(r)}</p>
-      <div class="row"><button data-mact="codex-go" data-kind="${r.kind}" ${canPay(save.elements, cost) ? '' : 'disabled'}>図鑑錬成</button>${api.costText(cost)}</div>
-    </div>`;
-    })
-    .join('');
-  return `${born}<p class="hint">一度手に入れたモンスターは図鑑に載り、図鑑錬成で決まった量のエレメントから作れます。</p><div class="codex-grid">${cards}</div>`;
+  // 図鑑の並び：系統ごとに、位階の低い順（同じ位階なら 調合・特殊・進化・融合・レア の順）
+  let no = 0;
+  const missing = [];
+  const sections = FAMILY_ORDER.map((fam) => {
+    const members = Object.keys(MONSTERS)
+      .filter((k) => MONSTERS[k].family === fam)
+      .sort((x, y) => MONSTERS[x].rank - MONSTERS[y].rank || ACQ_ORDER(MONSTERS[x]) - ACQ_ORDER(MONSTERS[y]));
+    if (!members.length) {
+      missing.push(familyName(fam));
+      return '';
+    }
+    const got = members.filter((k) => save.codex[k]).length;
+    const cards = members.map((k) => codexCard(api, save, k, ++no)).join('');
+    return `<h3 class="family-head">${familyName(fam)} <small>${got}/${members.length}</small></h3><div class="codex-grid">${cards}</div>`;
+  }).join('');
+  const rest = missing.length ? `<p class="hint">まだ見つかっていない系統：${missing.join('・')}（第2地方より先）</p>` : '';
+  return `${born}<p class="hint">一度手に入れたモンスターは図鑑に載り、図鑑錬成で決まった量のエレメントから作れます。図鑑は系統ごとに、位階の順に並んでいます。</p>${sections}${rest}`;
 }
