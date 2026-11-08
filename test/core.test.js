@@ -105,12 +105,12 @@ test('鍛冶場：作業場所にいて攻撃範囲が鍛冶場に重なるモ�
   const sample = LAYOUTS['鍛冶場＋剣（コウモリが作業）'];
   const r = resolveLayout(map, sample);
   assert.ok(r.working.has('m3'));
-  assert.ok(r.units.some((u) => u.id === 'm3'), '作業中も攻撃する');
+  assert.ok(r.units.some((u) => u.owner === 'm3'), '作業中も攻撃する');
   assert.equal(r.status.get('f1'), 'active');
   assert.equal(r.status.get('f2'), 'active');
-  const buffed = r.units.filter((u) => u.buffed.sword).map((u) => u.id).sort();
+  const buffed = r.units.filter((u) => u.buffed.sword).map((u) => u.owner).sort();
   assert.deepEqual(buffed, ['m1', 'm4']);
-  assert.equal(r.units.find((u) => u.id === 'm4').atk, 14 * 1.5);
+  assert.equal(r.units.find((u) => u.owner === 'm4').atk, 14 * 1.5);
 
   // コウモリを作業場所から外すと、鍛冶場は止まり、剣も止まって資材を使わない
   const off = { ...sample, monsters: sample.monsters.map((m) => (m.uid === 'm3' ? { ...m, x: 25, y: 13 } : m)) };

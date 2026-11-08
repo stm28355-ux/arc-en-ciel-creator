@@ -502,3 +502,15 @@ details.help ul {
   align-items: flex-start;
   margin: 6px 0;
 }
+.bar {
+  height: 6px;
+  background: var(--panel-2);
+  border-radius: 3px;
+  overflow: hidden;
+  margin: 4px 0;
+}
+.bar i {
+  display: block;
+  height: 100%;
+  background: var(--good);
+}

@@ -15,8 +15,21 @@ export function footprintOf(item) {
   return cellsOf(defOf(item).shape, item.x, item.y, item.dir, 'footprint');
 }
 
+/** モンスターは持っている技の範囲を全部合わせる。 */
 export function targetsOf(item) {
-  return cellsOf(defOf(item).shape, item.x, item.y, item.dir, 'targets');
+  if (!item.uid) return cellsOf(defOf(item).shape, item.x, item.y, item.dir, 'targets');
+  const seen = new Map();
+  for (const k of skillList(item)) for (const c of skillTargets(item, k)) seen.set(keyOf(c), c);
+  return [...seen.values()];
+}
+
+/** 置いたモンスターの技（種類のID）。skills がなければ自分の技だけ。 */
+export function skillList(m) {
+  return m.skills?.length ? m.skills : [m.kind];
+}
+
+function skillTargets(m, skill) {
+  return cellsOf(MONSTERS[skill].shape, m.x, m.y, m.dir, 'targets');
 }
 
 /** 置き物が占めるマス → 置き物。ignore に渡したものは除く（移動中のものなど）。 */
@@ -36,13 +49,14 @@ export function canPlace(map, layout, item, ignore) {
 }
 
 /**
- * layout.monsters の各要素は { uid, kind, x, y, dir, level? }（level がなければ1）。
+ * layout.monsters の各要素は { uid, kind, x, y, dir, level?, skills? }（level がなければ1、skills がなければ自分の技だけ）。
  * 戻り値：
  *   working:   Set<uid>         製造施設で作業しているモンスター（作業場所にいて、攻撃範囲が施設に重なる）
  *   prod:      production() の戻り値
  *   alloc:     allocate() の戻り値
  *   status:    Map<id, 'active'|'materials'|'no-worker'|'needs-smithy'>
- *   units:     戦闘で攻撃するもの [{ id, source, x, y, element, atk, interval, targets:Set, buffed }]
+ *   units:     戦闘で攻撃するもの [{ id, owner?, skill?, source, x, y, element, atk, interval, targets:Set, buffed }]
+ *              モンスターは技1つにつき1ユニット（id = 'uid:技'、owner = uid）
  *   groupSize: 1度にまとめて出すウェーブの数（1 + 動いている角笛の数）
  */
 export function resolveLayout(map, layout) {
@@ -97,17 +111,21 @@ export function resolveLayout(map, layout) {
       atkAdd += b.buff.atkAdd ?? 0;
       speedAdd += b.buff.speedAdd ?? 0;
     }
-    units.push({
-      id: m.uid,
-      source: 'monster',
-      x: m.x,
-      y: m.y,
-      element: def.element,
-      atk: atkAt(m.kind, m.level) * (1 + atkAdd),
-      interval: def.interval / (1 + speedAdd),
-      targets: m.targets,
-      buffed: { sword: atkAdd > 0, flag: speedAdd > 0 },
-    });
+    for (const skill of skillList(m)) {
+      units.push({
+        id: `${m.uid}:${skill}`,
+        owner: m.uid,
+        skill,
+        source: 'monster',
+        x: m.x,
+        y: m.y,
+        element: def.element,
+        atk: atkAt(skill, m.level) * (1 + atkAdd),
+        interval: MONSTERS[skill].interval / (1 + speedAdd),
+        targets: new Set(skillTargets(m, skill).map(keyOf)),
+        buffed: { sword: atkAdd > 0, flag: speedAdd > 0 },
+      });
+    }
   }
   for (const f of running) {
     const def = FACILITIES[f.kind];

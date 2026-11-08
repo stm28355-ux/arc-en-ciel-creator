@@ -39,7 +39,7 @@ export function draw(ctx, view) {
   if (view.focus) drawTargets(ctx, view.focus, 'rgba(143,184,255,0.28)', 'rgba(143,184,255,0.9)');
 
   for (const f of layout.facilities) drawFacility(ctx, f, resolved.status.get(f.id));
-  for (const m of layout.monsters) drawMonster(ctx, m, resolved.units.find((u) => u.id === m.uid), resolved.working.has(m.uid));
+  for (const m of layout.monsters) drawMonster(ctx, m, resolved.units.find((u) => u.owner === m.uid), resolved.working.has(m.uid));
 
   if (view.ghost) {
     const { item, ok } = view.ghost;

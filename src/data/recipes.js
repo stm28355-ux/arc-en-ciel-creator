@@ -42,6 +42,13 @@ export const CODEX_COST = {
   swallow: { wind: 6, none: 3, earth: 3 },
   crab: { earth: 6, none: 3, wind: 3 },
   prism: { none: 5, wind: 5, earth: 5 },
+  // 進化で手に入るもの：進化前の約3倍
+  bigslime: { none: 36 },
+  forestsprite: { none: 24, wind: 12 },
+  stormbat: { wind: 36 },
+  eagle: { wind: 24, none: 12 },
+  rockturtle: { earth: 36 },
+  irongolem: { earth: 24, none: 12 },
 };
 
 // 図鑑で、まだ手に入れていないモンスターに出すヒント
@@ -50,4 +57,5 @@ export const HINTS = {
   types2: '2種類のエレメントで作る',
   types3: '3種類のエレメントで作る',
   special: '比率をぴったり合わせると生まれる',
+  evolved: '進化で手に入る',
 };

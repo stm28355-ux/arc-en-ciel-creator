@@ -12,9 +12,9 @@ import { createBattle, startBattle, step, pace, paceBag, waveSummary, rechargeUn
 import { loadSave, writeSave, clearSave, regionSave, newSave } from './core/save.js';
 import { draw, CELL, facilityIcon, FACILITY_COLOR } from './ui/render.js';
 import { renderMonsterScreen, onMonsterAction } from './ui/monsterScreen.js';
-import { atkAt } from './core/alchemy.js';
+import { recordBattle, skillsOf } from './core/breeding.js';
 
-const VERSION = 'v0.3.0';
+const VERSION = 'v0.4.0';
 const STEP = 1 / 60;
 const AUTO_RETRY_DELAY = 1500; // ミリ秒
 // 自動で再挑戦している間の速さの上限。周回が攻略後の自動獲得より速くなりすぎないようにする
@@ -28,7 +28,7 @@ document.getElementById('version').textContent = VERSION;
 let save = loadSave();
 let screen = { name: 'home' };
 // モンスター画面の状態（画面を行き来しても残す）
-const monsterState = { tab: 'roster', selected: null, mix: {}, born: null };
+const monsterState = { tab: 'roster', selected: null, mix: {}, born: null, fuse: null };
 const navEl = document.getElementById('nav');
 const guideEl = document.getElementById('guide');
 
@@ -61,7 +61,7 @@ document.getElementById('reset-save').addEventListener('click', () => {
   clearSave();
   save = newSave();
   screen = { name: 'home' };
-  Object.assign(monsterState, { tab: 'roster', selected: null, mix: {}, born: null });
+  Object.assign(monsterState, { tab: 'roster', selected: null, mix: {}, born: null, fuse: null });
   goHome();
 });
 
@@ -104,6 +104,7 @@ const monsterApi = {
     writeSave(save);
     renderBank();
   },
+  confirm: (text) => window.confirm(text),
   chip,
   costText,
   shapePreview,
@@ -240,10 +241,13 @@ function cellAt(cv, ev, map) {
   return { x, y };
 }
 
-/** 手持ちのレベルを配置に入れて計算する。 */
+/** 手持ちのレベルと技を配置に入れて計算する。 */
 function withLevels(layout) {
-  const level = (uid) => save.roster.find((r) => r.uid === uid)?.level ?? 1;
-  return { ...layout, monsters: layout.monsters.map((m) => ({ ...m, level: level(m.uid) })) };
+  return { ...layout, monsters: layout.monsters.map(withRoster) };
+}
+function withRoster(m) {
+  const r = save.roster.find((x) => x.uid === m.uid);
+  return { ...m, level: r?.level ?? 1, skills: r ? skillsOf(r) : [m.kind] };
 }
 
 function refresh(s) {
@@ -253,7 +257,7 @@ function refresh(s) {
 /** 配置が変わったあと。動かしたもの（ids）は攻撃の間隔を溜め直す。 */
 function changed(s, ids = []) {
   refresh(s);
-  for (const id of ids) rechargeUnit(s.battle, s.resolved.units.find((u) => u.id === id));
+  for (const id of ids) for (const u of s.resolved.units.filter((u) => u.id === id || u.owner === id)) rechargeUnit(s.battle, u);
   writeSave(save);
   renderSide(s);
 }
@@ -295,7 +299,7 @@ function ghostAt(s, c) {
   if (sel.type === 'monster') {
     const placed = placedMonster(s, sel.uid);
     const kind = placed?.kind ?? save.roster.find((m) => m.uid === sel.uid).kind;
-    const item = { uid: sel.uid, kind, x: c.x, y: c.y, dir: placed?.dir ?? s.placeDir };
+    const item = withRoster({ uid: sel.uid, kind, x: c.x, y: c.y, dir: placed?.dir ?? s.placeDir });
     return { item, ignore: placed, ok: canPlace(s.map, s.layout, item, placed) };
   }
   if (sel.type === 'build') {
@@ -372,8 +376,17 @@ function rotateSelection(s) {
   renderSide(s);
 }
 
+/** この挑戦で倒した記録を、モンスターごとの stats に足す（進化の条件）。 */
+function recordRun(s) {
+  if (s.recorded) return;
+  s.recorded = true;
+  recordBattle(save, s.battle.kills, { won: s.battle.phase === 'won', workers: [...s.resolved.working] });
+  writeSave(save);
+}
+
 /** この挑戦で手に入れたエレメントを持ち物に入れる（負けても持ち帰る）。 */
 function bankRun(s) {
+  recordRun(s);
   if (s.banked || bagTotal(s.battle.gained) === 0) return;
   s.banked = true;
   save.elements = addBag(save.elements, s.battle.gained);
@@ -386,6 +399,7 @@ function resetBattle(s) {
   bankRun(s);
   s.battle = createBattle(s.region, s.map);
   s.banked = false;
+  s.recorded = false;
   s.result = null;
   s.paused = false;
   document.getElementById('overlay').innerHTML = '';
@@ -491,12 +505,13 @@ function viewOf(s) {
   const showGhost = g && !(g.ignore && g.ignore.x === s.hover.x && g.ignore.y === s.hover.y);
   let focus = selectedPlaced(s);
   if (!focus && !g && s.hover) focus = occupancy(s.layout).get(`${s.hover.x},${s.hover.y}`) ?? null;
+  if (focus?.uid) focus = withRoster(focus);
   // モンスターを置く前に、置いたら資源地からいくつ入るかを見せる
   let nodeYield = null;
   if (showGhost && g.ok && g.item.uid) {
     const key = `${g.item.uid},${g.item.x},${g.item.y},${g.item.dir}`;
     if (s.previewKey !== key) {
-      const monsters = [...s.layout.monsters.filter((m) => m.uid !== g.item.uid), g.item];
+      const monsters = [...s.layout.monsters.filter((m) => m.uid !== g.item.uid), { ...g.item }];
       s.previewKey = key;
       s.preview = resolveLayout(s.map, withLevels({ ...s.layout, monsters })).prod.perNode;
     }
@@ -637,18 +652,18 @@ function renderSide(s) {
         const state = !p ? ['待機', ''] : working.has(r.uid) ? ['作業中', 'placed'] : ['配置中', 'placed'];
         return `<button class="item ${sel ? 'sel' : ''}" data-act="pick-monster" data-uid="${r.uid}">
           <span class="icon" style="background:${ELEMENT[def.element].color}">${def.name[0]}</span>
-          <span>${def.name} Lv${r.level}</span>
+          <span>${def.name} Lv${r.level}${skillsOf(r).length > 1 ? ` <small>技${skillsOf(r).length}</small>` : ''}</span>
           <span class="state ${state[1]}">${state[0]}</span>
-          <span class="sub">${shapePreview(def.shape)}<span>${ELEMENT[def.element].name} · 攻撃${atkAt(r.kind, r.level).toFixed(1)} · 間隔${def.interval}秒 · 技「${def.skill}」</span></span>
+          <span class="sub">${shapePreview(def.shape)}<span>${ELEMENT[def.element].name} · 技「${skillsOf(r).map((k) => MONSTERS[k].skill).join('・')}」</span></span>
         </button>`;
       })
       .join('')}</div></div>`;
     if (placed?.uid) {
       const i = s.layout.monsters.findIndex((m) => m.uid === placed.uid);
-      const u = s.resolved.units.find((u) => u.id === placed.uid);
+      const us = s.resolved.units.filter((u) => u.owner === placed.uid);
       const y = i >= 0 ? Object.entries(prod.perMonster[i]).filter(([, n]) => n) : [];
       body += `<div class="card info"><h3>${MONSTERS[placed.kind].name} <small>Lv${save.roster.find((r) => r.uid === placed.uid)?.level ?? 1} · ${DIR_NAME[placed.dir]}向き</small></h3>
-        <p>攻撃 ${u.atk.toFixed(1)} · 間隔 ${u.interval.toFixed(2)}秒（毎秒 ${(u.atk / u.interval).toFixed(1)}）</p>
+        ${us.map((u) => `<p>「${MONSTERS[u.skill].skill}」攻撃 ${u.atk.toFixed(1)} · 間隔 ${u.interval.toFixed(2)}秒（毎秒 ${(u.atk / u.interval).toFixed(1)}）</p>`).join('')}
         ${working.has(placed.uid) ? '<p>鍛冶場で作業中（攻撃と生産もそのまま）</p>' : ''}
         <p>資材：${y.length ? y.map(([id, n]) => `${ELEMENT[id].name}+${n}`).join(' ') : 'なし'}</p>
         ${rotateRow(s, '別のマスを押すと移動。動かすと攻撃は溜め直し')}

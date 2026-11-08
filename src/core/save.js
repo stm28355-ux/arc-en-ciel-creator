@@ -11,7 +11,7 @@ export function newSave() {
   return {
     v: 2,
     elements: { ...emptyBag(), ...START_ELEMENTS }, // 持っているエレメント（地域の外へ持ち出せる）
-    roster: [], // 手持ちのモンスター { uid, kind, level }
+    roster: [], // 手持ちのモンスター { uid, kind, level, skills, stats }
     nextUid: 1,
     codex: {}, // 図鑑：一度手に入れたモンスター kind → true
     regions: {}, // regionId → { cleared, clears, bestPace, paceBag, layout }
@@ -53,9 +53,9 @@ export function clearSave() {
   }
 }
 
-/** モンスターを手持ちに加え、図鑑に載せる。 */
-export function addMonster(save, kind) {
-  const m = { uid: `m${save.nextUid++}`, kind, level: 1 };
+/** モンスターを手持ちに加え、図鑑に載せる。skills = 持っている技（最初は自分の技だけ）、stats = 進化の条件に使う戦闘の記録 */
+export function addMonster(save, kind, level = 1) {
+  const m = { uid: `m${save.nextUid++}`, kind, level, skills: [kind], stats: {} };
   save.roster.push(m);
   save.codex[kind] = true;
   return m;

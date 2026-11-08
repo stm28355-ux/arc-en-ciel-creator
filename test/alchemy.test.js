@@ -5,6 +5,8 @@ import { MONSTERS } from '../src/data/monsters.js';
 import { RECIPES, CODEX_COST } from '../src/data/recipes.js';
 import { newSave, addMonster, START_ELEMENTS } from '../src/core/save.js';
 import { parseShape } from '../src/core/shape.js';
+import { EVOLUTIONS } from '../src/data/evolutions.js';
+import { mixLevel } from '../src/core/alchemy.js';
 
 test('表のモンスターは全部データがあり、図鑑錬成の値段もある', () => {
   for (const r of RECIPES) {
@@ -12,7 +14,9 @@ test('表のモンスターは全部データがあり、図鑑錬成の値段�
     assert.ok(CODEX_COST[r.kind], r.kind);
     parseShape(MONSTERS[r.kind].shape);
   }
-  assert.equal(new Set(RECIPES.map((r) => r.kind)).size, Object.keys(MONSTERS).length, 'どのモンスターも作り方がある');
+  const reachable = new Set([...RECIPES.map((r) => r.kind), ...Object.values(EVOLUTIONS).map((e) => e.to)]);
+  assert.equal(reachable.size, Object.keys(MONSTERS).length, 'どのモンスターも、調合か進化で手に入る');
+  for (const kind of Object.keys(MONSTERS)) assert.ok(CODEX_COST[kind], `図鑑錬成の値段 ${kind}`);
 });
 
 test('調合錬成：1種類なら、その属性で決まる', () => {
@@ -79,4 +83,15 @@ test('新しいセーブ：手持ちはなく、無のエレメントをもら�
   assert.equal(m.level, 1);
   assert.equal(s.codex.slime, true);
   assert.notEqual(addMonster(s, 'slime').uid, m.uid);
+});
+
+test('調合錬成：合計10を超えた分は、レベルアップの値段どおりにレベルになる', () => {
+  assert.deepEqual(mixLevel(10), { level: 1, waste: 0 });
+  assert.deepEqual(mixLevel(12), { level: 1, waste: 2 }, '3に足りない分は余り');
+  assert.deepEqual(mixLevel(13), { level: 2, waste: 0 });
+  assert.deepEqual(mixLevel(17), { level: 3, waste: 0 }, '3 + 4');
+  assert.equal(mixLevel(60).level, 8);
+  const r = mixResult({ none: 13 });
+  assert.equal(r.kind, 'slime');
+  assert.equal(r.level, 2);
 });

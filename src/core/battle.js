@@ -22,6 +22,7 @@ export function createBattle(region, map) {
     cooldowns: {},
     gained: emptyBag(), // この挑戦で手に入れたエレメント
     effects: [], // 描画用：攻撃の線
+    kills: [], // 倒した記録（進化の条件に使う）
     log: [],
   };
 }
@@ -100,11 +101,17 @@ export function step(b, dt, ctx) {
       continue;
     }
     target.hp -= u.atk;
+    if (target.hp <= 0 && !target.killedBy) target.killedBy = u;
     b.cooldowns[u.id] = u.interval;
     b.effects.push({ from: { x: u.x + 0.5, y: u.y + 0.5 }, to: tp, element: u.element, life: 0.12 });
   }
   const dead = b.enemies.filter((e) => e.hp <= 0);
-  for (const e of dead) b.gained[ENEMIES[e.kind].element] += ENEMIES[e.kind].drop;
+  for (const e of dead) {
+    const def = ENEMIES[e.kind];
+    b.gained[def.element] += def.drop;
+    const u = e.killedBy;
+    b.kills.push({ owner: u?.owner ?? null, enemy: e.kind, sword: !!u?.buffed.sword, flag: !!u?.buffed.flag, elite: !!def.elite, boss: !!def.boss });
+  }
   if (dead.length) b.enemies = b.enemies.filter((e) => e.hp > 0);
 
   // 今のウェーブ（まとめて出したもの）を全部倒したら、間をあけて次へ

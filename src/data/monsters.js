@@ -1,5 +1,7 @@
-// モンスター（仮）。第1地方（無・風・土）で作れる13種。
-// 入手は錬成だけ（戦闘でのドロップはない）。作り方は src/data/recipes.js。
+// モンスター（仮）。第1地方（無・風・土）で作れる13種と、進化で手に入る6種。
+// 入手は錬成・融合・進化だけ（戦闘でのドロップはない）。作り方は src/data/recipes.js、進化は src/data/evolutions.js。
+// それぞれのモンスターは自分の「技」を1つ持つ（atk・interval・shape・skill がその技）。
+// 融合で親の技を引き継ぐと、技を最大3つまで持てる。技は種類のIDで表す（例：'hawk' の技＝まいおりる）。
 //   element: モンスターの属性（調合で一番多く使ったエレメント）
 //   atk: レベル1の1回の攻撃のダメージ / interval: 攻撃の間隔（秒）
 //   shape: 攻撃範囲。上を向いたときの形（o = 自分、x = 攻撃が届くマス）。向きに合わせて回る
@@ -24,4 +26,12 @@ export const MONSTERS = {
 
   // --- 特殊（比率をぴったり合わせたときだけ） ---
   prism: { name: 'にじいろスライム', element: 'none', atk: 14, interval: 0.8, skill: 'プリズム', shape: ['xxxxx', 'xxxxx', '..o..'], special: true },
+
+  // --- 進化で手に入る（調合では作れない。一度手に入れれば図鑑錬成できる） ---
+  bigslime: { name: 'ビッグスライム', element: 'none', atk: 16, interval: 1.0, skill: 'のしかかり', shape: ['xxxxx', 'xxxxx', 'xxxxx', '..o..'], evolved: true },
+  forestsprite: { name: 'もりの精', element: 'none', atk: 8, interval: 0.7, skill: 'このはあらし', shape: ['xxxxxxx', '.xxxxx.', '..xxx..', '...o...'], evolved: true },
+  stormbat: { name: 'あらしコウモリ', element: 'wind', atk: 6, interval: 0.4, skill: 'つむじかぜ', shape: ['xxxxx', 'xxxxx', 'xxoxx', 'xxxxx', 'xxxxx'], evolved: true },
+  eagle: { name: 'おおぞらワシ', element: 'wind', atk: 24, interval: 1.1, skill: 'きゅうこうか', shape: ['x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'o'], evolved: true },
+  rockturtle: { name: 'がんせきガメ', element: 'earth', atk: 38, interval: 1.6, skill: 'がんせきおとし', shape: ['xxx', 'xxx', 'xox'], evolved: true },
+  irongolem: { name: 'てつゴーレム', element: 'earth', atk: 70, interval: 1.8, skill: 'てっつい', shape: ['xxx', '.o.'], evolved: true },
 };
