@@ -1,77 +1,75 @@
 // 地域を画面なしで最後まで流して、結果を表示する（調整の確認用）。
 //   node tools/sim-region.mjs
+import { pathToFileURL } from 'node:url';
 import { REGIONS } from '../src/data/regions.js';
-import { MONSTERS } from '../src/data/monsters.js';
-import { FACILITIES } from '../src/data/facilities.js';
 import { parseMap } from '../src/core/map.js';
-import { production, allocate } from '../src/core/materials.js';
-import { buildUnits } from '../src/core/units.js';
+import { resolveLayout } from '../src/core/layout.js';
 import { createBattle, startBattle, step, pace } from '../src/core/battle.js';
 import { bagTotal } from '../src/data/elements.js';
 
+const M = (uid, kind, x, y, dir) => ({ uid, kind, x, y, dir });
+const F = (id, kind, x, y, dir) => ({ id, kind, x, y, dir });
+
+const BASE_MONSTERS = [
+  M('m1', 'slime', 5, 6, 'right'), // 無の資源地のとなり、道を3マス
+  M('m2', 'sprite', 12, 9, 'right'), // 無の資源地のとなり、道を5マス
+  M('m3', 'bat', 22, 9, 'up'), // 風の資源地のとなり、道を3マス
+  M('m4', 'hawk', 21, 12, 'up'), // 道にそって6マス
+  M('m5', 'turtle', 15, 9, 'left'), // 土の資源地のとなり、道を3マス
+];
+
 export const LAYOUTS = {
-  'モンスターだけ': {
-    monsters: [
-      { uid: 'm1', kind: 'slime', x: 6, y: 6 },
-      { uid: 'm2', kind: 'sprite', x: 12, y: 9 },
-      { uid: 'm3', kind: 'bat', x: 13, y: 5 },
-      { uid: 'm4', kind: 'hawk', x: 23, y: 7 },
-      { uid: 'm5', kind: 'turtle', x: 15, y: 9 },
-    ],
-    facilities: [],
+  'モンスターだけ': { monsters: BASE_MONSTERS, facilities: [] },
+  '光線塔＋旗': {
+    monsters: BASE_MONSTERS,
+    facilities: [F('f1', 'beam', 22, 4, 'left'), F('f2', 'flag', 15, 7, 'down')],
   },
-  '光線塔＋剣＋旗': {
+  '鍛冶場＋剣（コウモリが作業）': {
     monsters: [
-      { uid: 'm1', kind: 'slime', x: 6, y: 6 },
-      { uid: 'm2', kind: 'sprite', x: 12, y: 9 },
-      { uid: 'm3', kind: 'bat', x: 13, y: 5 },
-      { uid: 'm4', kind: 'hawk', x: 23, y: 7 },
-      { uid: 'm5', kind: 'turtle', x: 15, y: 9 },
+      M('m1', 'slime', 20, 11, 'right'),
+      M('m2', 'sprite', 12, 9, 'right'),
+      M('m3', 'bat', 16, 13, 'up'), // 鍛冶場の作業場所
+      M('m4', 'hawk', 21, 12, 'up'),
+      M('m5', 'turtle', 15, 9, 'left'),
     ],
     facilities: [
-      { id: 'f1', kind: 'beam', x: 8, y: 11 },
-      { id: 'f2', kind: 'sword', x: 15, y: 10 },
-      { id: 'f3', kind: 'flag', x: 13, y: 7 },
+      F('f1', 'smithy', 16, 14, 'up'), // 作業場所は (16,13) と (17,13)
+      F('f2', 'sword', 20, 12, 'up'), // スライムとタカのとなり
     ],
   },
-  '角笛でペース重視': {
-    monsters: [
-      { uid: 'm1', kind: 'slime', x: 6, y: 6 },
-      { uid: 'm2', kind: 'sprite', x: 12, y: 9 },
-      { uid: 'm3', kind: 'bat', x: 13, y: 5 },
-      { uid: 'm4', kind: 'hawk', x: 23, y: 7 },
-      { uid: 'm5', kind: 'turtle', x: 15, y: 9 },
-    ],
-    facilities: [
-      { id: 'f1', kind: 'beam', x: 8, y: 11 },
-      { id: 'f2', kind: 'horn', x: 0, y: 0 },
-      { id: 'f3', kind: 'flag', x: 13, y: 7 },
-    ],
+  '角笛1個': {
+    monsters: BASE_MONSTERS,
+    facilities: [F('f1', 'beam', 22, 4, 'left'), F('f2', 'horn', 0, 0, 'up')],
   },
 };
 
-export function simulate(regionId, layout, maxTime = 600) {
+export function simulate(regionId, layout, { maxTime = 900, stopAfterWave } = {}) {
   const region = REGIONS[regionId];
   const map = parseMap(region.map);
-  const ms = layout.monsters.map((m) => ({ ...m, element: MONSTERS[m.kind].element, range: MONSTERS[m.kind].range }));
-  const { bag } = production(map.nodes, ms);
-  const facs = layout.facilities.map((f) => ({ ...f, cost: FACILITIES[f.kind].cost }));
-  const alloc = allocate(bag, facs);
-  const ctx = buildUnits(layout.monsters, layout.facilities.filter((f) => alloc.active.has(f.id)));
+  const r = resolveLayout(map, layout);
   const b = createBattle(region, map);
-  startBattle(b);
+  startBattle(b, r);
   const dt = 1 / 30;
-  while (b.phase === 'running' && b.time < maxTime) step(b, dt, ctx);
-  return { b, bag, alloc };
+  const losses = []; // 拠点が減ったとき（ウェーブと秒）
+  let hp = b.baseHp;
+  while (b.phase === 'running' && b.time < maxTime) {
+    step(b, dt, r);
+    if (b.baseHp !== hp) {
+      losses.push(`W${b.wavesStarted}@${b.time.toFixed(0)}s-${hp - b.baseHp}`);
+      hp = b.baseHp;
+    }
+  }
+  return { b, r, losses };
 }
 
-if (import.meta.url === `file:///${process.argv[1].replace(/\\/g, '/')}` || process.argv[1].endsWith('sim-region.mjs')) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   for (const [name, layout] of Object.entries(LAYOUTS)) {
-    const { b, bag, alloc } = simulate('grassland', layout);
-    const mat = Object.entries(bag).filter(([, n]) => n).map(([k, n]) => `${k}${n}`).join(' ');
+    const { b, r, losses } = simulate('grassland', layout);
+    const mat = Object.entries(r.prod.bag).filter(([, n]) => n).map(([k, n]) => `${k}${n}`).join(' ');
+    const st = [...r.status.entries()].map(([id, s]) => `${id}:${s}`).join(' ');
     console.log(
       `${name}: ${b.phase} 拠点${b.baseHp}/${b.baseMax} ウェーブ${b.wavesStarted}/${b.waves.length} ` +
-        `時間${b.time.toFixed(1)}s エレメント${bagTotal(b.gained)} ペース${pace(b).toFixed(3)}/s 資材[${mat}] 止まった施設${alloc.stopped.size}`,
+        `時間${b.time.toFixed(1)}s エレメント${bagTotal(b.gained)} ペース${pace(b).toFixed(3)}/s 資材[${mat}] 施設[${st}] 拠点が減った[${losses.join(' ')}]`,
     );
   }
 }

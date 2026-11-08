@@ -1,21 +1,20 @@
 // 生産と建設。資材は時間では貯まらず、モンスターの配置で決まる固定の量（企画まとめ「生産」）。
 import { emptyBag, ELEMENT_IDS } from '../data/elements.js';
-import { cellDist } from './map.js';
 
 // 仮の数値
-export const YIELD_ADJACENT = 2; // 資源地のとなり8マスに置いた
-export const YIELD_IN_RANGE = 1; // となりではないが、攻撃範囲に資源地が入っている
+export const YIELD_ADJACENT = 2; // 資源地のまわり8マスに置いた
+export const YIELD_IN_RANGE = 1; // まわりではないが、攻撃範囲のマスに資源地がある
 export const YIELD_SAME_ELEMENT = 1; // モンスターと資源地の属性が同じなら上乗せ
 
 /**
  * 1体のモンスターが1つの資源地から得る資材の量。
- * monster = { x, y, element, range }
+ * monster = { x, y, element, targets: Set<'x,y'> }（targets = 攻撃範囲のマス）
  */
 export function yieldFrom(monster, node) {
   const adjacent = Math.max(Math.abs(monster.x - node.x), Math.abs(monster.y - node.y)) <= 1;
   let amount = 0;
   if (adjacent) amount = YIELD_ADJACENT;
-  else if (cellDist(monster, node) <= monster.range) amount = YIELD_IN_RANGE;
+  else if (monster.targets.has(`${node.x},${node.y}`)) amount = YIELD_IN_RANGE;
   if (amount > 0 && monster.element === node.element) amount += YIELD_SAME_ELEMENT;
   return amount;
 }
@@ -24,14 +23,17 @@ export function yieldFrom(monster, node) {
 export function production(nodes, monsters) {
   const bag = emptyBag();
   const perMonster = monsters.map(() => emptyBag());
+  const perNode = new Map();
   monsters.forEach((m, i) => {
     for (const node of nodes) {
       const a = yieldFrom(m, node);
+      if (!a) continue;
       bag[node.element] += a;
       perMonster[i][node.element] += a;
+      perNode.set(`${node.x},${node.y}`, (perNode.get(`${node.x},${node.y}`) ?? 0) + a);
     }
   });
-  return { bag, perMonster };
+  return { bag, perMonster, perNode };
 }
 
 /**

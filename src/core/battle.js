@@ -26,10 +26,15 @@ export function createBattle(region, map) {
   };
 }
 
-export function startBattle(b) {
+/** ctx.groupSize（角笛の数＋1）だけ、ウェーブをまとめて出す。 */
+export function startBattle(b, ctx = { groupSize: 1 }) {
   if (b.phase !== 'ready') return;
   b.phase = 'running';
-  startWave(b);
+  startGroup(b, ctx.groupSize);
+}
+
+function startGroup(b, size) {
+  for (let i = 0; i < size && b.wavesStarted < b.waves.length; i++) startWave(b);
 }
 
 function startWave(b) {
@@ -42,7 +47,7 @@ function startWave(b) {
   b.gapUntil = null;
 }
 
-/** dt 秒だけ進める。ctx = { units, overlap }（buildUnits の戻り値） */
+/** dt 秒だけ進める。ctx = { units, groupSize }（resolveLayout の戻り値） */
 export function step(b, dt, ctx) {
   if (b.phase !== 'running') return;
   b.time += dt;
@@ -58,7 +63,11 @@ export function step(b, dt, ctx) {
   for (const e of b.enemies) e.dist += ENEMIES[e.kind].speed * dt;
   const leaked = b.enemies.filter((e) => e.dist >= b.pathLen);
   if (leaked.length) {
-    for (const e of leaked) b.baseHp -= ENEMIES[e.kind].damage;
+    // ボスを通したら拠点は全損（ボスを倒さないとクリアにならない）
+    for (const e of leaked) {
+      if (ENEMIES[e.kind].boss) b.bossLeaked = true;
+      b.baseHp -= ENEMIES[e.kind].boss ? b.baseHp : ENEMIES[e.kind].damage;
+    }
     b.enemies = b.enemies.filter((e) => e.dist < b.pathLen);
     if (b.baseHp <= 0) {
       b.baseHp = 0;
@@ -67,7 +76,7 @@ export function step(b, dt, ctx) {
     }
   }
 
-  // 攻撃：範囲の中で一番先に進んでいる敵をねらう
+  // 攻撃：範囲のマスにいる敵のうち、一番先に進んでいる敵をねらう
   for (const e of b.effects) e.life -= dt;
   b.effects = b.effects.filter((e) => e.life > 0);
   for (const u of ctx.units) {
@@ -81,7 +90,7 @@ export function step(b, dt, ctx) {
     for (const e of b.enemies) {
       if (e.hp <= 0) continue;
       const p = pointOnPath(b.path, e.dist);
-      if (Math.hypot(p.x - (u.x + 0.5), p.y - (u.y + 0.5)) <= u.range && (!target || e.dist > target.dist)) {
+      if (u.targets.has(`${Math.floor(p.x)},${Math.floor(p.y)}`) && (!target || e.dist > target.dist)) {
         target = e;
         tp = p;
       }
@@ -98,18 +107,19 @@ export function step(b, dt, ctx) {
   for (const e of dead) b.gained[ENEMIES[e.kind].element] += ENEMIES[e.kind].drop;
   if (dead.length) b.enemies = b.enemies.filter((e) => e.hp > 0);
 
-  // 次のウェーブ
-  const last = b.wavesStarted - 1;
-  const lastSpawned = !b.pending.some((p) => p.wave === last);
-  if (b.wavesStarted < b.waves.length) {
-    if (lastSpawned && ctx.overlap) startWave(b);
-    else if (lastSpawned && b.enemies.length === 0) {
+  // 今のウェーブ（まとめて出したもの）を全部倒したら、間をあけて次へ
+  if (b.pending.length === 0 && b.enemies.length === 0) {
+    if (b.wavesStarted >= b.waves.length) b.phase = 'won';
+    else {
       if (b.gapUntil === null) b.gapUntil = b.time + b.waveGap;
-      if (b.time >= b.gapUntil) startWave(b);
+      if (b.time >= b.gapUntil) startGroup(b, ctx.groupSize ?? 1);
     }
-  } else if (b.pending.length === 0 && b.enemies.length === 0) {
-    b.phase = 'won';
   }
+}
+
+/** 動かした・回したユニットは、攻撃の間隔が溜まるまで攻撃できない。 */
+export function rechargeUnit(b, unit) {
+  if (b.phase === 'running' && unit) b.cooldowns[unit.id] = unit.interval;
 }
 
 /** 獲得ペース：全ウェーブで手に入れたエレメント ÷ 通しで倒すのにかかった時間（企画まとめの回答）。 */
