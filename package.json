@@ -1,0 +1,10 @@
+{
+  "name": "arc-en-ciel-creator",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "serve": "node tools/serve.mjs",
+    "sim": "node tools/sim-region.mjs"
+  }
+}
