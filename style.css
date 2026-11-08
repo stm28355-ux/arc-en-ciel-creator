@@ -414,3 +414,91 @@ details.help ul {
   flex: 1;
   min-width: 120px;
 }
+.nav {
+  display: flex;
+  gap: 6px;
+  max-width: 1320px;
+  margin: 12px auto 0;
+  padding: 0 16px;
+}
+.nav button {
+  min-width: 96px;
+}
+.guide {
+  max-width: 1320px;
+  margin: 10px auto 0;
+  padding: 10px 14px;
+  border: 1px solid #4d74b8;
+  background: #1d2a44;
+  border-radius: 8px;
+  line-height: 1.6;
+}
+#guide {
+  padding: 0 16px;
+}
+.two-col {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+@media (max-width: 760px) {
+  .two-col {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.mix-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0;
+}
+.mix-row .have {
+  color: var(--muted);
+  font-size: 12px;
+  min-width: 88px;
+}
+.mix-row .amount {
+  min-width: 32px;
+  text-align: center;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+.mix-row button {
+  padding: 4px 8px;
+}
+.codex-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+}
+.codex.unknown {
+  opacity: 0.6;
+}
+.card.born {
+  border-color: var(--good);
+  background: #1f3a2a;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #1a1a1a;
+  font-weight: bold;
+  font-size: 13px;
+  vertical-align: middle;
+}
+.detail-shape {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 6px 0;
+}

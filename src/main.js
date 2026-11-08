@@ -11,8 +11,10 @@ import { nextDir, DIR_NAME } from './core/shape.js';
 import { createBattle, startBattle, step, pace, paceBag, waveSummary, rechargeUnit } from './core/battle.js';
 import { loadSave, writeSave, clearSave, regionSave, newSave } from './core/save.js';
 import { draw, CELL, facilityIcon, FACILITY_COLOR } from './ui/render.js';
+import { renderMonsterScreen, onMonsterAction } from './ui/monsterScreen.js';
+import { atkAt } from './core/alchemy.js';
 
-const VERSION = 'v0.2.1';
+const VERSION = 'v0.3.0';
 const STEP = 1 / 60;
 const AUTO_RETRY_DELAY = 1500; // ミリ秒
 // 自動で再挑戦している間の速さの上限。周回が攻略後の自動獲得より速くなりすぎないようにする
@@ -25,6 +27,10 @@ document.getElementById('version').textContent = VERSION;
 
 let save = loadSave();
 let screen = { name: 'home' };
+// モンスター画面の状態（画面を行き来しても残す）
+const monsterState = { tab: 'roster', selected: null, mix: {}, born: null };
+const navEl = document.getElementById('nav');
+const guideEl = document.getElementById('guide');
 
 // ---------- 持っているエレメントと、攻略済み地域からの自動の獲得（ページを開いている間だけ） ----------
 function incomeBag() {
@@ -33,6 +39,7 @@ function incomeBag() {
   return bag;
 }
 function renderBank() {
+  renderGuide();
   const inc = incomeBag();
   bankEl.innerHTML = ELEMENTS.map((e) => {
     const n = Math.floor(save.elements[e.id] ?? 0);
@@ -54,6 +61,7 @@ document.getElementById('reset-save').addEventListener('click', () => {
   clearSave();
   save = newSave();
   screen = { name: 'home' };
+  Object.assign(monsterState, { tab: 'roster', selected: null, mix: {}, born: null });
   goHome();
 });
 
@@ -62,10 +70,50 @@ const chip = (id, text) => `<span class="chip"><span class="dot" style="backgrou
 const costText = (cost) => Object.entries(cost).map(([id, n]) => chip(id, `${ELEMENT[id].name}${n}`)).join(' ');
 
 /** 形の小さな図（上向き）。 */
-function shapePreview(rows) {
+function shapePreview(rows, size = 7) {
   const w = Math.max(...rows.map((r) => r.length));
-  const cells = rows.flatMap((r) => [...r.padEnd(w, '.')]).map((c) => `<i class="s-${c === '.' ? 'n' : c}"></i>`);
-  return `<span class="shape" style="grid-template-columns:repeat(${w},7px)" title="上を向いたときの範囲">${cells.join('')}</span>`;
+  const cells = rows.flatMap((r) => [...r.padEnd(w, '.')]).map((c) => `<i class="s-${c === '.' ? 'n' : c}" style="width:${size}px;height:${size}px"></i>`);
+  return `<span class="shape" style="grid-template-columns:repeat(${w},${size}px)" title="上を向いたときの範囲">${cells.join('')}</span>`;
+}
+
+// ---------- チュートリアルの案内 ----------
+function guideStep() {
+  if (save.roster.length === 0) return '最初の仲間を作りましょう。「モンスター」→「錬成」で、無のエレメントを10入れて「錬成する」を押します。';
+  if (!save.ranOnce && save.roster.length < 3) return `仲間が1〜2体では草原のウェーブ1を越えられません。残りの無のエレメントで、あと${3 - save.roster.length}体作りましょう。`;
+  if (!save.ranOnce) return '「地域」→「草原」で仲間をマスに置き、「戦闘開始」を押しましょう。負けても、手に入れたエレメントは持ち帰れます。';
+  return null;
+}
+function renderGuide() {
+  const step = guideStep();
+  guideEl.innerHTML = step ? `<div class="guide"><b>はじめに</b> ${step}</div>` : '';
+  for (const b of navEl.querySelectorAll('[data-nav]')) b.classList.toggle('on', (b.dataset.nav === 'monsters') === (screen.name === 'monsters'));
+}
+
+navEl.addEventListener('click', (ev) => {
+  const b = ev.target.closest('[data-nav]');
+  if (!b) return;
+  if (b.dataset.nav === 'monsters') goMonsters();
+  else goHome();
+});
+
+const monsterApi = {
+  get save() {
+    return save;
+  },
+  persist() {
+    writeSave(save);
+    renderBank();
+  },
+  chip,
+  costText,
+  shapePreview,
+};
+
+function goMonsters() {
+  if (screen.name === 'map') leaveMap(screen);
+  screen = { name: 'monsters' };
+  renderBank();
+  renderMonsterScreen(app, monsterApi, monsterState);
 }
 
 // ---------- ホーム：地方と地域の選択 ----------
@@ -73,6 +121,7 @@ function goHome() {
   if (screen.name === 'map') leaveMap(screen);
   screen = { name: 'home' };
   renderBank();
+  window.scrollTo(0, 0);
   app.innerHTML = PROVINCES.map((p) => {
     const regions = p.regions
       .map((id) => {
@@ -103,6 +152,7 @@ function openRegion(regionId) {
   const rs = regionSave(save, regionId);
   // 古いセーブには向きがないので上向きにする
   for (const it of [...rs.layout.monsters, ...rs.layout.facilities]) it.dir ??= 'up';
+  rs.layout.monsters = rs.layout.monsters.filter((m) => save.roster.some((r) => r.uid === m.uid));
   save.settings ??= { autoRetry: false };
   const s = {
     name: 'map',
@@ -158,6 +208,11 @@ function leaveMap(s) {
 app.addEventListener('click', (ev) => {
   const region = ev.target.closest('[data-region]');
   if (region && screen.name === 'home') return openRegion(region.dataset.region);
+  const m = ev.target.closest('[data-mact]');
+  if (m && screen.name === 'monsters') {
+    if (onMonsterAction(monsterApi, monsterState, m.dataset.mact, m.dataset)) renderMonsterScreen(app, monsterApi, monsterState);
+    return;
+  }
   const el = ev.target.closest('[data-act]');
   if (el && screen.name === 'map') onAction(screen, el.dataset.act, el.dataset, el);
 });
@@ -185,8 +240,14 @@ function cellAt(cv, ev, map) {
   return { x, y };
 }
 
+/** 手持ちのレベルを配置に入れて計算する。 */
+function withLevels(layout) {
+  const level = (uid) => save.roster.find((r) => r.uid === uid)?.level ?? 1;
+  return { ...layout, monsters: layout.monsters.map((m) => ({ ...m, level: level(m.uid) })) };
+}
+
 function refresh(s) {
-  s.resolved = resolveLayout(s.map, s.layout);
+  s.resolved = resolveLayout(s.map, withLevels(s.layout));
 }
 
 /** 配置が変わったあと。動かしたもの（ids）は攻撃の間隔を溜め直す。 */
@@ -335,6 +396,11 @@ function begin(s) {
   if (s.battle.phase !== 'ready') return;
   startBattle(s.battle, s.resolved);
   s.runs += 1;
+  if (!save.ranOnce) {
+    save.ranOnce = true;
+    writeSave(save);
+    renderGuide();
+  }
   s.paused = false;
 }
 
@@ -432,7 +498,7 @@ function viewOf(s) {
     if (s.previewKey !== key) {
       const monsters = [...s.layout.monsters.filter((m) => m.uid !== g.item.uid), g.item];
       s.previewKey = key;
-      s.preview = resolveLayout(s.map, { ...s.layout, monsters }).prod.perNode;
+      s.preview = resolveLayout(s.map, withLevels({ ...s.layout, monsters })).prod.perNode;
     }
     nodeYield = s.preview;
   }
@@ -562,7 +628,8 @@ function renderSide(s) {
   if (s.sel && !placed) body += `<div class="card">${rotateRow(s, `置く向き：${DIR_NAME[s.placeDir]}。マスを押すと置きます。右クリック／Esc で取り消し`)}</div>`;
 
   if (s.tab === 'monster') {
-    body += `<div class="card"><h3>手持ちのモンスター <small>押してからマスを選ぶ</small></h3><div class="list">${save.roster
+    if (!save.roster.length) body += '<div class="card"><p>手持ちのモンスターがいません。「モンスター」→「錬成」で作りましょう。</p></div>';
+    else body += `<div class="card"><h3>手持ちのモンスター <small>押してからマスを選ぶ</small></h3><div class="list">${save.roster
       .map((r) => {
         const def = MONSTERS[r.kind];
         const p = placedMonster(s, r.uid);
@@ -570,9 +637,9 @@ function renderSide(s) {
         const state = !p ? ['待機', ''] : working.has(r.uid) ? ['作業中', 'placed'] : ['配置中', 'placed'];
         return `<button class="item ${sel ? 'sel' : ''}" data-act="pick-monster" data-uid="${r.uid}">
           <span class="icon" style="background:${ELEMENT[def.element].color}">${def.name[0]}</span>
-          <span>${def.name}</span>
+          <span>${def.name} Lv${r.level}</span>
           <span class="state ${state[1]}">${state[0]}</span>
-          <span class="sub">${shapePreview(def.shape)}<span>${ELEMENT[def.element].name} · 攻撃${def.atk} · 間隔${def.interval}秒 · 技「${def.skill}」</span></span>
+          <span class="sub">${shapePreview(def.shape)}<span>${ELEMENT[def.element].name} · 攻撃${atkAt(r.kind, r.level).toFixed(1)} · 間隔${def.interval}秒 · 技「${def.skill}」</span></span>
         </button>`;
       })
       .join('')}</div></div>`;
@@ -580,7 +647,7 @@ function renderSide(s) {
       const i = s.layout.monsters.findIndex((m) => m.uid === placed.uid);
       const u = s.resolved.units.find((u) => u.id === placed.uid);
       const y = i >= 0 ? Object.entries(prod.perMonster[i]).filter(([, n]) => n) : [];
-      body += `<div class="card info"><h3>${MONSTERS[placed.kind].name} <small>${DIR_NAME[placed.dir]}向き</small></h3>
+      body += `<div class="card info"><h3>${MONSTERS[placed.kind].name} <small>Lv${save.roster.find((r) => r.uid === placed.uid)?.level ?? 1} · ${DIR_NAME[placed.dir]}向き</small></h3>
         <p>攻撃 ${u.atk.toFixed(1)} · 間隔 ${u.interval.toFixed(2)}秒（毎秒 ${(u.atk / u.interval).toFixed(1)}）</p>
         ${working.has(placed.uid) ? '<p>鍛冶場で作業中（攻撃と生産もそのまま）</p>' : ''}
         <p>資材：${y.length ? y.map(([id, n]) => `${ELEMENT[id].name}+${n}`).join(' ') : 'なし'}</p>

@@ -1,15 +1,21 @@
 // セーブ（ブラウザの localStorage）。読めない・書けない環境でも遊べるようにする。
 import { emptyBag } from '../data/elements.js';
-import { STARTER_ROSTER } from '../data/monsters.js';
 
-const KEY = 'arc-en-ciel-creator/save/v1';
+const KEY = 'arc-en-ciel-creator/save/v2'; // v1（仮の手持ち5体の版）は引き継がない
+
+// 最初にもらうエレメント。調合錬成のチュートリアルで最初の仲間を作る（無だけで10個 → プチスライム）。
+// 30 はプチスライム3体分。1〜2体では草原のウェーブ1を越えられないため
+export const START_ELEMENTS = { none: 30 };
 
 export function newSave() {
   return {
-    v: 1,
-    elements: emptyBag(), // 持っているエレメント（地域の外へ持ち出せる）
-    roster: STARTER_ROSTER.map((m) => ({ ...m })),
+    v: 2,
+    elements: { ...emptyBag(), ...START_ELEMENTS }, // 持っているエレメント（地域の外へ持ち出せる）
+    roster: [], // 手持ちのモンスター { uid, kind, level }
+    nextUid: 1,
+    codex: {}, // 図鑑：一度手に入れたモンスター kind → true
     regions: {}, // regionId → { cleared, clears, bestPace, paceBag, layout }
+    settings: { autoRetry: false },
   };
 }
 
@@ -23,8 +29,9 @@ export function loadSave() {
     const raw = localStorage.getItem(KEY);
     if (!raw) return newSave();
     const s = JSON.parse(raw);
-    if (s?.v !== 1) return newSave();
-    return { ...newSave(), ...s, elements: { ...emptyBag(), ...s.elements } };
+    if (s?.v !== 2) return newSave();
+    const base = newSave();
+    return { ...base, ...s, elements: { ...emptyBag(), ...s.elements }, settings: { ...base.settings, ...s.settings } };
   } catch {
     return newSave();
   }
@@ -44,4 +51,12 @@ export function clearSave() {
   } catch {
     /* noop */
   }
+}
+
+/** モンスターを手持ちに加え、図鑑に載せる。 */
+export function addMonster(save, kind) {
+  const m = { uid: `m${save.nextUid++}`, kind, level: 1 };
+  save.roster.push(m);
+  save.codex[kind] = true;
+  return m;
 }

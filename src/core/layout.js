@@ -4,6 +4,7 @@ import { MONSTERS } from '../data/monsters.js';
 import { FACILITIES } from '../data/facilities.js';
 import { production, allocate } from './materials.js';
 import { cellsOf, keyOf } from './shape.js';
+import { atkAt } from './alchemy.js';
 
 /** 置き物（モンスターか施設）の定義。 */
 export function defOf(item) {
@@ -35,6 +36,7 @@ export function canPlace(map, layout, item, ignore) {
 }
 
 /**
+ * layout.monsters の各要素は { uid, kind, x, y, dir, level? }（level がなければ1）。
  * 戻り値：
  *   working:   Set<uid>         製造施設で作業しているモンスター（作業場所にいて、攻撃範囲が施設に重なる）
  *   prod:      production() の戻り値
@@ -101,7 +103,7 @@ export function resolveLayout(map, layout) {
       x: m.x,
       y: m.y,
       element: def.element,
-      atk: def.atk * (1 + atkAdd),
+      atk: atkAt(m.kind, m.level) * (1 + atkAdd),
       interval: def.interval / (1 + speedAdd),
       targets: m.targets,
       buffed: { sword: atkAdd > 0, flag: speedAdd > 0 },
