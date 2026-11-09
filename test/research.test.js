@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { newSave } from '../src/core/save.js';
 import { RESEARCH, RESEARCH_ORDER } from '../src/data/research.js';
-import { doResearch, whyNot, toggleResearch, researchEffects, levelCap, researchedLevel } from '../src/core/research.js';
+import { doResearch, whyNot, toggleResearch, researchEffects, levelCap, researchedLevel, mixElements } from '../src/core/research.js';
 import { levelUpCost, levelUpPayment, LEVEL_CAP } from '../src/core/alchemy.js';
 import { resolveLayout } from '../src/core/layout.js';
 import { parseMap } from '../src/core/map.js';
@@ -51,9 +51,9 @@ test('限界突破 II は限界突破 I のあと。上限は 15 → 30 → 40',
 
 test('ON/OFF：OFF にすると効かない（使ったエレメントは戻らない）。I を OFF にすると II も効かない', () => {
   const s = rich();
-  for (const id of ['baseHp', 'attack', 'attack', 'pace', 'carry', 'limit1', 'limit2']) doResearch(s, id);
+  for (const id of ['baseHp', 'attack', 'attack', 'facility', 'pace', 'carry', 'limit1', 'limit2', 'mixWind']) doResearch(s, id);
   const on = researchEffects(s);
-  assert.deepEqual(on, { baseHpAdd: 1, atkMul: 1.1, paceMul: 1.1, carrySlots: 1, levelCap: 40 });
+  assert.deepEqual(on, { baseHpAdd: 1, atkMul: 1.1, facilityMul: 1.1, paceMul: 1.1, carrySlots: 1, levelCap: 40, mixElements: ['none', 'wind'] });
   const left = s.elements.wind;
   toggleResearch(s, 'attack', false);
   toggleResearch(s, 'limit1', false);
@@ -82,6 +82,32 @@ test('拠点の耐久と攻撃力の研究が、戦闘に効く', () => {
   assert.equal(b.baseMax, REGIONS.grassland.baseHp + 2);
   const layout = { monsters: [{ uid: 'm1', kind: 'slime', x: 12, y: 9, dir: 'up', atkMul: 1.25 }], facilities: [] };
   assert.equal(resolveLayout(map, layout).units[0].atk, 12.5);
+});
+
+test('調合で使えるエレメント：無は最初から、風・土は研究で開放する', () => {
+  const s = rich();
+  assert.deepEqual(mixElements(s), ['none']);
+  doResearch(s, 'mixEarth');
+  assert.deepEqual(mixElements(s), ['none', 'earth']);
+  doResearch(s, 'mixWind');
+  assert.deepEqual(mixElements(s), ['none', 'wind', 'earth']);
+  toggleResearch(s, 'mixWind', false);
+  assert.deepEqual(mixElements(s), ['none', 'earth']);
+  const poor = newSave();
+  assert.equal(whyNot(poor, 'mixWind'), 'エレメントが足りません', '風を手に入れてからでないと研究できない');
+});
+
+test('戦闘施設の強化：光線塔の攻撃力と、剣・旗の効き目が増える', () => {
+  const layout = {
+    monsters: [{ uid: 'm1', kind: 'slime', x: 5, y: 6, dir: 'right' }, { uid: 'm3', kind: 'bat', x: 22, y: 9, dir: 'up' }],
+    facilities: [{ id: 'f1', kind: 'beam', x: 22, y: 4, dir: 'left' }, { id: 'f2', kind: 'flag', x: 5, y: 7, dir: 'up' }],
+  };
+  const plain = resolveLayout(map, layout);
+  const boosted = resolveLayout(map, { ...layout, facilityMul: 1.5 });
+  assert.equal(boosted.units.find((u) => u.id === 'f1').atk, plain.units.find((u) => u.id === 'f1').atk * 1.5);
+  const slime = (r) => r.units.find((u) => u.owner === 'm1');
+  assert.ok(Math.abs(slime(plain).interval - 1 / 1.3) < 1e-9);
+  assert.ok(Math.abs(slime(boosted).interval - 1 / 1.45) < 1e-9, '旗の +30% が +45% に');
 });
 
 test('持ち込みの資源地：まわりのモンスターから資材が入る。持ち込める数より多い分は効かない', () => {

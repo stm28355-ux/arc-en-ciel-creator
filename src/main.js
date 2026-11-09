@@ -13,10 +13,11 @@ import { loadSave, writeSave, clearSave, regionSave, newSave } from './core/save
 import { draw, CELL, facilityIcon, FACILITY_COLOR } from './ui/render.js';
 import { renderMonsterScreen, onMonsterAction } from './ui/monsterScreen.js';
 import { recordBattle, skillsOf } from './core/breeding.js';
-import { researchEffects } from './core/research.js';
+import { researchEffects, researchedLevel } from './core/research.js';
+import { regionOpen as isRegionOpen, opensAfter } from './core/progress.js';
 import { renderResearchScreen, onResearchAction } from './ui/researchScreen.js';
 
-const VERSION = 'v0.5.0';
+const VERSION = 'v0.6.0';
 const STEP = 1 / 60;
 const AUTO_RETRY_DELAY = 1500; // ミリ秒
 // 自動で再挑戦している間の速さの上限。周回が攻略後の自動獲得より速くなりすぎないようにする
@@ -112,7 +113,9 @@ function shapePreview(rows, size = 7) {
 function guideStep() {
   if (save.roster.length === 0) return '最初の仲間を作りましょう。「モンスター」→「錬成」で、無のエレメントを10入れて「錬成する」を押します。';
   if (!save.ranOnce && save.roster.length < 3) return `仲間が1〜2体では草原のウェーブ1を越えられません。残りの無のエレメントで、あと${3 - save.roster.length}体作りましょう。`;
-  if (!save.ranOnce) return '「地域」→「草原」で仲間をマスに置き、「戦闘開始」を押しましょう。負けても、手に入れたエレメントは持ち帰れます。';
+  if (!save.ranOnce) return '「地域」→「第1地方」→「草原」で仲間をマスに置き、「戦闘開始」を押しましょう。負けても、手に入れたエレメントは持ち帰れます。';
+  if (!researchedLevel(save, 'mixWind') && (save.elements.wind ?? 0) >= 20)
+    return '風のエレメントが手に入りました。「研究」で「風の調合」をすると、調合錬成で風を使えるようになり、新しい仲間を作れます。';
   return null;
 }
 function renderGuide() {
@@ -173,33 +176,59 @@ function goResearch() {
   renderResearchScreen(app, researchApi);
 }
 
-// ---------- ホーム：地方と地域の選択 ----------
+// ---------- ホーム：地方選択 → 地域選択 ----------
+const regionOpen = (id) => isRegionOpen(save, id);
+
+/** 地方選択 */
 function goHome() {
   if (screen.name === 'map') leaveMap(screen);
   screen = { name: 'home' };
   renderBank();
   window.scrollTo(0, 0);
-  app.innerHTML = PROVINCES.map((p) => {
-    const regions = p.regions
-      .map((id) => {
-        const r = REGIONS[id];
-        const rs = save.regions[id];
-        const els = r.elements.map((e) => chip(e, ELEMENT[e].name)).join(' ');
-        const status = r.locked
-          ? '<span class="badge locked">まだ作っていない</span>'
-          : rs?.cleared
-            ? `<span class="badge">攻略済み · 獲得ペース ${rs.bestPace.toFixed(2)}/秒</span>`
-            : '<span class="badge locked">未攻略</span>';
-        return `<button class="region-card" data-region="${id}" ${r.locked ? 'disabled' : ''}>
+  const cards = PROVINCES.map((p) => {
+    const els = p.elements.map((e) => chip(e, ELEMENT[e].name)).join(' ');
+    if (!p.regions.length)
+      return `<button class="region-card" disabled><span class="name">${p.name}</span><span>${els}</span><span class="badge locked">まだ作っていない</span><span class="meta">${p.note}</span></button>`;
+    const cleared = p.regions.filter((id) => save.regions[id]?.cleared).length;
+    return `<button class="region-card" data-province="${p.id}">
+        <span class="name">${p.name}</span>
+        <span>${els}</span>
+        <span class="badge ${cleared ? '' : 'locked'}">攻略 ${cleared} / ${p.regions.length}</span>
+        <span class="meta">${p.regions.map((id) => REGIONS[id].name).join('・')}</span>
+      </button>`;
+  }).join('');
+  app.innerHTML = `<section class="province"><h2>地方を選ぶ</h2><div class="regions">${cards}</div></section>`;
+}
+
+/** 地域選択（地方の中の地域） */
+function goProvince(provinceId) {
+  if (screen.name === 'map') leaveMap(screen);
+  screen = { name: 'province', id: provinceId };
+  renderBank();
+  window.scrollTo(0, 0);
+  const p = PROVINCES.find((x) => x.id === provinceId);
+  const bonus = researchEffects(save).baseHpAdd;
+  const regions = p.regions
+    .map((id) => {
+      const r = REGIONS[id];
+      const rs = save.regions[id];
+      const open = regionOpen(id);
+      const els = r.elements.map((e) => chip(e, ELEMENT[e].name)).join(' ');
+      const status = !open
+        ? `<span class="badge locked">${REGIONS[r.requires].name}を攻略すると開く</span>`
+        : rs?.cleared
+          ? `<span class="badge">攻略済み · 獲得ペース ${rs.bestPace.toFixed(2)}/秒</span>`
+          : '<span class="badge locked">未攻略</span>';
+      return `<button class="region-card" data-region="${id}" ${open ? '' : 'disabled'}>
           <span class="name">${r.name}</span>
           <span>${els}</span>
           ${status}
-          ${r.waves ? `<span class="meta">ウェーブ ${r.waves.length} · 拠点の耐久 ${r.baseHp + researchEffects(save).baseHpAdd}</span>` : ''}
+          <span class="meta">ウェーブ ${r.waves.length} · 拠点の耐久 ${r.baseHp + bonus}</span>
         </button>`;
-      })
-      .join('');
-    return `<section class="province"><h2>${p.name}</h2>${regions ? `<div class="regions">${regions}</div>` : `<p class="note">${p.note}（まだ作っていない）</p>`}</section>`;
-  }).join('');
+    })
+    .join('');
+  app.innerHTML = `<div class="row" style="margin-bottom:10px"><button data-to="home">← 地方選択</button></div>
+    <section class="province"><h2>${p.name}</h2><p class="hint">地域を攻略すると、次の地域が開きます。地域ごとに手に入るエレメントの割合が違います（多い順に表示）。</p><div class="regions">${regions}</div></section>`;
 }
 
 // ---------- 地域マップ ----------
@@ -214,6 +243,7 @@ function openRegion(regionId) {
   save.settings ??= { autoRetry: false };
   const s = {
     name: 'map',
+    regionId,
     region,
     map,
     rs,
@@ -264,8 +294,11 @@ function leaveMap(s) {
 }
 
 app.addEventListener('click', (ev) => {
+  const prov = ev.target.closest('[data-province]');
+  if (prov && screen.name === 'home') return goProvince(prov.dataset.province);
+  if (ev.target.closest('[data-to="home"]') && screen.name === 'province') return goHome();
   const region = ev.target.closest('[data-region]');
-  if (region && screen.name === 'home') return openRegion(region.dataset.region);
+  if (region && screen.name === 'province' && regionOpen(region.dataset.region)) return openRegion(region.dataset.region);
   const m = ev.target.closest('[data-mact]');
   if (m && screen.name === 'monsters') {
     if (onMonsterAction(monsterApi, monsterState, m.dataset.mact, m.dataset)) renderMonsterScreen(app, monsterApi, monsterState);
@@ -310,7 +343,8 @@ function cellAt(cv, ev, map) {
 
 /** 手持ちのレベルと技、研究の効き目（攻撃力・レベルの上限・持ち込める資源地の数）を配置に入れて計算する。 */
 function withLevels(layout) {
-  return { ...layout, monsters: layout.monsters.map(withRoster), carrySlots: researchEffects(save).carrySlots };
+  const fx = researchEffects(save);
+  return { ...layout, monsters: layout.monsters.map(withRoster), carrySlots: fx.carrySlots, facilityMul: fx.facilityMul };
 }
 function withRoster(m) {
   const r = save.roster.find((x) => x.uid === m.uid);
@@ -526,7 +560,7 @@ function onAction(s, act, data, el) {
       else if (s.result) scheduleAutoRetry(s);
       break;
     case 'home':
-      goHome();
+      goProvince(s.region.province);
       return;
     case 'tab':
       s.tab = data.v;
@@ -616,6 +650,7 @@ function viewOf(s) {
   }
   return {
     map: s.map,
+    ground: s.region.ground,
     battle: s.battle,
     layout: s.layout,
     resolved: s.resolved,
@@ -638,6 +673,7 @@ function onFinish(s) {
   if (b.phase === 'won') {
     const p = pace(b);
     const best = p > s.rs.bestPace;
+    const first = !s.rs.cleared;
     s.rs.clears += 1;
     s.rs.cleared = true;
     if (best) {
@@ -652,6 +688,7 @@ function onFinish(s) {
       <p class="big">${p.toFixed(2)} /秒 ${best ? '<span class="badge">新記録</span>' : ''}</p>
       <p class="hint">手に入れたエレメント ${bagTotal(b.gained)} ÷ ${b.time.toFixed(1)}秒 · 記録 ${s.rs.bestPace.toFixed(2)}/秒<br>
       この地域から、記録したペースでエレメントが自動で入り続けます（ページを開いている間）。</p>
+      ${first ? opensNote(s.regionId) : ''}
       ${buttons}</div></div>`;
   } else {
     s.result = 'lost';
@@ -663,6 +700,12 @@ function onFinish(s) {
   }
   if (auto) scheduleAutoRetry(s);
   renderSide(s);
+}
+
+/** はじめて攻略したときに開く地域の知らせ */
+function opensNote(regionId) {
+  const names = opensAfter(regionId).map((id) => REGIONS[id].name);
+  return names.length ? `<p><span class="badge">${names.join('・')}が開きました</span></p>` : '';
 }
 
 function scheduleAutoRetry(s) {

@@ -1,10 +1,24 @@
 // 研究（仮）。エレメントを使って、ゲーム全体に効く強化を進める（企画まとめ「研究（永続強化）」）。
-// 研究したものは ON/OFF できる（縛りプレイ用）。OFF にしても使ったエレメントは戻らない。
+// 研究したものは ON/OFF できる。OFF にしても使ったエレメントは戻らない。
+// 研究の項目は、これからも必要に応じて増やす。
 //   max:   研究できる回数（レベル）
 //   costs: レベルごとの値段（costs[0] がレベル1にする値段）
 //   needs: 先に研究しておくもの
 // 草原を1回攻略すると約116、攻略後の自動獲得は約0.38/秒（v0.4.2 のシミュレーション）。値段はこれを目安にした仮のもの。
 export const RESEARCH = {
+  // 調合錬成で使えるエレメントを開放する。無は最初から使える。値段にその属性を入れて、手に入れてから研究するようにする
+  mixWind: {
+    name: '風の調合',
+    desc: '調合錬成で風のエレメントを使えるようにする',
+    max: 1,
+    costs: [{ wind: 20, none: 20 }],
+  },
+  mixEarth: {
+    name: '土の調合',
+    desc: '調合錬成で土のエレメントを使えるようにする',
+    max: 1,
+    costs: [{ earth: 20, wind: 20 }],
+  },
   baseHp: {
     name: '拠点の耐久',
     desc: '拠点の耐久 +1（どの地域でも）',
@@ -16,6 +30,12 @@ export const RESEARCH = {
     desc: 'モンスターの攻撃力 +5%',
     max: 5,
     costs: [1, 2, 3, 4, 5].map((n) => ({ wind: 30 * n, none: 10 * n })),
+  },
+  facility: {
+    name: '戦闘施設の強化',
+    desc: '光線塔の攻撃力と、剣の台座・追い風の旗の効き目 +10%',
+    max: 5,
+    costs: [1, 2, 3, 4, 5].map((n) => ({ none: 30 * n, wind: 20 * n })),
   },
   pace: {
     name: '獲得ペース',
@@ -44,9 +64,13 @@ export const RESEARCH = {
   },
 };
 
-export const RESEARCH_ORDER = ['baseHp', 'attack', 'pace', 'carry', 'limit1', 'limit2'];
+export const RESEARCH_ORDER = ['mixWind', 'mixEarth', 'baseHp', 'attack', 'facility', 'pace', 'carry', 'limit1', 'limit2'];
+
+/** 調合錬成で使うのに研究が要るエレメント → 研究 */
+export const MIX_UNLOCK = { wind: 'mixWind', earth: 'mixEarth' };
 
 // 1レベルあたりの効き目
 export const BASE_HP_PER_LEVEL = 1;
 export const ATTACK_PER_LEVEL = 0.05;
 export const PACE_PER_LEVEL = 0.1;
+export const FACILITY_PER_LEVEL = 0.1;

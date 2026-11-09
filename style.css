@@ -545,3 +545,6 @@ details.help ul {
 .card.research.off {
   opacity: 0.7;
 }
+.mix-row.locked {
+  opacity: 0.6;
+}

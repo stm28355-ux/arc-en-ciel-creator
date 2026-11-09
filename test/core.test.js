@@ -7,10 +7,14 @@ import { parseShape, rotate, cellsOf, nextDir } from '../src/core/shape.js';
 import { resolveLayout, canPlace } from '../src/core/layout.js';
 import { createBattle, startBattle, step, pace, rechargeUnit } from '../src/core/battle.js';
 import { emptyBag, bagTotal } from '../src/data/elements.js';
-import { simulate, LAYOUTS } from '../tools/sim-region.mjs';
+import { ENEMIES } from '../src/data/enemies.js';
+import { simulate, SAMPLES } from '../tools/sim-region.mjs';
+import { regionOpen, opensAfter } from '../src/core/progress.js';
+import { newSave } from '../src/core/save.js';
 
 const grass = REGIONS.grassland;
 const map = parseMap(grass.map);
+const sand = parseMap(REGIONS.desert.map);
 const M = (uid, kind, x, y, dir = 'up') => ({ uid, kind, x, y, dir });
 const F = (id, kind, x, y, dir = 'up') => ({ id, kind, x, y, dir });
 const keys = (cells) => cells.map((c) => `${c.x},${c.y}`).sort();
@@ -23,6 +27,46 @@ test('草原のマップ：S から B まで道が1本でつながる', () => {
   const pathCells = grass.map.join('').split('').filter((c) => '#SB'.includes(c)).length;
   assert.equal(map.path.length, pathCells, '道のマスは全部たどれる（行き止まりや分かれ道がない）');
   assert.ok(map.nodes.length >= 6);
+});
+
+test('3つの地域：どのマップも S から B まで道が1本でつながり、28×16', () => {
+  for (const [id, r] of Object.entries(REGIONS)) {
+    const m = parseMap(r.map);
+    assert.equal(m.w, 28, id);
+    assert.equal(m.h, 16, id);
+    const pathCells = r.map.join('').split('').filter((c) => '#SB'.includes(c)).length;
+    assert.equal(m.path.length, pathCells, id);
+    assert.equal(r.waves.length, 5, id);
+    assert.ok(r.waves.at(-1).some((g) => ENEMIES[g.enemy].boss), `${id} の最後のウェーブにボス`);
+  }
+});
+
+test('地域で手に入るエレメント：敵の落とす量と資源地の数が、地域の属性の順になる（草原は無＞風で土なし、森は風が一番、砂漠は土が一番）', () => {
+  for (const [id, r] of Object.entries(REGIONS)) {
+    const drops = {};
+    for (const w of r.waves) for (const g of w) drops[ENEMIES[g.enemy].element] = (drops[ENEMIES[g.enemy].element] ?? 0) + g.count * ENEMIES[g.enemy].drop;
+    const nodes = {};
+    for (const n of parseMap(r.map).nodes) nodes[n.element] = (nodes[n.element] ?? 0) + 1;
+    assert.deepEqual(Object.keys(drops).sort(), [...r.elements].sort(), `${id} の敵の属性`);
+    assert.deepEqual(Object.keys(nodes).sort(), [...r.elements].sort(), `${id} の資源地の属性`);
+    const [top, ...rest] = r.elements;
+    for (const e of rest) {
+      assert.ok(drops[top] > drops[e], `${id}：${top} が ${e} より多く落ちる`);
+      assert.ok(nodes[top] >= nodes[e], `${id}：${top} の資源地が ${e} 以上`);
+    }
+  }
+  assert.ok(!REGIONS.grassland.elements.includes('earth'), '草原には土がない');
+});
+
+test('地域は順に開く：草原 → 森 → 砂漠', () => {
+  const s = newSave();
+  assert.equal(regionOpen(s, 'grassland'), true);
+  assert.equal(regionOpen(s, 'forest'), false);
+  s.regions.grassland = { cleared: true };
+  assert.equal(regionOpen(s, 'forest'), true);
+  assert.equal(regionOpen(s, 'desert'), false);
+  assert.deepEqual(opensAfter('grassland'), ['forest']);
+  assert.deepEqual(opensAfter('forest'), ['desert']);
 });
 
 test('道の上の位置は、マスの中心を順につなぐ', () => {
@@ -101,34 +145,45 @@ test('建設：資材が足りないと、足りない属性を使う施設の�
   assert.equal(canAfford({ none: 2 }, { none: 3 }), false);
 });
 
-test('鍛冶場：作業場所にいて攻撃範囲が鍛冶場に重なるモンスターがいる間だけ動き、剣の台座が効く', () => {
-  const sample = LAYOUTS['鍛冶場＋剣（コウモリが作業）'];
-  const r = resolveLayout(map, sample);
-  assert.ok(r.working.has('m3'));
-  assert.ok(r.units.some((u) => u.owner === 'm3'), '作業中も攻撃する');
+test('鍛冶場：作業場所にいて攻撃範囲が鍛冶場に重なるモンスターがいる間だけ動き、剣の台座が効く（砂漠の見本）', () => {
+  const sample = SAMPLES.desert['森の仲間 Lv8＋鍛冶場・剣'];
+  const r = resolveLayout(sand, sample);
+  assert.ok(r.working.has('m7'));
+  assert.ok(r.units.some((u) => u.owner === 'm7'), '作業中も攻撃する');
   assert.equal(r.status.get('f1'), 'active');
   assert.equal(r.status.get('f2'), 'active');
   const buffed = r.units.filter((u) => u.buffed.sword).map((u) => u.owner).sort();
-  assert.deepEqual(buffed, ['m1', 'm4']);
-  assert.equal(r.units.find((u) => u.owner === 'm4').atk, 14 * 1.5);
+  assert.deepEqual(buffed, ['m4']);
+  assert.ok(Math.abs(r.units.find((u) => u.owner === 'm4').atk - 16 * 1.56 * 1.5) < 1e-9, 'Lv8 のすなあらしトカゲ ×1.5');
 
-  // コウモリを作業場所から外すと、鍛冶場は止まり、剣も止まって資材を使わない
-  const off = { ...sample, monsters: sample.monsters.map((m) => (m.uid === 'm3' ? { ...m, x: 25, y: 13 } : m)) };
-  const r2 = resolveLayout(map, off);
+  // 作業しているモンスターを作業場所から外すと、鍛冶場は止まり、剣も止まって資材を使わない
+  const off = { ...sample, monsters: sample.monsters.map((m) => (m.uid === 'm7' ? { ...m, x: 25, y: 15 } : m)) };
+  const r2 = resolveLayout(sand, off);
   assert.equal(r2.status.get('f1'), 'no-worker');
   assert.equal(r2.status.get('f2'), 'needs-smithy');
   assert.equal(r2.alloc.used.none, 0);
   assert.ok(!r2.units.some((u) => u.buffed.sword));
 });
 
-test('鍛冶場：作業場所にいても、攻撃範囲が鍛冶場を向いていなければ動かない。作業中も生産する', () => {
-  const smithy = F('f1', 'smithy', 5, 14, 'up'); // 作業場所は (5,13) と (6,13)。(5,13) は土の資源地なので (6,13) を使う
-  const facing = (dir) => resolveLayout(map, { monsters: [M('m1', 'slime', 6, 13, dir), M('m5', 'turtle', 15, 9, 'left')], facilities: [smithy] });
+test('鍛冶場：作業場所にいても、攻撃範囲が鍛冶場を向いていなければ動かない。作業中も生産する（砂漠）', () => {
+  const smithy = F('f1', 'smithy', 4, 5, 'up'); // 作業場所は (4,4) と (5,4)
+  // いわガメは土の資源地 (13,4) のとなりで、鍛冶場の土を出す
+  const facing = (dir) => resolveLayout(sand, { monsters: [M('m1', 'slime', 5, 4, dir), M('m5', 'turtle', 14, 4, 'left')], facilities: [smithy] });
   assert.equal(facing('up').status.get('f1'), 'no-worker', '上向きのスライムは鍛冶場（下）に届かない');
   const down = facing('down');
   assert.equal(down.status.get('f1'), 'active');
   assert.ok(down.working.has('m1'));
-  assert.equal(down.prod.perMonster[0].earth, 2, '作業中でも、となりの土の資源地から資材が入る');
+  assert.equal(down.prod.perMonster[0].earth, 1, '作業中でも、攻撃範囲に入れた土の資源地 (5,6) から資材が入る');
+});
+
+test('草原には土がないので、鍛冶場は土の資源地を持ち込まないと建たない', () => {
+  const monsters = [M('m1', 'slime', 5, 6, 'right')];
+  const smithy = F('f1', 'smithy', 2, 2, 'up');
+  assert.equal(resolveLayout(map, { monsters, facilities: [smithy] }).status.get('f1'), 'materials');
+  const carry = { ...F('c1', 'carry', 6, 5), element: 'earth' };
+  const r = resolveLayout(map, { monsters, facilities: [carry, smithy] });
+  assert.equal(r.prod.bag.earth, 2, '持ち込んだ土の資源地のとなり');
+  assert.equal(r.status.get('f1'), 'no-worker');
 });
 
 test('追い風の旗は向いている方の6マスにいるモンスターだけを速くする', () => {
@@ -149,8 +204,9 @@ test('追い風の旗は向いている方の6マスにいるモンスターだ�
 });
 
 test('角笛の数でウェーブをまとめて出す数が決まる（1個で2つ、2個で3つ）', () => {
-  const base = LAYOUTS['光線塔＋旗'].monsters;
-  const r1 = resolveLayout(map, { monsters: base, facilities: [F('h1', 'horn', 0, 0)] });
+  const base = SAMPLES.grassland['光線塔＋旗'].monsters;
+  // 草原には土がないので、角笛（風2・土2）は土の資源地を持ち込んで建てる
+  const r1 = resolveLayout(map, { monsters: base, facilities: [{ ...F('c1', 'carry', 6, 5), element: 'earth' }, F('h1', 'horn', 0, 0)] });
   assert.equal(r1.groupSize, 2);
   const b = createBattle(grass, map);
   startBattle(b, { groupSize: 3 });
@@ -192,11 +248,24 @@ test('動かしたユニットは、攻撃の間隔が溜まるまで攻撃し�
   assert.equal(b.cooldowns.m1, 2);
 });
 
-test('見本の配置：モンスターだけでは負け、施設を建てると攻略できる', () => {
-  assert.equal(simulate('grassland', LAYOUTS['モンスターだけ']).b.phase, 'lost');
-  for (const name of ['光線塔＋旗', '鍛冶場＋剣（コウモリが作業）']) {
-    const { b } = simulate('grassland', LAYOUTS[name]);
-    assert.equal(b.phase, 'won', name);
-    assert.ok(pace(b) > 0);
+test('見本の配置：草原はモンスターだけでは負け、施設を建てると攻略できる', () => {
+  assert.equal(simulate('grassland', SAMPLES.grassland['モンスターだけ']).b.phase, 'lost');
+  const { b } = simulate('grassland', SAMPLES.grassland['光線塔＋旗']);
+  assert.equal(b.phase, 'won');
+  assert.ok(pace(b) > 0);
+});
+
+test('見本の配置：森と砂漠は、前の地域のころの強さでは負け、育てると攻略できる。獲得ペースは 草原 < 森 < 砂漠', () => {
+  const expect = {
+    forest: { lost: '草原の仲間 Lv5＋光線塔・旗', won: '草原の仲間 Lv10＋光線塔・旗' },
+    desert: { lost: '森の仲間 Lv8＋鍛冶場・剣', won: '森の仲間 Lv13＋鍛冶場・剣' },
+  };
+  const paces = [pace(simulate('grassland', SAMPLES.grassland['光線塔＋旗']).b)];
+  for (const [id, e] of Object.entries(expect)) {
+    assert.equal(simulate(id, SAMPLES[id][e.lost]).b.phase, 'lost', `${id} ${e.lost}`);
+    const { b } = simulate(id, SAMPLES[id][e.won]);
+    assert.equal(b.phase, 'won', `${id} ${e.won}`);
+    paces.push(pace(b));
   }
+  assert.ok(paces[0] < paces[1] && paces[1] < paces[2], paces.map((p) => p.toFixed(2)).join(' < '));
 });

@@ -1,11 +1,18 @@
-// 研究画面：エレメントを使って、ゲーム全体に効く強化を進める。研究したものは ON/OFF できる（縛りプレイ用）。
-import { RESEARCH, RESEARCH_ORDER, BASE_HP_PER_LEVEL, ATTACK_PER_LEVEL, PACE_PER_LEVEL } from '../data/research.js';
+// 研究画面：エレメントを使って、ゲーム全体に効く強化を進める。研究したものは ON/OFF できる。
+import { RESEARCH, RESEARCH_ORDER, BASE_HP_PER_LEVEL, ATTACK_PER_LEVEL, PACE_PER_LEVEL, FACILITY_PER_LEVEL } from '../data/research.js';
+import { ELEMENT } from '../data/elements.js';
 import { researchedLevel, isOn, nextCost, whyNot, doResearch, toggleResearch, researchEffects } from '../core/research.js';
 
 /** 研究したレベルでの効き目の文。 */
 function effectText(id, lv) {
   if (lv === 0) return 'まだ研究していない';
   switch (id) {
+    case 'mixWind':
+      return '調合錬成で風を使える';
+    case 'mixEarth':
+      return '調合錬成で土を使える';
+    case 'facility':
+      return `戦闘施設の効き目 +${Math.round(FACILITY_PER_LEVEL * lv * 100)}%`;
     case 'baseHp':
       return `拠点の耐久 +${BASE_HP_PER_LEVEL * lv}`;
     case 'attack':
@@ -52,13 +59,15 @@ export function renderResearchScreen(root, api) {
   }).join('');
   const now = [
     `拠点の耐久 +${fx.baseHpAdd}`,
+    `調合で使えるエレメント ${fx.mixElements.map((id) => ELEMENT[id].name).join('・')}`,
     `攻撃力 ×${fx.atkMul.toFixed(2)}`,
+    `戦闘施設 ×${fx.facilityMul.toFixed(1)}`,
     `自動獲得 ×${fx.paceMul.toFixed(1)}`,
     `持ち込める資源地 ${fx.carrySlots}`,
     `レベルの上限 ${fx.levelCap}`,
   ].join(' · ');
   root.innerHTML = `<div class="card"><h3>研究 <small>ゲーム全体に効く</small></h3>
-      <p class="hint">エレメントを使って、ずっと続く強化を進めます。研究したものは ON/OFF できます（縛りプレイ用）。OFF にしても、使ったエレメントは戻りません。</p>
+      <p class="hint">エレメントを使って、ずっと続く強化を進めます。研究したものは ON/OFF できます。OFF にしても、使ったエレメントは戻りません。</p>
       <p>今効いているもの：${now}</p></div>
     <div class="codex-grid">${cards}</div>`;
 }

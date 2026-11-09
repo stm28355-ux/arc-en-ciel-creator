@@ -21,7 +21,7 @@ export function draw(ctx, view) {
   const { map, layout, resolved } = view;
   ctx.save();
   ctx.clearRect(0, 0, map.w * CELL, map.h * CELL);
-  drawGround(ctx, map);
+  drawGround(ctx, map, view.ground);
   // 地域の資源地と、研究で持ち込んだ資源地
   const carried = layout.facilities.filter((f) => f.kind === 'carry').map((f) => ({ x: f.x, y: f.y, element: f.element, carried: true, off: resolved.status.get(f.id) !== 'active' }));
   drawNodes(ctx, [...map.nodes, ...carried], view.nodeYield ?? resolved.prod.perNode);
@@ -72,16 +72,24 @@ export function draw(ctx, view) {
   ctx.restore();
 }
 
-function drawGround(ctx, map) {
+// 地面の色（地域の ground）：[市松の2色, 道の色]
+const GROUND = {
+  grass: ['#5d9a4c', '#62a050', '#d9c08b'],
+  forest: ['#3f7a3a', '#43803e', '#b89a6a'],
+  sand: ['#d8bf86', '#dcc48c', '#b9915a'],
+};
+
+function drawGround(ctx, map, ground = 'grass') {
+  const [g1, g2, road] = GROUND[ground] ?? GROUND.grass;
   for (let y = 0; y < map.h; y++) {
     for (let x = 0; x < map.w; x++) {
       const t = map.cells[y][x];
       const px = x * CELL;
       const py = y * CELL;
-      ctx.fillStyle = (x + y) % 2 ? '#5d9a4c' : '#62a050';
+      ctx.fillStyle = (x + y) % 2 ? g1 : g2;
       ctx.fillRect(px, py, CELL, CELL);
       if (t === 'path') {
-        ctx.fillStyle = '#d9c08b';
+        ctx.fillStyle = road;
         ctx.fillRect(px, py, CELL, CELL);
         ctx.fillStyle = 'rgba(120,90,50,0.12)';
         ctx.fillRect(px + 4, py + 4, CELL - 8, CELL - 8);
@@ -90,6 +98,18 @@ function drawGround(ctx, map) {
         ctx.fillRect(px, py, CELL, CELL);
         ctx.fillStyle = 'rgba(255,255,255,0.18)';
         ctx.fillRect(px + 6, py + 10, 12, 2);
+      } else if (t === 'rock') {
+        ctx.fillStyle = '#8b7d6b';
+        ctx.beginPath();
+        ctx.moveTo(px + 5, py + 26);
+        ctx.lineTo(px + 10, py + 9);
+        ctx.lineTo(px + 21, py + 6);
+        ctx.lineTo(px + 28, py + 18);
+        ctx.lineTo(px + 26, py + 27);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.18)';
+        ctx.fillRect(px + 12, py + 10, 6, 3);
       } else if (t === 'tree') {
         ctx.fillStyle = '#6b4a2b';
         ctx.fillRect(px + 14, py + 18, 4, 10);

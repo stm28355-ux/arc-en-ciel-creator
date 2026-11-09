@@ -1,6 +1,6 @@
 // 研究：研究する・ON/OFF・今効いている効き目。画面なしで動く。
-import { RESEARCH, BASE_HP_PER_LEVEL, ATTACK_PER_LEVEL, PACE_PER_LEVEL } from '../data/research.js';
-import { canPay, pay, LEVEL_CAP } from './alchemy.js';
+import { RESEARCH, MIX_UNLOCK, BASE_HP_PER_LEVEL, ATTACK_PER_LEVEL, PACE_PER_LEVEL, FACILITY_PER_LEVEL } from '../data/research.js';
+import { canPay, pay, LEVEL_CAP, LEVEL_ELEMENTS } from './alchemy.js';
 
 /** 研究したレベル（OFF でも数える）。 */
 export function researchedLevel(save, id) {
@@ -42,7 +42,7 @@ export function doResearch(save, id) {
   return save.research[id];
 }
 
-/** ON/OFF を切り替える（縛りプレイ用）。使ったエレメントは戻らない。 */
+/** ON/OFF を切り替える。使ったエレメントは戻らない。 */
 export function toggleResearch(save, id, on) {
   if (!researchedLevel(save, id)) return;
   save.researchOff ??= {};
@@ -57,13 +57,20 @@ export function levelCap(save) {
   return LEVEL_CAP + (one ? 15 : 0) + (two ? 10 : 0);
 }
 
+/** 調合錬成で使えるエレメント（無は最初から。風・土は研究で開放）。 */
+export function mixElements(save) {
+  return LEVEL_ELEMENTS.filter((id) => !MIX_UNLOCK[id] || activeLevel(save, MIX_UNLOCK[id]) > 0);
+}
+
 /** 今効いている研究の効き目をまとめて返す。 */
 export function researchEffects(save) {
   return {
     baseHpAdd: BASE_HP_PER_LEVEL * activeLevel(save, 'baseHp'),
     atkMul: 1 + ATTACK_PER_LEVEL * activeLevel(save, 'attack'),
+    facilityMul: 1 + FACILITY_PER_LEVEL * activeLevel(save, 'facility'),
     paceMul: 1 + PACE_PER_LEVEL * activeLevel(save, 'pace'),
     carrySlots: activeLevel(save, 'carry'),
     levelCap: levelCap(save),
+    mixElements: mixElements(save),
   };
 }

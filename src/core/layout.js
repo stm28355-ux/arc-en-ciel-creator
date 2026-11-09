@@ -50,6 +50,7 @@ export function canPlace(map, layout, item, ignore) {
 
 /**
  * layout.monsters の各要素は { uid, kind, x, y, dir, level?, skills?, atkMul? }（level がなければ1、skills がなければ自分の技だけ。atkMul は研究の攻撃力）。
+ * layout.facilityMul：研究「戦闘施設の強化」の倍率（光線塔の攻撃力、剣・旗の効き目）。
  * layout.carrySlots：研究で持ち込める資源地の数（なければ置いた分だけ全部効く）。持ち込みの資源地は facilities に kind 'carry' で入る。
  * 戻り値：
  *   working:   Set<uid>         製造施設で作業しているモンスター（作業場所にいて、攻撃範囲が施設に重なる）
@@ -108,6 +109,7 @@ export function resolveLayout(map, layout) {
   const buffs = running
     .filter((f) => FACILITIES[f.kind].buff)
     .map((f) => ({ buff: FACILITIES[f.kind].buff, cells: new Set(targetsOf(f).map(keyOf)) }));
+  const facilityMul = layout.facilityMul ?? 1; // 研究「戦闘施設の強化」
   const units = [];
   for (const m of all) {
     const def = MONSTERS[m.kind];
@@ -115,8 +117,8 @@ export function resolveLayout(map, layout) {
     let speedAdd = 0;
     for (const b of buffs) {
       if (!b.cells.has(keyOf(m))) continue;
-      atkAdd += b.buff.atkAdd ?? 0;
-      speedAdd += b.buff.speedAdd ?? 0;
+      atkAdd += (b.buff.atkAdd ?? 0) * facilityMul;
+      speedAdd += (b.buff.speedAdd ?? 0) * facilityMul;
     }
     for (const skill of skillList(m)) {
       units.push({
@@ -137,7 +139,7 @@ export function resolveLayout(map, layout) {
   for (const f of running) {
     const def = FACILITIES[f.kind];
     if (!def.atk) continue;
-    units.push({ id: f.id, source: 'facility', x: f.x, y: f.y, element: 'none', atk: def.atk, interval: def.interval, targets: new Set(targetsOf(f).map(keyOf)), buffed: {} });
+    units.push({ id: f.id, source: 'facility', x: f.x, y: f.y, element: 'none', atk: def.atk * facilityMul, interval: def.interval, targets: new Set(targetsOf(f).map(keyOf)), buffed: {} });
   }
   const groupSize = 1 + running.filter((f) => FACILITIES[f.kind].effect === 'group').length;
 

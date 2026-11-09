@@ -6,7 +6,8 @@ import { FAMILY_ORDER, RARE_FUSIONS, familyName } from '../data/families.js';
 import { REGIONS } from '../data/regions.js';
 import { EVOLUTIONS, EVOLVED_FROM } from '../data/evolutions.js';
 import { mixResult, canPay, pay, codexCost, levelUpCost, levelUpPayment, levelElements, atkAt, LEVEL_CAP, LEVEL_ELEMENTS, LEVEL_TIER2_FROM } from '../core/alchemy.js';
-import { levelCap, researchedLevel } from '../core/research.js';
+import { levelCap, researchedLevel, mixElements } from '../core/research.js';
+import { RESEARCH, MIX_UNLOCK } from '../data/research.js';
 import { addMonster } from '../core/save.js';
 import { skillsOf, fusionCandidates, fusionRule, fusionMembers, inheritableSkills, fuse, evolutionOf, evolutionProgress, evolve, MAX_SKILLS } from '../core/breeding.js';
 
@@ -75,6 +76,7 @@ export function onMonsterAction(api, state, act, data) {
     }
     case 'mix-add': {
       const id = data.id;
+      if (!mixElements(save).includes(id)) return false;
       const n = Number(data.n);
       const cur = state.mix[id] ?? 0;
       const total = Object.values(state.mix).reduce((a, b) => a + b, 0);
@@ -89,7 +91,8 @@ export function onMonsterAction(api, state, act, data) {
       return true;
     case 'mix-go': {
       const r = mixResult(state.mix);
-      if (!r.kind || !canPay(save.elements, state.mix)) return false;
+      const allowed = mixElements(save);
+      if (!r.kind || !canPay(save.elements, state.mix) || Object.entries(state.mix).some(([id, n]) => n > 0 && !allowed.includes(id))) return false;
       save.elements = pay(save.elements, state.mix);
       addMonster(save, r.kind, r.level);
       state.born = r.kind;
@@ -255,9 +258,12 @@ function evolutionBlock(m) {
 function mixView(api, state) {
   const { save } = api;
   const total = Object.values(state.mix).reduce((a, b) => a + b, 0);
+  const allowed = mixElements(save);
   const rows = MIX_ELEMENTS.map((id) => {
     const n = state.mix[id] ?? 0;
     const have = Math.floor(save.elements[id] ?? 0);
+    if (!allowed.includes(id))
+      return `<div class="mix-row locked">${api.chip(id, ELEMENT[id].name)}<span class="have">持っている ${have}</span><span class="hint">研究「${RESEARCH[MIX_UNLOCK[id]].name}」で使えるようになります</span></div>`;
     return `<div class="mix-row">
       ${api.chip(id, ELEMENT[id].name)}
       <span class="have">持っている ${have}</span>

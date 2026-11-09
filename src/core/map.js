@@ -18,6 +18,7 @@ export function parseMap(rows) {
       else if (c === '#' || c === 'S' || c === 'B') type = 'path';
       else if (c === 'T') type = 'tree';
       else if (c === '~') type = 'water';
+      else if (c === 'R') type = 'rock';
       else if (NODE_CHARS[c]) {
         type = 'node';
         nodes.push({ x, y, element: NODE_CHARS[c] });

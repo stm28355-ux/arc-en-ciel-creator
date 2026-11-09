@@ -4,17 +4,17 @@
 //   2. 子の位階：親2体の位階の平均（切り捨て）＋1
 //   3. その系統の「融合でしか生まれないモンスター」のうち、位階がそれ以上で一番近いもの。なければ一番上のもの
 // これとは別に、RARE_FUSIONS の組み合わせ（種類どうし）だけで生まれるモンスターがいる。
-// 系統の名前は仮。表示はここの name だけを使うので、名前を変えるときはここだけ直す。
+// 系統の名前はカタカナにそろえる。表示はここの name だけを使うので、名前を変えるときはここだけ直す。
 export const FAMILIES = {
   gel: { name: 'ゲル' },
-  plant: { name: '植物' },
-  bird: { name: '鳥' },
-  beast: { name: 'けもの' },
-  rock: { name: 'いわ' },
-  fiend: { name: '怪人' },
+  plant: { name: 'プラント' },
+  bird: { name: 'バード' },
+  beast: { name: 'アニマル' },
+  rock: { name: 'ミネラル' },
+  fiend: { name: 'ヒュマノ' }, // 人型
   machine: { name: 'マシン' },
-  scale: { name: '鱗' },
-  mollusk: { name: '軟体' },
+  scale: { name: 'スケイル' },
+  mollusk: { name: 'テンタクル' },
   wraith: { name: 'レイス' },
 };
 export const FAMILY_ORDER = Object.keys(FAMILIES);
