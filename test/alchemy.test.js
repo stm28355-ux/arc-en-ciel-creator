@@ -49,7 +49,17 @@ test('調合錬成：3種類なら一番多い属性で決まり、ぴったり�
 test('調合錬成：合計が少ない・多すぎる・表にない組み合わせでは生まれない', () => {
   assert.equal(mixResult({ none: 9 }).kind, null);
   assert.equal(mixResult({ none: 61 }).kind, null);
-  assert.equal(mixResult({ water: 10 }).kind, null, '第2地方以降のエレメントはまだ表にない');
+  assert.equal(mixResult({ fire: 10 }).kind, null, '第3地方より先のエレメントはまだ表にない');
+});
+
+test('調合錬成：第2地方（水・雷）。3種類以上は一番多い属性で決まり、4種類でも同じ', () => {
+  assert.equal(mixResult({ water: 10 }).kind, 'jelly');
+  assert.equal(mixResult({ thunder: 7, water: 3 }).kind, 'eel');
+  assert.equal(mixResult({ none: 6, thunder: 4 }).kind, 'windup');
+  assert.equal(mixResult({ water: 6, none: 2, thunder: 2 }).kind, 'singer');
+  assert.equal(mixResult({ none: 5, wind: 2, earth: 2, water: 1 }).kind, 'scarecrow', '4種類も「3種類以上」');
+  // 同じ量なら ELEMENTS の並び（無・風・土・水・雷）で前を多いとする
+  assert.equal(mixResult({ water: 5, thunder: 5 }).kind, 'shockjelly');
 });
 
 test('多い順の並び', () => {

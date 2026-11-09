@@ -46,6 +46,25 @@ export const FACILITIES = {
     effect: 'group',
     shape: ['o'],
   },
+  // --- 第2地方の資材（水・雷）で建てる ---
+  fog: {
+    name: '霧の噴水',
+    type: 'combat',
+    cost: { water: 2 },
+    desc: '前の9マスにいる敵の歩みを40%遅くする（いくつ重ねても40%まで）',
+    slow: 0.4,
+    shape: ['xxx', 'xxx', 'xxx', '.o.'],
+  },
+  tower: {
+    name: '雷の塔',
+    type: 'combat',
+    cost: { thunder: 2, earth: 1 },
+    desc: '前の6マスにいる敵すべてに、雷を落とす',
+    atk: 10,
+    interval: 1.5,
+    splash: true,
+    shape: ['xxx', 'xxx', '.o.'],
+  },
   // 研究「資源地の持ち込み」で置ける資源地。資材は使わない。element は置くときに選ぶ（攻略した地域の資源地の属性）
   carry: {
     name: '持ち込みの資源地',
@@ -56,6 +75,6 @@ export const FACILITIES = {
   },
 };
 
-export const FACILITY_ORDER = ['beam', 'smithy', 'sword', 'flag', 'horn'];
+export const FACILITY_ORDER = ['beam', 'smithy', 'sword', 'flag', 'horn', 'fog', 'tower'];
 
 export const FACILITY_TYPE_NAME = { combat: '戦闘施設', progress: '進行施設', production: '製造施設', carry: '持ち込み' };

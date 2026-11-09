@@ -11,6 +11,10 @@ function effectText(id, lv) {
       return '調合錬成で風を使える';
     case 'mixEarth':
       return '調合錬成で土を使える';
+    case 'mixWater':
+      return '調合錬成で水を使える';
+    case 'mixThunder':
+      return '調合錬成で雷を使える';
     case 'facility':
       return `戦闘施設の効き目 +${Math.round(FACILITY_PER_LEVEL * lv * 100)}%`;
     case 'baseHp':

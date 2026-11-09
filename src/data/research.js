@@ -19,6 +19,18 @@ export const RESEARCH = {
     max: 1,
     costs: [{ earth: 20, wind: 20 }],
   },
+  mixWater: {
+    name: '水の調合',
+    desc: '調合錬成で水のエレメントを使えるようにする',
+    max: 1,
+    costs: [{ water: 30, earth: 30 }],
+  },
+  mixThunder: {
+    name: '雷の調合',
+    desc: '調合錬成で雷のエレメントを使えるようにする',
+    max: 1,
+    costs: [{ thunder: 30, water: 30 }],
+  },
   baseHp: {
     name: '拠点の耐久',
     desc: '拠点の耐久 +1（どの地域でも）',
@@ -64,10 +76,10 @@ export const RESEARCH = {
   },
 };
 
-export const RESEARCH_ORDER = ['mixWind', 'mixEarth', 'baseHp', 'attack', 'facility', 'pace', 'carry', 'limit1', 'limit2'];
+export const RESEARCH_ORDER = ['mixWind', 'mixEarth', 'mixWater', 'mixThunder', 'baseHp', 'attack', 'facility', 'pace', 'carry', 'limit1', 'limit2'];
 
 /** 調合錬成で使うのに研究が要るエレメント → 研究 */
-export const MIX_UNLOCK = { wind: 'mixWind', earth: 'mixEarth' };
+export const MIX_UNLOCK = { wind: 'mixWind', earth: 'mixEarth', water: 'mixWater', thunder: 'mixThunder' };
 
 // 1レベルあたりの効き目
 export const BASE_HP_PER_LEVEL = 1;

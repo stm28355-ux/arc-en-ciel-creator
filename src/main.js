@@ -14,10 +14,11 @@ import { draw, CELL, facilityIcon, FACILITY_COLOR } from './ui/render.js';
 import { renderMonsterScreen, onMonsterAction } from './ui/monsterScreen.js';
 import { recordBattle, skillsOf } from './core/breeding.js';
 import { researchEffects, researchedLevel } from './core/research.js';
+import { RESEARCH, MIX_UNLOCK } from './data/research.js';
 import { regionOpen as isRegionOpen, opensAfter } from './core/progress.js';
 import { renderResearchScreen, onResearchAction } from './ui/researchScreen.js';
 
-const VERSION = 'v0.6.0';
+const VERSION = 'v0.7.0';
 const STEP = 1 / 60;
 const AUTO_RETRY_DELAY = 1500; // ミリ秒
 // 自動で再挑戦している間の速さの上限。周回が攻略後の自動獲得より速くなりすぎないようにする
@@ -114,8 +115,12 @@ function guideStep() {
   if (save.roster.length === 0) return '最初の仲間を作りましょう。「モンスター」→「錬成」で、無のエレメントを10入れて「錬成する」を押します。';
   if (!save.ranOnce && save.roster.length < 3) return `仲間が1〜2体では草原のウェーブ1を越えられません。残りの無のエレメントで、あと${3 - save.roster.length}体作りましょう。`;
   if (!save.ranOnce) return '「地域」→「第1地方」→「草原」で仲間をマスに置き、「戦闘開始」を押しましょう。負けても、手に入れたエレメントは持ち帰れます。';
-  if (!researchedLevel(save, 'mixWind') && (save.elements.wind ?? 0) >= 20)
-    return '風のエレメントが手に入りました。「研究」で「風の調合」をすると、調合錬成で風を使えるようになり、新しい仲間を作れます。';
+  // 調合で使えないエレメントが研究できるだけたまったら、研究を案内する
+  for (const [el, id] of Object.entries(MIX_UNLOCK)) {
+    if (researchedLevel(save, id) || (save.elements[el] ?? 0) < RESEARCH[id].costs[0][el]) continue;
+    const name = ELEMENT[el].name;
+    return `${name}のエレメントが手に入りました。「研究」で「${RESEARCH[id].name}」をすると、調合錬成で${name}を使えるようになり、新しい仲間を作れます。`;
+  }
   return null;
 }
 function renderGuide() {

@@ -269,3 +269,57 @@ test('見本の配置：森と砂漠は、前の地域のころの強さでは�
   }
   assert.ok(paces[0] < paces[1] && paces[1] < paces[2], paces.map((p) => p.toFixed(2)).join(' < '));
 });
+
+test('足止め：霧の噴水の範囲のマスにいる敵は遅くなる（重ねても強くならない）', () => {
+  const b = createBattle(grass, map);
+  startBattle(b);
+  step(b, 0.01, { units: [], groupSize: 1 });
+  const e = b.enemies[0];
+  const before = e.dist;
+  const first = `${map.path[0].x},${map.path[0].y}`;
+  step(b, 0.5, { units: [], groupSize: 1, slow: new Map([[first, 0.4]]) });
+  assert.ok(Math.abs(e.dist - before - 0.5 * 0.6) < 1e-9, '40% 遅い');
+  // 霧の噴水を2つ重ねても 40% のまま
+  const fog = (id, x) => ({ id, kind: 'fog', x, y: 4, dir: 'down' });
+  const r = resolveLayout(map, { monsters: [M('m1', 'slime', 5, 6, 'right')], facilities: [fog('f1', 3), fog('f2', 4)] });
+  assert.equal(r.status.get('f1'), 'materials', '草原には水の資材がない');
+  const r2 = resolveLayout(map, {
+    monsters: [M('m1', 'slime', 5, 6, 'right')],
+    facilities: [{ ...F('c1', 'carry', 6, 5), element: 'water' }, fog('f1', 3), fog('f2', 4)],
+  });
+  assert.equal(r2.status.get('f1'), 'active');
+  assert.ok([...r2.slow.values()].every((v) => v === 0.4));
+});
+
+test('まわりにも当たる：雷の塔は範囲のマスにいる敵すべてに当たる', () => {
+  const b = createBattle(grass, map);
+  b.phase = 'running';
+  b.wavesStarted = 1;
+  b.enemies.push({ id: 1, kind: 'sheep', hp: 75, maxHp: 75, dist: 0.2, wave: 0 }, { id: 2, kind: 'sheep', hp: 75, maxHp: 75, dist: 1.2, wave: 0 });
+  const targets = new Set(['0,3', '1,3']);
+  step(b, 0.01, { units: [{ id: 't', x: 0, y: 2, atk: 10, interval: 1, targets, splash: true, buffed: {} }], groupSize: 1 });
+  assert.deepEqual(b.enemies.map((e) => e.hp), [65, 65]);
+  step(b, 1.0, { units: [{ id: 'n', x: 0, y: 2, atk: 10, interval: 1, targets, buffed: {} }], groupSize: 1 });
+  assert.deepEqual(b.enemies.map((e) => e.hp).sort(), [55, 65], 'ふつうのユニットは1体だけ');
+});
+
+test('第2地方：砂漠を攻略すると川が開き、川 → 雷雨 → 海 の順に開く', () => {
+  const s = newSave();
+  assert.equal(regionOpen(s, 'river'), false);
+  s.regions.desert = { cleared: true };
+  assert.equal(regionOpen(s, 'river'), true);
+  assert.deepEqual(opensAfter('desert'), ['river']);
+  assert.deepEqual(opensAfter('river'), ['storm']);
+  assert.deepEqual(opensAfter('storm'), ['sea']);
+});
+
+test('見本の配置：第2地方は、川 Lv20・雷雨 Lv25・海 Lv30 では負け、5レベル上げると攻略できる。獲得ペースは 川 < 雷雨 < 海', () => {
+  const paces = [];
+  for (const [id, lost, won] of [['river', 20, 25], ['storm', 25, 30], ['sea', 30, 35]]) {
+    assert.equal(simulate(id, SAMPLES[id][`第2地方の仲間 Lv${lost}`]).b.phase, 'lost', `${id} Lv${lost}`);
+    const { b } = simulate(id, SAMPLES[id][`第2地方の仲間 Lv${won}`]);
+    assert.equal(b.phase, 'won', `${id} Lv${won}`);
+    paces.push(pace(b));
+  }
+  assert.ok(paces[0] < paces[1] && paces[1] < paces[2], paces.map((p) => p.toFixed(2)).join(' < '));
+});

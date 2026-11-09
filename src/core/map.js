@@ -1,5 +1,6 @@
 // 地域マップの文字列を読み取り、マス・資源地・敵の道を取り出す。
-const NODE_CHARS = { N: 'none', W: 'wind', E: 'earth' };
+// 資源地の記号 → 属性
+const NODE_CHARS = { N: 'none', W: 'wind', E: 'earth', A: 'water', Z: 'thunder', F: 'fire', I: 'ice', L: 'light', D: 'dark' };
 
 export function parseMap(rows) {
   const h = rows.length;

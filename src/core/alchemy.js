@@ -48,7 +48,7 @@ export function mixLevel(total) {
 function mixKind(mix) {
   for (const r of RECIPES) if (r.special && matchesSpecial(mix, r.special)) return { kind: r.kind };
   const ranked = rankMix(mix);
-  const types = ranked.length;
+  const types = Math.min(ranked.length, 3); // 3種類以上は「3」として見る
   const first = ranked[0]?.id;
   const second = ranked[1]?.id;
   const hit = RECIPES.find((r) => !r.special && r.types === types && r.first === first && (types !== 2 || r.second === second));

@@ -1,5 +1,6 @@
-// モンスター（仮）。第1地方（無・風・土）で手に入る33種。
-//   調合で作れる13種 / 進化で手に入る6種 / 融合でしか生まれない12種 / 特別な組み合わせの融合でだけ生まれる2種
+// モンスター（仮）。第1地方（無・風・土）の33種と、第2地方（水・雷）の22種。
+//   第1地方：調合で作れる13種 / 進化で手に入る6種 / 融合でしか生まれない12種 / 特別な組み合わせの融合でだけ生まれる2種
+//   第2地方：調合で作れる18種 / 融合でしか生まれない4種（マシン系・テンタクル系）
 // 入手は錬成・融合・進化だけ（戦闘でのドロップはない）。作り方は src/data/recipes.js、進化は src/data/evolutions.js、
 // 融合のルール（系統の表と位階）は src/data/families.js。
 // それぞれのモンスターは自分の「技」を1つ持つ（atk・interval・shape・skill がその技）。
@@ -56,4 +57,35 @@ export const MONSTERS = {
   // --- 特別な組み合わせの融合でだけ生まれる（ルールの外。src/data/families.js の RARE_FUSIONS） ---
   skyshell: { name: 'そらとぶこうら', element: 'wind', family: 'rock', rank: 6, atk: 30, interval: 1.0, skill: 'こうらミサイル', shape: ['xxx', 'xxx', 'xxx', 'xxx', 'xxx', 'xxx', 'xox'], rare: true },
   sandscarecrow: { name: 'すなかぜのかかし', element: 'earth', family: 'fiend', rank: 5, atk: 12, interval: 0.8, skill: 'すなあらし', shape: ['xxxxxxx', 'x.....x', 'x.....x', 'x..o..x', 'x.....x', 'x.....x', 'xxxxxxx'], rare: true },
+
+  // ===== 第2地方（水・雷）。調合で使うには研究「水の調合」「雷の調合」が要る =====
+  // --- 1種類だけで作る（位階1） ---
+  jelly: { name: 'しずくクラゲ', element: 'water', family: 'mollusk', rank: 1, atk: 7, interval: 0.8, skill: 'しずくのまく', shape: ['.xxx.', 'xxoxx', '.xxx.'] },
+  sparkbot: { name: 'でんでんロボ', element: 'thunder', family: 'machine', rank: 1, atk: 18, interval: 1.3, skill: 'ビリッと', shape: ['x.x', 'x.x', '.o.'] },
+
+  // --- 2種類で作る（一番多い属性 > 二番目。位階2） ---
+  frog: { name: 'みずたまガエル', element: 'water', family: 'scale', rank: 2, atk: 12, interval: 0.9, skill: 'したのばし', shape: ['x', 'x', 'x', 'x', 'o'] },
+  flyfish: { name: 'しぶきトビウオ', element: 'water', family: 'scale', rank: 2, atk: 8, interval: 0.6, skill: 'しぶきとばし', shape: ['x...x', 'x...x', '.x.x.', '..o..'] },
+  mudoctopus: { name: 'どろタコ', element: 'water', family: 'mollusk', rank: 2, atk: 11, interval: 1.0, skill: 'はっぽうすみ', shape: ['x.x.x', '.....', 'x.o.x', '.....', 'x.x.x'] },
+  shockjelly: { name: 'でんきクラゲ', element: 'water', family: 'mollusk', rank: 2, atk: 6, interval: 0.5, skill: 'しびれしょくしゅ', shape: ['xxx', 'xox', 'xxx'] },
+  zapslime: { name: 'ビリビリスライム', element: 'thunder', family: 'gel', rank: 2, atk: 15, interval: 1.1, skill: 'ほうでん', shape: ['.x.', 'xxx', 'xxx', '.o.'] },
+  thunderbird: { name: 'らいちょう', element: 'thunder', family: 'bird', rank: 2, atk: 20, interval: 1.3, skill: 'いなずまがえし', shape: ['x.....x', '.x...x.', '..x.x..', '...o...'] },
+  magnetgolem: { name: 'じしゃくゴーレム', element: 'thunder', family: 'machine', rank: 2, atk: 32, interval: 1.6, skill: 'じりょくパンチ', shape: ['xxx', '.o.'] },
+  eel: { name: 'でんきウナギ', element: 'thunder', family: 'scale', rank: 2, atk: 9, interval: 0.6, skill: 'でんげき', shape: ['xxxx', 'x...', 'o...'] },
+  waterslime: { name: 'みずたまスライム', element: 'none', family: 'gel', rank: 2, atk: 10, interval: 0.9, skill: 'みずはね', shape: ['xxxxx', '..o..', 'xxxxx'] },
+  windup: { name: 'ねじまき兵', element: 'none', family: 'machine', rank: 2, atk: 14, interval: 1.0, skill: 'ぜんまいやり', shape: ['xxx', 'xxx', 'xxx', '.o.'] },
+  gull: { name: 'あまぐもカモメ', element: 'wind', family: 'bird', rank: 2, atk: 11, interval: 0.8, skill: 'あまつぶ', shape: ['.x.', 'xxx', '.x.', '.x.', '.o.'] },
+  thunderweasel: { name: 'かみなりイタチ', element: 'wind', family: 'beast', rank: 2, atk: 6, interval: 0.4, skill: 'いなびかり', shape: ['x.x', 'xox', 'x.x'] },
+  croc: { name: 'どろんこワニ', element: 'earth', family: 'scale', rank: 2, atk: 30, interval: 1.7, skill: 'かみつく', shape: ['xx', 'xx', 'o.'] },
+  magnetrock: { name: 'でんじいわ', element: 'earth', family: 'rock', rank: 2, atk: 12, interval: 1.2, skill: 'じばのなみ', shape: ['xx.xx', 'x...x', '..o..', 'x...x', 'xx.xx'] },
+
+  // --- 3種類以上で作る（一番多い属性で決まる。位階3） ---
+  singer: { name: 'みずうたい', element: 'water', family: 'fiend', rank: 3, atk: 8, interval: 0.8, skill: 'さざなみのうた', shape: ['xxxxx', 'xxxxx', '.xxx.', '..o..'] },
+  raijin: { name: 'かみなりさま', element: 'thunder', family: 'fiend', rank: 3, atk: 26, interval: 1.2, skill: 'らいげき', shape: ['x.x.x', '.xxx.', '..o..'] },
+
+  // --- 融合でしか生まれない（マシン系・テンタクル系） ---
+  drone: { name: 'スパークドローン', element: 'thunder', family: 'machine', rank: 3, atk: 12, interval: 0.6, skill: 'スパーク', shape: ['xxx', 'x.x', 'xox'], fusion: true },
+  cannon: { name: 'いかずちキャノン', element: 'thunder', family: 'machine', rank: 5, atk: 60, interval: 1.6, skill: 'いかずちほう', shape: ['x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'o'], fusion: true },
+  squid: { name: 'うずまきイカ', element: 'water', family: 'mollusk', rank: 3, atk: 9, interval: 0.5, skill: 'うずまき', shape: ['.xxx.', 'x...x', 'x.o.x', 'x...x', '.xxx.'], fusion: true },
+  kraken: { name: 'クラーケン', element: 'water', family: 'mollusk', rank: 5, atk: 18, interval: 0.7, skill: 'おおうずしお', shape: ['xxxxxxx', 'xxxxxxx', 'xxxxxxx', '...o...'], fusion: true },
 };

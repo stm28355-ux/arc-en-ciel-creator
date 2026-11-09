@@ -1,6 +1,7 @@
 // 研究：研究する・ON/OFF・今効いている効き目。画面なしで動く。
 import { RESEARCH, MIX_UNLOCK, BASE_HP_PER_LEVEL, ATTACK_PER_LEVEL, PACE_PER_LEVEL, FACILITY_PER_LEVEL } from '../data/research.js';
-import { canPay, pay, LEVEL_CAP, LEVEL_ELEMENTS } from './alchemy.js';
+import { canPay, pay, LEVEL_CAP } from './alchemy.js';
+import { MIX_ELEMENTS } from '../data/recipes.js';
 
 /** 研究したレベル（OFF でも数える）。 */
 export function researchedLevel(save, id) {
@@ -57,9 +58,9 @@ export function levelCap(save) {
   return LEVEL_CAP + (one ? 15 : 0) + (two ? 10 : 0);
 }
 
-/** 調合錬成で使えるエレメント（無は最初から。風・土は研究で開放）。 */
+/** 調合錬成で使えるエレメント（無は最初から。ほかは研究で開放）。 */
 export function mixElements(save) {
-  return LEVEL_ELEMENTS.filter((id) => !MIX_UNLOCK[id] || activeLevel(save, MIX_UNLOCK[id]) > 0);
+  return MIX_ELEMENTS.filter((id) => !MIX_UNLOCK[id] || activeLevel(save, MIX_UNLOCK[id]) > 0);
 }
 
 /** 今効いている研究の効き目をまとめて返す。 */

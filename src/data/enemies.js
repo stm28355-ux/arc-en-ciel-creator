@@ -1,5 +1,6 @@
 // 敵（仮）。倒すと drop の数だけ、その敵の属性のエレメントが手に入る。
-// 地域ごとに、手に入るエレメントの割合が地域の属性になるように敵を出す（草原：無＞風、森：風＞土・無、砂漠：土＞風・無）。
+// 地域ごとに、手に入るエレメントの割合が地域の属性になるように敵を出す（草原：無＞風、森：風＞土・無、砂漠：土＞風・無、
+// 川：水＞無・土、雷雨：雷＞水・土、海：水＞雷・風）。
 //   speed: 1秒に進むマス数 / damage: 拠点まで通したときに減る拠点の耐久
 //   boss: 最後のボス。通したら拠点の耐久が全部なくなる（倒さないとクリアにならない）
 //   elite: 強めの敵。拠点を2減らす
@@ -26,4 +27,28 @@ export const ENEMIES = {
   scorpion: { name: 'すなサソリ', element: 'earth', hp: 165, speed: 0.8, drop: 3, damage: 1, size: 0.34 },
   bigmole: { name: 'おおモグラ', element: 'earth', hp: 450, speed: 0.6, drop: 8, damage: 2, size: 0.42, elite: true },
   sandking: { name: 'すなのおう', element: 'earth', hp: 1100, speed: 0.4, drop: 30, damage: 0, size: 0.5, boss: true },
+
+  // --- 川（水＞無・土） ---
+  fishling: { name: 'はねザカナ', element: 'water', hp: 300, speed: 1.3, drop: 2, damage: 1, size: 0.26 },
+  rivercrab: { name: 'かわガニ', element: 'water', hp: 460, speed: 0.8, drop: 2, damage: 1, size: 0.32 },
+  mistball: { name: 'きりだま', element: 'none', hp: 350, speed: 1.0, drop: 1, damage: 1, size: 0.3 },
+  pebble: { name: 'ころいし', element: 'earth', hp: 590, speed: 0.7, drop: 2, damage: 1, size: 0.32 },
+  catfish: { name: 'おおナマズ', element: 'water', hp: 2430, speed: 0.6, drop: 10, damage: 2, size: 0.42, elite: true },
+  riverdragon: { name: 'かわのりゅう', element: 'water', hp: 6480, speed: 0.4, drop: 40, damage: 0, size: 0.5, boss: true },
+
+  // --- 雷雨（雷＞水・土） ---
+  sparkbug: { name: 'ビリムシ', element: 'thunder', hp: 220, speed: 1.6, drop: 2, damage: 1, size: 0.25 },
+  raincloud: { name: 'あまぐも', element: 'water', hp: 360, speed: 0.9, drop: 2, damage: 1, size: 0.32 },
+  mudman: { name: 'どろにんぎょう', element: 'earth', hp: 500, speed: 0.7, drop: 2, damage: 1, size: 0.34 },
+  thunderbear: { name: 'かみなりグマ', element: 'thunder', hp: 590, speed: 0.8, drop: 3, damage: 1, size: 0.36 },
+  thunderwolf: { name: 'いかずちオオカミ', element: 'thunder', hp: 2340, speed: 0.9, drop: 12, damage: 2, size: 0.42, elite: true },
+  raijinboss: { name: 'らいじん', element: 'thunder', hp: 5940, speed: 0.4, drop: 50, damage: 0, size: 0.5, boss: true },
+
+  // --- 海（水＞雷・風） ---
+  seabreeze: { name: 'うみかぜ', element: 'wind', hp: 350, speed: 2.0, drop: 2, damage: 1, size: 0.25 },
+  bluejelly: { name: 'あおクラゲ', element: 'water', hp: 600, speed: 0.9, drop: 2, damage: 1, size: 0.32 },
+  shark: { name: 'ちびザメ', element: 'water', hp: 830, speed: 1.2, drop: 3, damage: 1, size: 0.34 },
+  stingray: { name: 'しびれエイ', element: 'thunder', hp: 730, speed: 0.9, drop: 3, damage: 1, size: 0.34 },
+  bigoctopus: { name: 'おおダコ', element: 'water', hp: 4250, speed: 0.6, drop: 14, damage: 2, size: 0.44, elite: true },
+  seaking: { name: 'うみのおう', element: 'water', hp: 10750, speed: 0.4, drop: 60, damage: 0, size: 0.5, boss: true },
 };

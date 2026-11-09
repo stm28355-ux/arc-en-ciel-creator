@@ -1,7 +1,7 @@
 // モンスター画面：手持ち（レベルアップ・進化）・錬成（調合錬成）・融合（技の継承）・図鑑（図鑑錬成）。
 import { ELEMENT, ELEMENTS } from '../data/elements.js';
 import { MONSTERS } from '../data/monsters.js';
-import { RECIPES, HINTS, MIX_MIN_TOTAL, MIX_MAX_TOTAL } from '../data/recipes.js';
+import { RECIPES, HINTS, MIX_MIN_TOTAL, MIX_MAX_TOTAL, MIX_ELEMENTS } from '../data/recipes.js';
 import { FAMILY_ORDER, RARE_FUSIONS, familyName } from '../data/families.js';
 import { REGIONS } from '../data/regions.js';
 import { EVOLUTIONS, EVOLVED_FROM } from '../data/evolutions.js';
@@ -11,7 +11,6 @@ import { RESEARCH, MIX_UNLOCK } from '../data/research.js';
 import { addMonster } from '../core/save.js';
 import { skillsOf, fusionCandidates, fusionRule, fusionMembers, inheritableSkills, fuse, evolutionOf, evolutionProgress, evolve, MAX_SKILLS } from '../core/breeding.js';
 
-const MIX_ELEMENTS = LEVEL_ELEMENTS; // 今の表で使えるのは第1地方の3属性
 
 /**
  * api = { save, persist(), rerender(), confirm(text, onYes, yesLabel), chip(id, text), costText(cost), shapePreview(rows, size) }
@@ -291,7 +290,7 @@ function mixView(api, state) {
     <p>合計 <b>${total}</b></p>
     ${preview}
     <div class="row"><button class="primary" data-mact="mix-go" ${r.kind ? '' : 'disabled'}>錬成する</button><button data-mact="mix-clear">空にする</button></div>
-    ${others.length ? '<p class="hint">第2地方以降のエレメントの配合は、まだ表にありません。</p>' : ''}
+    ${others.length ? '<p class="hint">第3地方より先のエレメントの配合は、まだ表にありません。</p>' : ''}
   </div>`;
 }
 
@@ -383,7 +382,7 @@ function recipeText(kind) {
   if (r.special) return `${Object.keys(r.special).map(n).join('・')}を同じ量ずつ`;
   if (r.types === 1) return `${n(r.first)}だけ`;
   if (r.types === 2) return `${n(r.first)}が一番多く、${n(r.second)}が二番目`;
-  return `無・風・土の3種類で、${n(r.first)}が一番多い`;
+  return `3種類以上で、${n(r.first)}が一番多い`;
 }
 
 /** まだ手に入れていないモンスターのヒント */

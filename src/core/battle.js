@@ -49,7 +49,7 @@ function startWave(b) {
   b.gapUntil = null;
 }
 
-/** dt 秒だけ進める。ctx = { units, groupSize }（resolveLayout の戻り値） */
+/** dt 秒だけ進める。ctx = { units, groupSize, slow? }（resolveLayout の戻り値） */
 export function step(b, dt, ctx) {
   if (b.phase !== 'running') return;
   b.time += dt;
@@ -62,7 +62,15 @@ export function step(b, dt, ctx) {
   }
 
   // 移動と、拠点まで通された敵
-  for (const e of b.enemies) e.dist += ENEMIES[e.kind].speed * dt;
+  // 足止めのマスにいる敵は遅くなる
+  for (const e of b.enemies) {
+    let mul = 1;
+    if (ctx.slow?.size) {
+      const p = pointOnPath(b.path, e.dist);
+      mul = 1 - (ctx.slow.get(`${Math.floor(p.x)},${Math.floor(p.y)}`) ?? 0);
+    }
+    e.dist += ENEMIES[e.kind].speed * mul * dt;
+  }
   const leaked = b.enemies.filter((e) => e.dist >= b.pathLen);
   if (leaked.length) {
     // ボスを通したら拠点は全損（ボスを倒さないとクリアにならない）
@@ -78,7 +86,7 @@ export function step(b, dt, ctx) {
     }
   }
 
-  // 攻撃：範囲のマスにいる敵のうち、一番先に進んでいる敵をねらう
+  // 攻撃：範囲のマスにいる敵のうち、一番先に進んでいる敵をねらう。splash のユニットは範囲の敵すべてに当たる
   for (const e of b.effects) e.life -= dt;
   b.effects = b.effects.filter((e) => e.life > 0);
   for (const u of ctx.units) {
@@ -87,24 +95,23 @@ export function step(b, dt, ctx) {
       b.cooldowns[u.id] = cd;
       continue;
     }
-    let target = null;
-    let tp = null;
+    const inRange = [];
     for (const e of b.enemies) {
       if (e.hp <= 0) continue;
       const p = pointOnPath(b.path, e.dist);
-      if (u.targets.has(`${Math.floor(p.x)},${Math.floor(p.y)}`) && (!target || e.dist > target.dist)) {
-        target = e;
-        tp = p;
-      }
+      if (u.targets.has(`${Math.floor(p.x)},${Math.floor(p.y)}`)) inRange.push({ e, p });
     }
-    if (!target) {
+    if (!inRange.length) {
       b.cooldowns[u.id] = 0;
       continue;
     }
-    target.hp -= u.atk;
-    if (target.hp <= 0 && !target.killedBy) target.killedBy = u;
+    const hits = u.splash ? inRange : [inRange.reduce((a, c) => (c.e.dist > a.e.dist ? c : a))];
+    for (const { e, p } of hits) {
+      e.hp -= u.atk;
+      if (e.hp <= 0 && !e.killedBy) e.killedBy = u;
+      b.effects.push({ from: { x: u.x + 0.5, y: u.y + 0.5 }, to: p, element: u.element, life: 0.12 });
+    }
     b.cooldowns[u.id] = u.interval;
-    b.effects.push({ from: { x: u.x + 0.5, y: u.y + 0.5 }, to: tp, element: u.element, life: 0.12 });
   }
   const dead = b.enemies.filter((e) => e.hp <= 0);
   for (const e of dead) {

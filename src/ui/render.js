@@ -9,7 +9,7 @@ import { cellsOf, rotate } from '../core/shape.js';
 
 export const CELL = 32;
 
-const FACILITY_ICON = { beam: '光', sword: '剣', flag: '旗', horn: '笛', smithy: '鍛', carry: '◆' };
+const FACILITY_ICON = { beam: '光', sword: '剣', flag: '旗', horn: '笛', smithy: '鍛', carry: '◆', fog: '霧', tower: '雷' };
 export const facilityIcon = (kind) => FACILITY_ICON[kind] ?? '施';
 export const FACILITY_COLOR = { combat: '#f0d9a7', progress: '#c9a7f0', production: '#a7d8f0', carry: '#e0e0e0' };
 
@@ -77,6 +77,9 @@ const GROUND = {
   grass: ['#5d9a4c', '#62a050', '#d9c08b'],
   forest: ['#3f7a3a', '#43803e', '#b89a6a'],
   sand: ['#d8bf86', '#dcc48c', '#b9915a'],
+  river: ['#5a9a56', '#5f9f5a', '#c9b089'],
+  storm: ['#4f5d58', '#54635d', '#8f8a7a'],
+  sea: ['#e2cf98', '#e6d49e', '#c2a46e'],
 };
 
 function drawGround(ctx, map, ground = 'grass') {

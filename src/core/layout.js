@@ -61,6 +61,8 @@ export function canPlace(map, layout, item, ignore) {
  *              モンスターは技1つにつき1ユニット（id = 'uid:技'、owner = uid）
  *   groupSize: 1度にまとめて出すウェーブの数（1 + 動いている角笛の数）
  *   carried:   資材が入る持ち込みの資源地 [{ x, y, element }]
+ *   slow:      Map<'x,y', 0〜1> 敵を遅くするマスと割合（霧の噴水）
+ *   units の splash = true は、範囲のマスにいる敵すべてに当たる（雷の塔）
  */
 export function resolveLayout(map, layout) {
   const facilities = layout.facilities;
@@ -139,9 +141,18 @@ export function resolveLayout(map, layout) {
   for (const f of running) {
     const def = FACILITIES[f.kind];
     if (!def.atk) continue;
-    units.push({ id: f.id, source: 'facility', x: f.x, y: f.y, element: 'none', atk: def.atk * facilityMul, interval: def.interval, targets: new Set(targetsOf(f).map(keyOf)), buffed: {} });
+    units.push({ id: f.id, source: 'facility', x: f.x, y: f.y, element: 'none', atk: def.atk * facilityMul, interval: def.interval, targets: new Set(targetsOf(f).map(keyOf)), buffed: {}, splash: !!def.splash });
   }
   const groupSize = 1 + running.filter((f) => FACILITIES[f.kind].effect === 'group').length;
 
-  return { working, workerOf, prod, alloc, status, units, groupSize, carried };
+  // 足止め：動いている霧の噴水の範囲のマス → 遅くする割合（重ねても一番大きいものだけ。戦闘施設の強化で増える。80%まで）
+  const slow = new Map();
+  for (const f of running) {
+    const s = FACILITIES[f.kind].slow;
+    if (!s) continue;
+    const v = Math.min(0.8, s * facilityMul);
+    for (const c of targetsOf(f)) slow.set(keyOf(c), Math.max(slow.get(keyOf(c)) ?? 0, v));
+  }
+
+  return { working, workerOf, prod, alloc, status, units, groupSize, carried, slow };
 }
