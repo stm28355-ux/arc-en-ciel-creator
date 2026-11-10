@@ -18,7 +18,7 @@ import { RESEARCH, MIX_UNLOCK } from './data/research.js';
 import { regionOpen as isRegionOpen, opensAfter } from './core/progress.js';
 import { renderResearchScreen, onResearchAction } from './ui/researchScreen.js';
 
-const VERSION = 'v0.7.1';
+const VERSION = 'v0.7.2';
 const STEP = 1 / 60;
 const AUTO_RETRY_DELAY = 1500; // ミリ秒
 // 自動で再挑戦している間の速さの上限。周回が攻略後の自動獲得より速くなりすぎないようにする
@@ -709,6 +709,8 @@ function onFinish(s) {
 
 /** はじめて攻略したときに開く地域の知らせ */
 function opensNote(regionId) {
+  if (REGIONS[regionId].finale)
+    return '<p class="big">表のクリア！</p><p class="hint">第4地方の魔王城を攻略しました。ここから先は、育てる・集める・研究を進めて、獲得ペースを上げていけます。</p>';
   const names = opensAfter(regionId).map((id) => REGIONS[id].name);
   return names.length ? `<p><span class="badge">${names.join('・')}が開きました</span></p>` : '';
 }

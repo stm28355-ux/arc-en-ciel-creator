@@ -62,6 +62,11 @@ test('地域で手に入るエレメント：敵の落とす量と資源地の�
     const r = REGIONS[id];
     const drops = {};
     for (const w of r.waves) for (const g of w) drops[ENEMIES[g.enemy].element] = (drops[ENEMIES[g.enemy].element] ?? 0) + g.count * ENEMIES[g.enemy].drop;
+    if (r.elements.length < 2) continue; // 魔王城は闇だけ
+    if (id === 'boundary') {
+      assert.equal(drops.light, drops.dark, '境界は光と闇が同じ');
+      continue;
+    }
     assert.ok(drops[r.elements[0]] > drops[r.elements.at(-1)], `${id}：一番の属性は最後の属性より多い`);
   }
 });
@@ -389,6 +394,47 @@ test('見本の配置：第3地方は、火山 Lv35・雪山 Lv40・混成 Lv45 
     assert.equal(simulate(id, SAMPLES[id][`第3地方の仲間 Lv${lost}`]).b.phase, 'lost', `${id} Lv${lost}`);
     const { b } = simulate(id, SAMPLES[id][`第3地方の仲間 Lv${won}`]);
     assert.equal(b.phase, 'won', `${id} Lv${won}`);
+    paces.push(pace(b));
+  }
+  assert.ok(paces[0] < paces[1] && paces[1] < paces[2], paces.map((p) => p.toFixed(2)).join(' < '));
+});
+
+test('第4地方：混成を攻略すると聖域が開き、聖域 → 境界 → 魔王城。魔王城で表のクリア。資源地は少ない', () => {
+  const s = newSave();
+  s.regions.mixed = { cleared: true };
+  assert.equal(regionOpen(s, 'sanctuary'), true);
+  assert.deepEqual(opensAfter('sanctuary'), ['boundary']);
+  assert.deepEqual(opensAfter('boundary'), ['castle']);
+  assert.equal(REGIONS.castle.finale, true);
+  const count = (id) => parseMap(REGIONS[id].map).nodes.reduce((m, n) => ({ ...m, [n.element]: (m[n.element] ?? 0) + 1 }), {});
+  assert.deepEqual(count('sanctuary'), { light: 2, fire: 1 });
+  assert.deepEqual(count('boundary'), { light: 1, dark: 1 });
+  assert.deepEqual(count('castle'), { dark: 1 });
+  // 境界は2列（別々の道と拠点）、魔王城は2か所から出て合流し、また分かれる（4通り）
+  const boundary = parseMap(REGIONS.boundary.map);
+  assert.equal(boundary.routes.length, 2);
+  const [a, b] = boundary.routes.map((r) => new Set(r.map((c) => `${c.x},${c.y}`)));
+  assert.ok(![...a].some((k) => b.has(k)), '2列の道は重ならない');
+  assert.equal(parseMap(REGIONS.castle.map).routes.length, 4);
+});
+
+test('防御くずしと【強】・ボスに強い：光の祭壇の範囲では受けるダメージが増え、闇の塔は【強】・ボスに3倍', () => {
+  const b = createBattle(grass, map);
+  b.phase = 'running';
+  b.wavesStarted = 1;
+  b.enemies.push({ id: 1, kind: 'sheep', hp: 999, maxHp: 999, dist: 0.2, wave: 0, route: 0 }, { id: 2, kind: 'ram', hp: 999, maxHp: 999, dist: 0.2, wave: 0, route: 0 });
+  const targets = new Set(['0,3']);
+  step(b, 0.01, { units: [{ id: 'd', x: 0, y: 2, atk: 10, interval: 9, targets, splash: true, bossMul: 3, buffed: {} }], groupSize: 1, expose: new Map([['0,3', 0.25]]) });
+  assert.deepEqual(b.enemies.map((e) => e.hp), [999 - 12.5, 999 - 37.5]);
+});
+
+test('見本の配置：第4地方は資源地を5つ持ち込み、聖域 Lv50・境界 Lv55・魔王城 Lv65 では負け、聖域 Lv55・境界 Lv60・魔王城 Lv70 で攻略。獲得ペースは 聖域 < 境界 < 魔王城', () => {
+  const paces = [];
+  for (const [id, lost, won] of [['sanctuary', 50, 55], ['boundary', 55, 60], ['castle', 65, 70]]) {
+    assert.equal(simulate(id, SAMPLES[id][`第4地方の仲間 Lv${lost}`]).b.phase, 'lost', `${id} Lv${lost}`);
+    const { b, r } = simulate(id, SAMPLES[id][`第4地方の仲間 Lv${won}`]);
+    assert.equal(b.phase, 'won', `${id} Lv${won}`);
+    assert.ok([...r.status.values()].every((st) => st === 'active'), `${id}：持ち込みの資源地で施設が全部動く`);
     paces.push(pace(b));
   }
   assert.ok(paces[0] < paces[1] && paces[1] < paces[2], paces.map((p) => p.toFixed(2)).join(' < '));

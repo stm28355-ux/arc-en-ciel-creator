@@ -9,10 +9,12 @@ export const MIX_MIN_TOTAL = 10; // 調合錬成に使うエレメントの合�
 export const MIX_MAX_TOTAL = 60;
 
 // 調合錬成で使えるエレメント（今の表にある属性）。地方を作るごとに増やす。無以外は研究で開放する
-export const MIX_ELEMENTS = ['none', 'wind', 'earth', 'water', 'thunder', 'fire', 'ice'];
+export const MIX_ELEMENTS = ['none', 'wind', 'earth', 'water', 'thunder', 'fire', 'ice', 'light', 'dark'];
 
 export const RECIPES = [
   { kind: 'prism', special: { none: 1, wind: 1, earth: 1 } },
+  // 9属性を同じ量ずつ（合計18〜54）→ アルカンシエル（虹）
+  { kind: 'arcenciel', special: { none: 1, wind: 1, earth: 1, water: 1, thunder: 1, fire: 1, ice: 1, light: 1, dark: 1 } },
 
   { kind: 'slime', types: 1, first: 'none' },
   { kind: 'bat', types: 1, first: 'wind' },
@@ -80,6 +82,44 @@ export const RECIPES = [
 
   { kind: 'flamelord', types: 3, first: 'fire' },
   { kind: 'icewitch', types: 3, first: 'ice' },
+
+  // --- 第4地方（光・闇） ---
+  { kind: 'lumen', types: 1, first: 'light' },
+  { kind: 'darkbat', types: 1, first: 'dark' },
+
+  { kind: 'cherub', types: 2, first: 'light', second: 'none' },
+  { kind: 'dove', types: 2, first: 'light', second: 'wind' },
+  { kind: 'crystalgolem', types: 2, first: 'light', second: 'earth' },
+  { kind: 'prismjelly', types: 2, first: 'light', second: 'water' },
+  { kind: 'holybot', types: 2, first: 'light', second: 'thunder' },
+  { kind: 'phoenix', types: 2, first: 'light', second: 'fire' },
+  { kind: 'diamondfox', types: 2, first: 'light', second: 'ice' },
+  { kind: 'twilight', types: 2, first: 'light', second: 'dark' },
+  { kind: 'shade', types: 2, first: 'dark', second: 'none' },
+  { kind: 'raven', types: 2, first: 'dark', second: 'wind' },
+  { kind: 'gravegolem', types: 2, first: 'dark', second: 'earth' },
+  { kind: 'anglerfish', types: 2, first: 'dark', second: 'water' },
+  { kind: 'darkdrone', types: 2, first: 'dark', second: 'thunder' },
+  { kind: 'hellhound', types: 2, first: 'dark', second: 'fire' },
+  { kind: 'reaper', types: 2, first: 'dark', second: 'ice' },
+  { kind: 'fallen', types: 2, first: 'dark', second: 'light' },
+  { kind: 'lightslime', types: 2, first: 'none', second: 'light' },
+  { kind: 'darkslime', types: 2, first: 'none', second: 'dark' },
+  { kind: 'pegasus', types: 2, first: 'wind', second: 'light' },
+  { kind: 'nightjar', types: 2, first: 'wind', second: 'dark' },
+  { kind: 'amberturtle', types: 2, first: 'earth', second: 'light' },
+  { kind: 'toadstool', types: 2, first: 'earth', second: 'dark' },
+  { kind: 'pearlclam', types: 2, first: 'water', second: 'light' },
+  { kind: 'inkling', types: 2, first: 'water', second: 'dark' },
+  { kind: 'lightningmage', types: 2, first: 'thunder', second: 'light' },
+  { kind: 'shadowbot', types: 2, first: 'thunder', second: 'dark' },
+  { kind: 'torchbearer', types: 2, first: 'fire', second: 'light' },
+  { kind: 'hellfire', types: 2, first: 'fire', second: 'dark' },
+  { kind: 'frostflower', types: 2, first: 'ice', second: 'light' },
+  { kind: 'frostwyrm', types: 2, first: 'ice', second: 'dark' },
+
+  { kind: 'archangel', types: 3, first: 'light' },
+  { kind: 'demon', types: 3, first: 'dark' },
 ];
 
 // 図鑑錬成の値段：一度手に入れたモンスターを、考えずに作れる決まった量（調合の最小より少し多い）
@@ -172,6 +212,42 @@ export const CODEX_COST = {
   icewitch: { ice: 6, water: 3, wind: 3 },
   wisp: { fire: 20, none: 10 },
   winterghost: { ice: 36, fire: 18 },
+  // 第4地方（光・闇）
+  lumen: { light: 12 },
+  darkbat: { dark: 12 },
+  cherub: { light: 8, none: 4 },
+  dove: { light: 8, wind: 4 },
+  crystalgolem: { light: 8, earth: 4 },
+  prismjelly: { light: 8, water: 4 },
+  holybot: { light: 8, thunder: 4 },
+  phoenix: { light: 8, fire: 4 },
+  diamondfox: { light: 8, ice: 4 },
+  twilight: { light: 8, dark: 4 },
+  shade: { dark: 8, none: 4 },
+  raven: { dark: 8, wind: 4 },
+  gravegolem: { dark: 8, earth: 4 },
+  anglerfish: { dark: 8, water: 4 },
+  darkdrone: { dark: 8, thunder: 4 },
+  hellhound: { dark: 8, fire: 4 },
+  reaper: { dark: 8, ice: 4 },
+  fallen: { dark: 8, light: 4 },
+  lightslime: { none: 8, light: 4 },
+  darkslime: { none: 8, dark: 4 },
+  pegasus: { wind: 8, light: 4 },
+  nightjar: { wind: 8, dark: 4 },
+  amberturtle: { earth: 8, light: 4 },
+  toadstool: { earth: 8, dark: 4 },
+  pearlclam: { water: 8, light: 4 },
+  inkling: { water: 8, dark: 4 },
+  lightningmage: { thunder: 8, light: 4 },
+  shadowbot: { thunder: 8, dark: 4 },
+  torchbearer: { fire: 8, light: 4 },
+  hellfire: { fire: 8, dark: 4 },
+  frostflower: { ice: 8, light: 4 },
+  frostwyrm: { ice: 8, dark: 4 },
+  archangel: { light: 6, fire: 3, wind: 3 },
+  demon: { dark: 6, fire: 3, earth: 3 },
+  arcenciel: { none: 10, wind: 10, earth: 10, water: 10, thunder: 10, fire: 10, ice: 10, light: 10, dark: 10 },
 };
 
 // 図鑑で、まだ手に入れていないモンスターに出すヒント

@@ -143,3 +143,19 @@ test('限界突破 III（仮）：II のあと。上限 50、41からは炎・�
   doResearch(s, 'mixIce');
   assert.ok(mixElements(s).includes('fire') && mixElements(s).includes('ice'));
 });
+
+test('限界突破は 30・40・50・60・99。61からはどのエレメントでも上げられる。資源地の持ち込みは5つまで', () => {
+  const s = rich();
+  s.elements = Object.fromEntries(Object.keys(s.elements).map((k) => [k, 99999]));
+  for (const [id, cap] of [['limit1', 30], ['limit2', 40], ['limit3', 50], ['limit4', 60], ['limit5', 99]]) {
+    doResearch(s, id);
+    assert.equal(levelCap(s), cap, id);
+  }
+  assert.ok(levelUpPayment({ light: 9999 }, 'none', 55), '51〜60は光・闇');
+  assert.equal(levelUpPayment({ fire: 9999 }, 'none', 55), null);
+  assert.ok(levelUpPayment({ wind: 9999 }, 'none', 70), '61からはどれでも');
+  assert.ok(levelUpPayment({ dark: 9999 }, 'none', 98));
+  for (let i = 0; i < 5; i++) doResearch(s, 'carry');
+  assert.equal(researchEffects(s).carrySlots, 5);
+  assert.equal(whyNot(s, 'carry'), '研究しきっています');
+});

@@ -54,7 +54,7 @@ function startWave(b) {
   b.gapUntil = null;
 }
 
-/** dt 秒だけ進める。ctx = { units, groupSize, slow? }（resolveLayout の戻り値） */
+/** dt 秒だけ進める。ctx = { units, groupSize, slow?, expose? }（resolveLayout の戻り値） */
 export function step(b, dt, ctx) {
   if (b.phase !== 'running') return;
   b.time += dt;
@@ -122,7 +122,10 @@ export function step(b, dt, ctx) {
     }
     const hits = u.splash ? inRange : [inRange.reduce((a, c) => (c.left < a.left ? c : a))];
     for (const { e, p } of hits) {
-      e.hp -= u.atk;
+      const def = ENEMIES[e.kind];
+      const exposed = 1 + (ctx.expose?.get(`${Math.floor(p.x)},${Math.floor(p.y)}`) ?? 0);
+      const vsBoss = u.bossMul && (def.elite || def.boss) ? u.bossMul : 1;
+      e.hp -= u.atk * exposed * vsBoss;
       if (u.burn) e.burn = { dps: u.burn.dps, until: b.time + u.burn.dur, src: u };
       if (u.chill) e.chill = { slow: u.chill.slow, until: b.time + u.chill.dur };
       if (e.hp <= 0 && !e.killedBy) e.killedBy = u;

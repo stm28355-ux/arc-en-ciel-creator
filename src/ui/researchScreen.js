@@ -19,8 +19,16 @@ function effectText(id, lv) {
       return '調合錬成で炎を使える';
     case 'mixIce':
       return '調合錬成で氷を使える';
+    case 'mixLight':
+      return '調合錬成で光を使える';
+    case 'mixDark':
+      return '調合錬成で闇を使える';
     case 'limit3':
       return 'レベルの上限 50';
+    case 'limit4':
+      return 'レベルの上限 60';
+    case 'limit5':
+      return 'レベルの上限 99';
     case 'facility':
       return `戦闘施設の効き目 +${Math.round(FACILITY_PER_LEVEL * lv * 100)}%`;
     case 'baseHp':

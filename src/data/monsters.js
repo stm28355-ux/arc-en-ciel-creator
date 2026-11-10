@@ -1,7 +1,8 @@
-// モンスター（仮）。第1地方（無・風・土）の33種、第2地方（水・雷）の22種、第3地方（炎・氷）の28種。
+// モンスター（仮）。第1地方（無・風・土）の33種、第2地方（水・雷）の22種、第3地方（炎・氷）の28種、第4地方（光・闇）の35種。
 //   第1地方：調合で作れる13種 / 進化で手に入る6種 / 融合でしか生まれない12種 / 特別な組み合わせの融合でだけ生まれる2種
 //   第2地方：調合で作れる18種 / 融合でしか生まれない4種（マシン系・テンタクル系）
 //   第3地方：調合で作れる26種 / 融合でしか生まれない2種（レイス系）
+//   第4地方：調合で作れる34種 / 特殊（9属性を同じ量ずつ）1種
 // 入手は錬成・融合・進化だけ（戦闘でのドロップはない）。作り方は src/data/recipes.js、進化は src/data/evolutions.js、
 // 融合のルール（系統の表と位階）は src/data/families.js。
 // それぞれのモンスターは自分の「技」を1つ持つ（atk・interval・shape・skill がその技）。
@@ -126,4 +127,48 @@ export const MONSTERS = {
   // --- 融合でしか生まれない（レイス系） ---
   wisp: { name: 'さまようひとだま', element: 'fire', family: 'wraith', rank: 3, atk: 14, interval: 0.6, skill: 'ひとだまのひ', shape: ['xxx', 'x.x', 'xox', 'x.x', 'xxx'], fusion: true },
   winterghost: { name: 'ふゆのぼうれい', element: 'ice', family: 'wraith', rank: 5, atk: 26, interval: 0.7, skill: 'ふゆのよび声', shape: ['xxxxxxx', 'xxxxxxx', 'x.....x', 'x..o..x'], fusion: true },
+
+  // ===== 第4地方（光・闇）。調合で使うには研究「光の調合」「闇の調合」が要る =====
+  // --- 1種類だけで作る（位階1） ---
+  lumen: { name: 'ひかりだま', element: 'light', family: 'gel', rank: 1, atk: 14, interval: 0.8, skill: 'ひかりのつぶ', shape: ['xxx', 'xxx', 'xox'] },
+  darkbat: { name: 'やみコウモリ', element: 'dark', family: 'beast', rank: 1, atk: 9, interval: 0.45, skill: 'やみのは', shape: ['xxx', 'xox', 'xxx'] },
+
+  // --- 2種類で作る（一番多い属性 > 二番目。位階2） ---
+  cherub: { name: 'ちびてんし', element: 'light', family: 'fiend', rank: 2, atk: 16, interval: 0.8, skill: 'てんしのや', shape: ['x', 'x', 'x', 'x', 'x', 'x', 'x', 'o'] },
+  dove: { name: 'ひかりバト', element: 'light', family: 'bird', rank: 2, atk: 13, interval: 0.6, skill: 'ひかりのはね', shape: ['x.x.x', '.xxx.', '..o..'] },
+  crystalgolem: { name: 'すいしょうゴーレム', element: 'light', family: 'rock', rank: 2, atk: 70, interval: 2.0, skill: 'すいしょうのこぶし', shape: ['xxx', '.o.'] },
+  prismjelly: { name: 'にじいろクラゲ', element: 'light', family: 'mollusk', rank: 2, atk: 11, interval: 0.6, skill: 'にじのしょくしゅ', shape: ['.xxx.', 'xxoxx', '.xxx.', '..x..'] },
+  holybot: { name: 'てんしロボ', element: 'light', family: 'machine', rank: 2, atk: 22, interval: 1.0, skill: 'せいなるビーム', shape: ['x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'o'] },
+  phoenix: { name: 'ほうおう', element: 'light', family: 'bird', rank: 2, atk: 30, interval: 1.3, skill: 'ほうおうのつばさ', shape: ['xxxxx', 'xxxxx', '..o..'] },
+  diamondfox: { name: 'ダイヤギツネ', element: 'light', family: 'beast', rank: 2, atk: 12, interval: 0.5, skill: 'ダイヤのきば', shape: ['.x.', 'xxx', 'xox'] },
+  twilight: { name: 'たそがれの精', element: 'light', family: 'plant', rank: 2, atk: 14, interval: 0.8, skill: 'たそがれのはな', shape: ['xxxxx', '.xxx.', '..o..', '.xxx.'] },
+  shade: { name: 'かげぼうし', element: 'dark', family: 'wraith', rank: 2, atk: 15, interval: 0.7, skill: 'かげぬい', shape: ['x.x', '.x.', 'xox'] },
+  raven: { name: 'やみガラス', element: 'dark', family: 'bird', rank: 2, atk: 26, interval: 1.2, skill: 'くろいはね', shape: ['x...x', '.x.x.', '..x..', '..o..'] },
+  gravegolem: { name: 'はかいしゴーレム', element: 'dark', family: 'rock', rank: 2, atk: 48, interval: 1.7, skill: 'はかいしおとし', shape: ['xxx', 'xxx', '.o.'] },
+  anglerfish: { name: 'やみアンコウ', element: 'dark', family: 'scale', rank: 2, atk: 18, interval: 0.9, skill: 'ちょうちんのひかり', shape: ['.x.', '.x.', 'xxx', 'xox'] },
+  darkdrone: { name: 'ブラックロボ', element: 'dark', family: 'machine', rank: 2, atk: 20, interval: 0.8, skill: 'やみのレーザー', shape: ['xxx', 'x.x', 'x.x', '.o.'] },
+  hellhound: { name: 'ヘルハウンド', element: 'dark', family: 'beast', rank: 2, atk: 14, interval: 0.5, skill: 'じごくのきば', shape: ['xxx', 'xxx', 'xox'] },
+  reaper: { name: 'しにがみ', element: 'dark', family: 'wraith', rank: 2, atk: 38, interval: 1.4, skill: 'たましいがり', shape: ['xxxxx', 'x.o.x'] },
+  fallen: { name: 'だてんし', element: 'dark', family: 'fiend', rank: 2, atk: 24, interval: 1.0, skill: 'くろいや', shape: ['x.x', 'x.x', 'x.x', 'x.x', '.o.'] },
+  lightslime: { name: 'ひかりスライム', element: 'none', family: 'gel', rank: 2, atk: 16, interval: 0.9, skill: 'ぴかぴかたいあたり', shape: ['xxx', 'xxx', 'xxx', '.o.'] },
+  darkslime: { name: 'やみスライム', element: 'none', family: 'gel', rank: 2, atk: 18, interval: 1.0, skill: 'やみのしずく', shape: ['xxxxx', 'xxoxx'] },
+  pegasus: { name: 'ペガサス', element: 'wind', family: 'beast', rank: 2, atk: 24, interval: 1.0, skill: 'てんくうのひづめ', shape: ['x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'o'] },
+  nightjar: { name: 'よたか', element: 'wind', family: 'bird', rank: 2, atk: 12, interval: 0.5, skill: 'よるのかぜきり', shape: ['x.x', 'x.x', '.o.'] },
+  amberturtle: { name: 'こはくガメ', element: 'earth', family: 'rock', rank: 2, atk: 44, interval: 1.6, skill: 'こはくのいし', shape: ['xxx', 'xxx', 'xox'] },
+  toadstool: { name: 'どくキノコ', element: 'earth', family: 'plant', rank: 2, atk: 10, interval: 0.6, skill: 'どくのほうし', shape: ['xxxxx', 'x...x', 'x.o.x', 'x...x', 'xxxxx'] },
+  pearlclam: { name: 'しんじゅガイ', element: 'water', family: 'mollusk', rank: 2, atk: 34, interval: 1.4, skill: 'しんじゅだん', shape: ['x', 'x', 'x', 'x', 'x', 'x', 'o'] },
+  inkling: { name: 'すみイカ', element: 'water', family: 'mollusk', rank: 2, atk: 12, interval: 0.6, skill: 'すみはき', shape: ['xxxxx', 'xxxxx', '.x.x.', '..o..'] },
+  lightningmage: { name: 'いなずまのまどうし', element: 'thunder', family: 'fiend', rank: 2, atk: 28, interval: 1.1, skill: 'ひかりのいかずち', shape: ['x.x.x', 'x.x.x', '..o..'] },
+  shadowbot: { name: 'かげロボ', element: 'thunder', family: 'machine', rank: 2, atk: 17, interval: 0.7, skill: 'かげのでんげき', shape: ['xxx', 'xox', 'x.x'] },
+  torchbearer: { name: 'せいかのもりびと', element: 'fire', family: 'fiend', rank: 2, atk: 22, interval: 0.9, skill: 'せいかのほのお', shape: ['xxx', 'xxx', 'xxx', 'xox'] },
+  hellfire: { name: 'じごくび', element: 'fire', family: 'wraith', rank: 2, atk: 13, interval: 0.5, skill: 'じごくのほのお', shape: ['.xxx.', 'xxoxx', '.xxx.'] },
+  frostflower: { name: 'しもばなの精', element: 'ice', family: 'plant', rank: 2, atk: 15, interval: 0.8, skill: 'しもばなふぶき', shape: ['xxxxxxx', '.xxxxx.', '...o...'] },
+  frostwyrm: { name: 'こおりのワーム', element: 'ice', family: 'scale', rank: 2, atk: 36, interval: 1.5, skill: 'こおりのブレス', shape: ['xxx', 'xxx', 'xxx', '.o.'] },
+
+  // --- 3種類以上で作る（一番多い属性で決まる。位階3） ---
+  archangel: { name: 'だいてんし', element: 'light', family: 'fiend', rank: 3, atk: 34, interval: 1.0, skill: 'さばきのひかり', shape: ['xxxxx', 'xxxxx', 'xxoxx'] },
+  demon: { name: 'まじん', element: 'dark', family: 'fiend', rank: 3, atk: 60, interval: 1.4, skill: 'まじんのこぶし', shape: ['xxx', 'xxx', 'xxx', '.o.'] },
+
+  // --- 特殊（9属性を同じ量ずつ入れたときだけ。ゲームの名前「虹」のモンスター） ---
+  arcenciel: { name: 'アルカンシエル', element: 'light', family: 'gel', rank: 6, atk: 40, interval: 0.8, skill: 'にじのかけはし', shape: ['xxxxxxx', 'xxxxxxx', 'xxxxxxx', 'xxxoxxx', 'xxxxxxx'], special: true },
 };

@@ -77,11 +77,17 @@ export const LEVEL_CAP = 15; // 研究しないときの上限。限界突破（
 export const LEVEL_ELEMENTS = ['none', 'wind', 'earth']; // レベル1〜30は第1地方のエレメントで上げる
 export const LEVEL_ELEMENTS_2 = ['water', 'thunder']; // レベル31〜40は第2地方のエレメントで上げる
 export const LEVEL_TIER2_FROM = 30; // このレベルから上げるときは第2地方のエレメント
-export const LEVEL_ELEMENTS_3 = ['fire', 'ice']; // レベル41〜50は第3地方のエレメントで上げる（仮）
+export const LEVEL_ELEMENTS_3 = ['fire', 'ice']; // レベル41〜50は第3地方のエレメントで上げる
 export const LEVEL_TIER3_FROM = 40;
+export const LEVEL_ELEMENTS_4 = ['light', 'dark']; // レベル51〜60は第4地方のエレメントで上げる
+export const LEVEL_TIER4_FROM = 50;
+export const LEVEL_ELEMENTS_5 = ELEMENT_IDS; // レベル61〜99はどのエレメントでも（仮）
+export const LEVEL_TIER5_FROM = 60;
 
 /** level から level+1 に上げるときに使えるエレメント。 */
 export function levelElements(level) {
+  if (level >= LEVEL_TIER5_FROM) return LEVEL_ELEMENTS_5;
+  if (level >= LEVEL_TIER4_FROM) return LEVEL_ELEMENTS_4;
   if (level >= LEVEL_TIER3_FROM) return LEVEL_ELEMENTS_3;
   return level >= LEVEL_TIER2_FROM ? LEVEL_ELEMENTS_2 : LEVEL_ELEMENTS;
 }

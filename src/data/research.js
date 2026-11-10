@@ -43,6 +43,18 @@ export const RESEARCH = {
     max: 1,
     costs: [{ ice: 40, water: 40 }],
   },
+  mixLight: {
+    name: '光の調合',
+    desc: '調合錬成で光のエレメントを使えるようにする',
+    max: 1,
+    costs: [{ light: 50, fire: 50 }],
+  },
+  mixDark: {
+    name: '闇の調合',
+    desc: '調合錬成で闇のエレメントを使えるようにする',
+    max: 1,
+    costs: [{ dark: 50, light: 50 }],
+  },
   baseHp: {
     name: '拠点の耐久',
     desc: '拠点の耐久 +1（どの地域でも）',
@@ -69,9 +81,15 @@ export const RESEARCH = {
   },
   carry: {
     name: '資源地の持ち込み',
-    desc: '攻略した地域の資源地を、地域マップに1つ持ち込める（どの地域でも）',
-    max: 2,
-    costs: [{ none: 50, wind: 50, earth: 50 }, { none: 150, wind: 150, earth: 150 }],
+    desc: '攻略した地域の資源地を、地域マップに1つ持ち込める（どの地域でも）。資材の少ない第4地方で役に立つ',
+    max: 5,
+    costs: [
+      { none: 50, wind: 50, earth: 50 },
+      { none: 150, wind: 150, earth: 150 },
+      { water: 200, thunder: 200 },
+      { fire: 300, ice: 300 },
+      { light: 400, dark: 400 },
+    ],
   },
   limit1: {
     name: '限界突破 I',
@@ -86,7 +104,7 @@ export const RESEARCH = {
     needs: 'limit1',
     costs: [{ water: 300, thunder: 300 }],
   },
-  // 仮：企画まとめでは 30・40 までだが、第3地方の強さのために足した（あとで確認）
+  // 限界突破は 30・40・50・60・99（企画者の決定、2026-11-10）
   limit3: {
     name: '限界突破 III',
     desc: 'レベルの上限 40 → 50。41からは第3地方のエレメント（炎・氷）で上げる',
@@ -94,12 +112,26 @@ export const RESEARCH = {
     needs: 'limit2',
     costs: [{ fire: 400, ice: 400 }],
   },
+  limit4: {
+    name: '限界突破 IV',
+    desc: 'レベルの上限 50 → 60。51からは第4地方のエレメント（光・闇）で上げる',
+    max: 1,
+    needs: 'limit3',
+    costs: [{ light: 500, dark: 500 }],
+  },
+  limit5: {
+    name: '限界突破 V',
+    desc: 'レベルの上限 60 → 99。61からはどのエレメントでも上げられる',
+    max: 1,
+    needs: 'limit4',
+    costs: [{ none: 300, wind: 300, earth: 300, water: 300, thunder: 300, fire: 300, ice: 300, light: 300, dark: 300 }],
+  },
 };
 
-export const RESEARCH_ORDER = ['mixWind', 'mixEarth', 'mixWater', 'mixThunder', 'mixFire', 'mixIce', 'baseHp', 'attack', 'facility', 'pace', 'carry', 'limit1', 'limit2', 'limit3'];
+export const RESEARCH_ORDER = ['mixWind', 'mixEarth', 'mixWater', 'mixThunder', 'mixFire', 'mixIce', 'mixLight', 'mixDark', 'baseHp', 'attack', 'facility', 'pace', 'carry', 'limit1', 'limit2', 'limit3', 'limit4', 'limit5'];
 
 /** 調合錬成で使うのに研究が要るエレメント → 研究 */
-export const MIX_UNLOCK = { wind: 'mixWind', earth: 'mixEarth', water: 'mixWater', thunder: 'mixThunder', fire: 'mixFire', ice: 'mixIce' };
+export const MIX_UNLOCK = { wind: 'mixWind', earth: 'mixEarth', water: 'mixWater', thunder: 'mixThunder', fire: 'mixFire', ice: 'mixIce', light: 'mixLight', dark: 'mixDark' };
 
 // 1レベルあたりの効き目
 export const BASE_HP_PER_LEVEL = 1;

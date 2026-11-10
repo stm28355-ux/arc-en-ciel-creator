@@ -53,9 +53,10 @@ const DESERT_TEAM = [
  * team = [{ kind, level }]：1体ずつ、道に届くマスの数＋資源地から入る資材×0.5 が一番多い場所・向きに置く
  *   道が複数ある地域では、すでに届いているマスほど点を下げて、どの道にも置くようにする（1マスの点 = 1 / (1 + 届いている数)）
  * facilities = [kind]：攻撃・足止めの施設は道に届くマスが一番多い場所、剣・旗は効果の範囲にいるモンスターが一番多い場所に置く
- * extra：配置に足すもの（atkMul・facilityMul など研究の効き目）
+ * extra：配置に足すもの（atkMul・facilityMul など研究の効き目）。extra.carry = [属性] なら、その資源地を持ち込み、
+ *   置いたモンスターから一番多く資材が入るマスに置く（資材の少ない第4地方用）
  */
-export function autoLayout(regionId, team, facilities = [], extra = {}) {
+export function autoLayout(regionId, team, facilities = [], { carry = [], ...extra } = {}) {
   const map = parseMap(REGIONS[regionId].map);
   const onPath = new Set(map.routes.flatMap((r) => r.map(keyOf)));
   const layout = { monsters: [], facilities: [] };
@@ -92,6 +93,16 @@ export function autoLayout(regionId, team, facilities = [], extra = {}) {
     layout.monsters.push(item);
     cover(targetsOf(item));
   });
+  carry.forEach((element, i) => {
+    const item = best(
+      (x, y, dir) => ({ id: `c${i + 1}`, kind: 'carry', element, x, y, dir }),
+      (c) =>
+        c.dir === 'up'
+          ? layout.monsters.reduce((sum, m) => sum + yieldFrom({ x: m.x, y: m.y, element: MONSTERS[m.kind].element, targets: new Set(targetsOf(m).map(keyOf)) }, c), 0)
+          : -1,
+    );
+    if (item) layout.facilities.push(item);
+  });
   facilities.forEach((kind, i) => {
     const def = FACILITIES[kind];
     const item = best(
@@ -109,7 +120,7 @@ export function autoLayout(regionId, team, facilities = [], extra = {}) {
     layout.facilities.push(item);
     if (!def.buff) cover(targetsOf(item));
   });
-  return { ...layout, ...extra };
+  return { ...layout, ...extra, carrySlots: carry.length };
 }
 
 const team = (kinds, level) => kinds.map((kind) => ({ kind, level }));
@@ -153,6 +164,15 @@ const p3 = (regionId, level) => autoLayout(regionId, team(P3_TEAM, level), P3_FA
 SAMPLES.volcano = { '第3地方の仲間 Lv35': p3('volcano', 35), '第3地方の仲間 Lv40': p3('volcano', 40) };
 SAMPLES.snow = { '第3地方の仲間 Lv40': p3('snow', 40), '第3地方の仲間 Lv45': p3('snow', 45) };
 SAMPLES.mixed = { '第3地方の仲間 Lv45': p3('mixed', 45), '第3地方の仲間 Lv50': p3('mixed', 50) };
+
+// 第4地方に来たころの仲間（光・闇のモンスターとアルカンシエルも）。研究は最大（攻撃力 +25%、戦闘施設 +50%、資源地を5つ持ち込む）
+const P4_TEAM = ['cannon', 'kraken', 'earthgiant', 'irongolem', 'eagle', 'griffon', 'winterghost', 'magmagolem', 'mammoth', 'phoenix', 'reaper', 'demon', 'archangel', 'arcenciel'];
+const P4_FAC = ['altar', 'darktower', 'beam', 'brazier'];
+const P4_RESEARCH = { atkMul: 1.25, facilityMul: 1.5, carry: ['light', 'dark', 'fire', 'none', 'earth'] };
+const p4 = (regionId, level) => autoLayout(regionId, team(P4_TEAM, level), P4_FAC, P4_RESEARCH);
+SAMPLES.sanctuary = { '第4地方の仲間 Lv50': p4('sanctuary', 50), '第4地方の仲間 Lv55': p4('sanctuary', 55) };
+SAMPLES.boundary = { '第4地方の仲間 Lv55': p4('boundary', 55), '第4地方の仲間 Lv60': p4('boundary', 60) };
+SAMPLES.castle = { '第4地方の仲間 Lv65': p4('castle', 65), '第4地方の仲間 Lv70': p4('castle', 70) };
 
 export function simulate(regionId, layout, { maxTime = 1200 } = {}) {
   const region = REGIONS[regionId];

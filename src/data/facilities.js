@@ -87,6 +87,25 @@ export const FACILITIES = {
     chill: { slow: 0.5, dur: 2 },
     shape: ['x', 'x', 'x', 'x', 'x', 'o'],
   },
+  // --- 第4地方の資材（光・闇）で建てる。第4地方は資材が少ないので、資源地の持ち込みと合わせて使う ---
+  altar: {
+    name: '光の祭壇',
+    type: 'combat',
+    cost: { light: 2, fire: 1 },
+    desc: '前の9マスにいる敵が受けるダメージ +25%（いくつ重ねても25%まで）',
+    expose: 0.25,
+    shape: ['xxx', 'xxx', 'xxx', '.o.'],
+  },
+  darktower: {
+    name: '闇の塔',
+    type: 'combat',
+    cost: { dark: 2 },
+    desc: '向いている方へまっすぐ6マス。【強】とボスには3倍のダメージ',
+    atk: 40,
+    interval: 2.0,
+    bossMul: 3,
+    shape: ['x', 'x', 'x', 'x', 'x', 'x', 'o'],
+  },
   // 研究「資源地の持ち込み」で置ける資源地。資材は使わない。element は置くときに選ぶ（攻略した地域の資源地の属性）
   carry: {
     name: '持ち込みの資源地',
@@ -97,6 +116,6 @@ export const FACILITIES = {
   },
 };
 
-export const FACILITY_ORDER = ['beam', 'smithy', 'sword', 'flag', 'horn', 'fog', 'tower', 'brazier', 'icicle'];
+export const FACILITY_ORDER = ['beam', 'smithy', 'sword', 'flag', 'horn', 'fog', 'tower', 'brazier', 'icicle', 'altar', 'darktower'];
 
 export const FACILITY_TYPE_NAME = { combat: '戦闘施設', progress: '進行施設', production: '製造施設', carry: '持ち込み' };

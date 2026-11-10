@@ -9,7 +9,7 @@ import { cellsOf, rotate } from '../core/shape.js';
 
 export const CELL = 32;
 
-const FACILITY_ICON = { beam: '光', sword: '剣', flag: '旗', horn: '笛', smithy: '鍛', carry: '◆', fog: '霧', tower: '雷', brazier: '火', icicle: '氷' };
+const FACILITY_ICON = { beam: '光', sword: '剣', flag: '旗', horn: '笛', smithy: '鍛', carry: '◆', fog: '霧', tower: '雷', brazier: '火', icicle: '氷', altar: '光', darktower: '闇' };
 export const facilityIcon = (kind) => FACILITY_ICON[kind] ?? '施';
 export const FACILITY_COLOR = { combat: '#f0d9a7', progress: '#c9a7f0', production: '#a7d8f0', carry: '#e0e0e0' };
 
@@ -83,6 +83,9 @@ const GROUND = {
   volcano: ['#4a3a34', '#4f3e37', '#7a5a4a'],
   snow: ['#dfe7ec', '#e6edf1', '#aab8c2'],
   mixed: ['#6b6670', '#706b75', '#9a8f86'],
+  holy: ['#e9dfbd', '#eee5c6', '#c4b07e'],
+  boundary: ['#67647e', '#6c6983', '#a39fb8'],
+  castle: ['#3a3240', '#3f3745', '#6a5d6e'],
 };
 
 function drawGround(ctx, map, ground = 'grass') {

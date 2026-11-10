@@ -49,7 +49,6 @@ test('調合錬成：3種類なら一番多い属性で決まり、ぴったり�
 test('調合錬成：合計が少ない・多すぎる・表にない組み合わせでは生まれない', () => {
   assert.equal(mixResult({ none: 9 }).kind, null);
   assert.equal(mixResult({ none: 61 }).kind, null);
-  assert.equal(mixResult({ light: 10 }).kind, null, '第4地方のエレメントはまだ表にない');
   assert.equal(mixResult({ fire: 10 }).kind, 'hinoko', '第3地方（炎・氷）は表にある');
   assert.equal(mixResult({ ice: 6, fire: 4 }).kind, 'yukionna');
   assert.equal(mixResult({ earth: 5, ice: 3, fire: 2 }).kind, 'crab', '3種類以上は一番多い属性');
@@ -112,4 +111,19 @@ test('調合錬成：合計10を超えた分は、レベルアップの値段ど
   const r = mixResult({ none: 13 });
   assert.equal(r.kind, 'slime');
   assert.equal(r.level, 2);
+});
+
+test('調合錬成：9属性の組み合わせが全部表にある（1種類9・2種類72・3種類以上9）。9属性を同じ量ずつならアルカンシエル', () => {
+  const ids = ['none', 'wind', 'earth', 'water', 'thunder', 'fire', 'ice', 'light', 'dark'];
+  for (const a of ids) {
+    assert.ok(mixResult({ [a]: 10 }).kind, a);
+    for (const b of ids) if (a !== b) assert.ok(mixResult({ [a]: 7, [b]: 3 }).kind, `${a}>${b}`);
+  }
+  const t1 = RECIPES.filter((r) => r.types === 1).length;
+  const t2 = RECIPES.filter((r) => r.types === 2).length;
+  const t3 = RECIPES.filter((r) => r.types === 3).length;
+  assert.deepEqual([t1, t2, t3], [9, 72, 9]);
+  assert.equal(mixResult(Object.fromEntries(ids.map((id) => [id, 2]))).kind, 'arcenciel');
+  assert.equal(mixResult(Object.fromEntries(ids.map((id) => [id, 6]))).kind, 'arcenciel');
+  assert.equal(mixResult({ ...Object.fromEntries(ids.map((id) => [id, 2])), light: 3 }).kind, 'archangel', '1つでもずれると、ふつうの表（光が一番多い3種類以上 → だいてんし）');
 });

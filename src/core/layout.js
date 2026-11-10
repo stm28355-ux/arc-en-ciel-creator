@@ -62,6 +62,7 @@ export function canPlace(map, layout, item, ignore) {
  *   groupSize: 1度にまとめて出すウェーブの数（1 + 動いている角笛の数）
  *   carried:   資材が入る持ち込みの資源地 [{ x, y, element }]
  *   slow:      Map<'x,y', 0〜1> 敵を遅くするマスと割合（霧の噴水）
+ *   expose:    Map<'x,y', 0〜1> 敵が受けるダメージが増えるマスと割合（光の祭壇）。units の bossMul は【強】とボスへの倍率（闇の塔）
  *   units の splash = true は、範囲のマスにいる敵すべてに当たる（雷の塔）。burn はやけど（かがり火）、chill は凍えて遅くなる（つららの塔）
  */
 export function resolveLayout(map, layout) {
@@ -143,7 +144,8 @@ export function resolveLayout(map, layout) {
     if (!def.atk) continue;
     units.push({ id: f.id, source: 'facility', x: f.x, y: f.y, element: 'none', atk: def.atk * facilityMul, interval: def.interval, targets: new Set(targetsOf(f).map(keyOf)), buffed: {}, splash: !!def.splash,
       burn: def.burn && { dps: def.burn.dps * facilityMul, dur: def.burn.dur },
-      chill: def.chill && { slow: Math.min(0.8, def.chill.slow * facilityMul), dur: def.chill.dur } });
+      chill: def.chill && { slow: Math.min(0.8, def.chill.slow * facilityMul), dur: def.chill.dur },
+      bossMul: def.bossMul });
   }
   const groupSize = 1 + running.filter((f) => FACILITIES[f.kind].effect === 'group').length;
 
@@ -156,5 +158,14 @@ export function resolveLayout(map, layout) {
     for (const c of targetsOf(f)) slow.set(keyOf(c), Math.max(slow.get(keyOf(c)) ?? 0, v));
   }
 
-  return { working, workerOf, prod, alloc, status, units, groupSize, carried, slow };
+  // 防御くずし：動いている光の祭壇の範囲のマス → 受けるダメージが増える割合（重ねても一番大きいものだけ。100%まで）
+  const expose = new Map();
+  for (const f of running) {
+    const e = FACILITIES[f.kind].expose;
+    if (!e) continue;
+    const v = Math.min(1, e * facilityMul);
+    for (const c of targetsOf(f)) expose.set(keyOf(c), Math.max(expose.get(keyOf(c)) ?? 0, v));
+  }
+
+  return { working, workerOf, prod, alloc, status, units, groupSize, carried, slow, expose };
 }

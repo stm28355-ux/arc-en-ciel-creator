@@ -5,8 +5,8 @@ import { RECIPES, HINTS, MIX_MIN_TOTAL, MIX_MAX_TOTAL, MIX_ELEMENTS } from '../d
 import { FAMILY_ORDER, RARE_FUSIONS, familyName } from '../data/families.js';
 import { REGIONS } from '../data/regions.js';
 import { EVOLUTIONS, EVOLVED_FROM } from '../data/evolutions.js';
-import { mixResult, canPay, pay, codexCost, levelUpCost, levelUpPayment, levelElements, atkAt, LEVEL_CAP, LEVEL_ELEMENTS, LEVEL_TIER2_FROM, LEVEL_TIER3_FROM } from '../core/alchemy.js';
-import { levelCap, researchedLevel, mixElements } from '../core/research.js';
+import { mixResult, canPay, pay, codexCost, levelUpCost, levelUpPayment, levelElements, atkAt, LEVEL_CAP, LEVEL_ELEMENTS, LEVEL_TIER2_FROM, LEVEL_TIER3_FROM, LEVEL_TIER4_FROM, LEVEL_TIER5_FROM } from '../core/alchemy.js';
+import { levelCap, researchedLevel, mixElements, LIMITS } from '../core/research.js';
 import { RESEARCH, MIX_UNLOCK } from '../data/research.js';
 import { addMonster } from '../core/save.js';
 import { skillsOf, fusionCandidates, fusionRule, fusionMembers, inheritableSkills, fuse, evolutionOf, evolutionProgress, evolve, MAX_SKILLS } from '../core/breeding.js';
@@ -202,9 +202,19 @@ function rosterView(api, state) {
     const def = MONSTERS[sel.kind];
     const cap = levelCap(save);
     const atMax = sel.level >= cap;
-    const tier = sel.level >= LEVEL_TIER3_FROM ? '第3地方（炎・氷）' : sel.level >= LEVEL_TIER2_FROM ? '第2地方（水・雷）' : '第1地方';
+    const tier =
+      sel.level >= LEVEL_TIER5_FROM
+        ? 'どの地方でもよい'
+        : sel.level >= LEVEL_TIER4_FROM
+          ? '第4地方（光・闇）'
+          : sel.level >= LEVEL_TIER3_FROM
+            ? '第3地方（炎・氷）'
+            : sel.level >= LEVEL_TIER2_FROM
+              ? '第2地方（水・雷）'
+              : '第1地方';
     const order = levelElements(sel.level).includes(def.element) ? `${ELEMENT[def.element].name}から先に使う` : '多く持っているものから使う';
-    const nextLimit = cap >= 50 ? null : cap >= 40 ? ['limit3', '限界突破 III', 50] : cap >= 30 ? ['limit2', '限界突破 II', 40] : ['limit1', '限界突破 I', 30];
+    const nextIndex = LIMITS.findIndex(([, to]) => to > cap);
+    const nextLimit = nextIndex < 0 ? null : [LIMITS[nextIndex][0], RESEARCH[LIMITS[nextIndex][0]].name, LIMITS[nextIndex][1]];
     const maxText = !nextLimit
       ? 'レベルの上限です'
       : researchedLevel(save, nextLimit[0])
@@ -282,7 +292,6 @@ function mixView(api, state) {
     preview = `<p>生まれるモンスター：${who} · <b>Lv${r.level}</b> ${next}</p>`;
   }
   const born = state.born ? `<div class="card born">${icon(state.born)} <b>${MONSTERS[state.born].name}</b> が生まれました！ 手持ちに加わり、図鑑に載りました。</div>` : '';
-  const others = ELEMENTS.filter((e) => !MIX_ELEMENTS.includes(e.id) && save.elements[e.id] > 0);
   return `${born}<div class="card">
     <h3>調合錬成 <small>合計${MIX_MIN_TOTAL}〜${MIX_MAX_TOTAL}</small></h3>
     <p class="hint">エレメントの配合で、生まれるモンスターが決まります。決め手は「一番多いエレメント」「二番目に多いエレメント」「使ったエレメントの種類の数」。合計${MIX_MIN_TOTAL}を超えた分は、レベルアップの値段どおりに生まれるレベルになります。</p>
@@ -290,7 +299,6 @@ function mixView(api, state) {
     <p>合計 <b>${total}</b></p>
     ${preview}
     <div class="row"><button class="primary" data-mact="mix-go" ${r.kind ? '' : 'disabled'}>錬成する</button><button data-mact="mix-clear">空にする</button></div>
-    ${others.length ? '<p class="hint">第4地方のエレメントの配合は、まだ表にありません。</p>' : ''}
   </div>`;
 }
 

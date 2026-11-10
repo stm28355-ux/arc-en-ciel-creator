@@ -1,4 +1,4 @@
-// 地方と地域。第1地方（草原・森・砂漠）・第2地方（川・雷雨・海）・第3地方（火山・雪山・混成）が遊べる。地方の正式な名前は未決。
+// 地方と地域。第1〜第4地方の12地域。第4地方の魔王城を攻略すると表のクリア。地方の正式な名前は未決。
 //
 // マップの記号
 //   .  地面（モンスター・施設を置ける。見た目は地域の ground で変わる）
@@ -9,7 +9,8 @@
 //
 // elements：その地域で手に入るエレメント（多い順）。資源地と敵の属性をこの割合にする
 // requires：この地域を攻略すると開く
-// ground：地面の見た目（grass 草原 / forest 森 / sand 砂漠 / river 川 / storm 雷雨 / sea 海 / volcano 火山 / snow 雪山 / mixed 混成）
+// ground：地面の見た目（grass 草原 / forest 森 / sand 砂漠 / river 川 / storm 雷雨 / sea 海 / volcano 火山 / snow 雪山 / mixed 混成 / holy 聖域 / boundary 境界 / castle 魔王城）
+// finale：はじめて攻略すると表のクリア
 export const REGIONS = {
   grassland: {
     name: '草原',
@@ -515,6 +516,181 @@ export const REGIONS = {
       ],
     ],
   },
+  // ===== 第4地方（光・闇）。資材が少なめ（資源地の数：聖域 光2・炎1、境界 光1・闇1、魔王城 闇1） =====
+  sanctuary: {
+    name: '聖域',
+    province: 'p4',
+    elements: ['light', 'fire'], // 光2・炎1
+    requires: 'mixed',
+    ground: 'holy',
+    baseHp: 3,
+    waveGap: 4,
+    // 道は1本で長い。水と柱で置ける場所が少し減る
+    map: [
+      '............................',
+      '............................',
+      '..R...########..RR..#######B',
+      '......#......#......#.......',
+      '..R...#......#......#.......',
+      '......#......#......#.......',
+      '......#..~~..#......#...R.R.',
+      '......#..~~..#...L..#.......',
+      '...L..#..~~..#......#.......',
+      '......#..~~..#......#.......',
+      '......#......#......#...F...',
+      '......#......#......#.......',
+      '......#......#......#.......',
+      'S######..RR..########..~~~..',
+      '.......................~~~..',
+      '.......................~~~..',
+    ],
+    waves: [
+      [
+        { enemy: 'wisplight', count: 10, interval: 0.9, delay: 0 },
+        { enemy: 'flamespirit', count: 6, interval: 1, delay: 4 },
+      ],
+      [
+        { enemy: 'holyknight', count: 6, interval: 1.6, delay: 0 },
+        { enemy: 'wisplight', count: 10, interval: 0.7, delay: 3 },
+      ],
+      [
+        { enemy: 'flamespirit', count: 10, interval: 0.8, delay: 0 },
+        { enemy: 'holyknight', count: 6, interval: 1.4, delay: 3 },
+        { enemy: 'wisplight', count: 8, interval: 0.6, delay: 6 },
+      ],
+      [
+        { enemy: 'holyknight', count: 8, interval: 1.2, delay: 0 },
+        { enemy: 'flamespirit', count: 10, interval: 0.8, delay: 3 },
+        { enemy: 'wisplight', count: 10, interval: 0.6, delay: 6 },
+        { enemy: 'seraph', count: 1, interval: 1, delay: 10 },
+      ],
+      [
+        { enemy: 'wisplight', count: 12, interval: 0.5, delay: 0 },
+        { enemy: 'sanctuaryguard', count: 1, interval: 1, delay: 6 },
+        { enemy: 'holyknight', count: 8, interval: 1, delay: 9 },
+        { enemy: 'flamespirit', count: 10, interval: 0.7, delay: 12 },
+        { enemy: 'seraph', count: 2, interval: 3, delay: 14 },
+      ],
+    ],
+  },
+  boundary: {
+    name: '境界',
+    province: 'p4',
+    elements: ['light', 'dark'], // 光1・闇1
+    requires: 'sanctuary',
+    ground: 'boundary',
+    baseHp: 3,
+    waveGap: 4,
+    // 2列：上の道（光の側）と下の道（闇の側）が別々で、拠点も2か所（拠点の耐久は1つ）。真ん中は境目の水
+    map: [
+      '.............R..............',
+      '............................',
+      'S########..........########B',
+      '........#..........#........',
+      '....L...#..........#........',
+      '........#..........#........',
+      '........############........',
+      'R.........~~~~~~~~........R.',
+      '.R........~~~~~~~~.........R',
+      '........############........',
+      '........#..........#........',
+      '........#..........#...D....',
+      '........#..........#........',
+      'S########..........########B',
+      '............................',
+      '..............R.............',
+    ],
+    waves: [
+      [
+        { enemy: 'lightling', count: 8, interval: 0.9, delay: 0 },
+        { enemy: 'shadowling', count: 8, interval: 0.9, delay: 0.45 },
+      ],
+      [
+        { enemy: 'lightguard', count: 4, interval: 1.6, delay: 0 },
+        { enemy: 'darkguard', count: 4, interval: 1.6, delay: 0.8 },
+        { enemy: 'lightling', count: 6, interval: 0.8, delay: 5 },
+        { enemy: 'shadowling', count: 6, interval: 0.8, delay: 5.4 },
+      ],
+      [
+        { enemy: 'lightling', count: 10, interval: 0.6, delay: 0 },
+        { enemy: 'shadowling', count: 10, interval: 0.6, delay: 0.3 },
+        { enemy: 'lightguard', count: 4, interval: 1.4, delay: 5 },
+        { enemy: 'darkguard', count: 4, interval: 1.4, delay: 5.7 },
+      ],
+      [
+        { enemy: 'lightguard', count: 6, interval: 1.2, delay: 0 },
+        { enemy: 'darkguard', count: 6, interval: 1.2, delay: 0.6 },
+        { enemy: 'lightling', count: 8, interval: 0.6, delay: 6 },
+        { enemy: 'shadowling', count: 8, interval: 0.6, delay: 6.3 },
+        { enemy: 'eclipse', count: 1, interval: 1, delay: 10 },
+      ],
+      [
+        { enemy: 'lightling', count: 10, interval: 0.5, delay: 0 },
+        { enemy: 'shadowling', count: 10, interval: 0.5, delay: 0.25 },
+        { enemy: 'borderking', count: 1, interval: 1, delay: 6 },
+        { enemy: 'darkguard', count: 6, interval: 1, delay: 9 },
+        { enemy: 'lightguard', count: 6, interval: 1, delay: 9.5 },
+        { enemy: 'eclipse', count: 2, interval: 3, delay: 14 },
+      ],
+    ],
+  },
+  castle: {
+    name: '魔王城',
+    province: 'p4',
+    elements: ['dark'], // 闇1
+    requires: 'boundary',
+    ground: 'castle',
+    finale: true, // はじめて攻略すると「表のクリア」
+    baseHp: 3,
+    waveGap: 4,
+    // 2か所から出て合流し、また分かれて拠点が2か所（道は4通り）。上と下は溶岩
+    map: [
+      'VVVVVVVVVVVVVVVVVVVVVVVVVVVV',
+      '........................R...',
+      'S######.....................',
+      '......#.......#############B',
+      '......#...R...#.............',
+      '...R..#.......#.R...........',
+      '......#.......#...VVVVVV....',
+      '......#########...VVVVVV....',
+      '......#.......#...VVVVVV....',
+      '...R..#.......#.R...........',
+      '......#...D...#.............',
+      '......#.......#############B',
+      'S######.....................',
+      '........................R...',
+      '............................',
+      'VVVVVVVVVVVVVVVVVVVVVVVVVVVV',
+    ],
+    waves: [
+      [
+        { enemy: 'imp', count: 12, interval: 0.8, delay: 0 },
+        { enemy: 'gargoyle', count: 4, interval: 1.2, delay: 6 },
+      ],
+      [
+        { enemy: 'darkknight', count: 6, interval: 1.6, delay: 0 },
+        { enemy: 'imp', count: 12, interval: 0.6, delay: 3 },
+      ],
+      [
+        { enemy: 'lich', count: 8, interval: 1.2, delay: 0 },
+        { enemy: 'gargoyle', count: 8, interval: 0.9, delay: 3 },
+        { enemy: 'imp', count: 12, interval: 0.5, delay: 6 },
+      ],
+      [
+        { enemy: 'darkknight', count: 8, interval: 1.2, delay: 0 },
+        { enemy: 'lich', count: 8, interval: 1, delay: 3 },
+        { enemy: 'imp', count: 12, interval: 0.5, delay: 6 },
+        { enemy: 'demonlord', count: 2, interval: 4, delay: 10 },
+      ],
+      [
+        { enemy: 'imp', count: 16, interval: 0.4, delay: 0 },
+        { enemy: 'maou', count: 1, interval: 1, delay: 6 },
+        { enemy: 'darkknight', count: 8, interval: 1, delay: 9 },
+        { enemy: 'gargoyle', count: 8, interval: 0.7, delay: 12 },
+        { enemy: 'demonlord', count: 4, interval: 3, delay: 14 },
+      ],
+    ],
+  },
 };
 
 export const PROVINCES = [
@@ -524,5 +700,5 @@ export const PROVINCES = [
   //   火山：炎＞土・雷 / 雪山：氷＞水・風 / 混成：炎・氷＞無
   //   第4地方は資材が少なめで、資源地の数で決める。聖域：光2・炎1 / 境界：光1・闇1 / 魔王城：闇1
   { id: 'p3', name: '第3地方（名前は未定）', elements: ['fire', 'ice'], regions: ['volcano', 'snow', 'mixed'] },
-  { id: 'p4', name: '第4地方', elements: ['light', 'dark'], regions: [], note: '聖域・境界・魔王城（光・闇）。資材が少なめ' },
+  { id: 'p4', name: '第4地方（名前は未定）', elements: ['light', 'dark'], regions: ['sanctuary', 'boundary', 'castle'] },
 ];

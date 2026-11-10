@@ -1,6 +1,7 @@
 // 敵（仮）。倒すと drop の数だけ、その敵の属性のエレメントが手に入る。
 // 地域ごとに、手に入るエレメントの割合が地域の属性になるように敵を出す（草原：無＞風、森：風＞土・無、砂漠：土＞風・無、
-// 川：水＞無・土、雷雨：雷＞水・土、海：水＞雷・風、火山：炎＞土・雷、雪山：氷＞水・風、混成：炎・氷＞無）。
+// 川：水＞無・土、雷雨：雷＞水・土、海：水＞雷・風、火山：炎＞土・雷、雪山：氷＞水・風、混成：炎・氷＞無、
+// 聖域：光2・炎1、境界：光1・闇1、魔王城：闇だけ）。
 //   speed: 1秒に進むマス数 / damage: 拠点まで通したときに減る拠点の耐久
 //   boss: 最後のボス。通したら拠点の耐久が全部なくなる（倒さないとクリアにならない）
 //   elite: 強めの敵。拠点を2減らす
@@ -76,4 +77,26 @@ export const ENEMIES = {
   greyslime: { name: 'はいいろスライム', element: 'none', hp: 600, speed: 1.0, drop: 1, damage: 1, size: 0.3 },
   chimera: { name: 'キメラ', element: 'fire', hp: 3840, speed: 0.6, drop: 20, damage: 2, size: 0.44, elite: true },
   twinking: { name: 'えんひょうのおう', element: 'ice', hp: 10800, speed: 0.4, drop: 60, damage: 0, size: 0.5, boss: true },
+  // --- 聖域（光2・炎1） ---
+  wisplight: { name: 'ひかりのせい', element: 'light', hp: 880, speed: 1.4, drop: 3, damage: 1, size: 0.26 },
+  holyknight: { name: 'せいきし', element: 'light', hp: 2450, speed: 0.7, drop: 4, damage: 1, size: 0.34 },
+  flamespirit: { name: 'せいかのたま', element: 'fire', hp: 1230, speed: 1.2, drop: 5, damage: 1, size: 0.3 },
+  seraph: { name: 'セラフ', element: 'light', hp: 10500, speed: 0.6, drop: 20, damage: 2, size: 0.44, elite: true },
+  sanctuaryguard: { name: 'せいいきのまもりて', element: 'light', hp: 28000, speed: 0.4, drop: 80, damage: 0, size: 0.5, boss: true },
+
+  // --- 境界（光1・闇1） ---
+  lightling: { name: 'ひかりのこびと', element: 'light', hp: 510, speed: 1.3, drop: 3, damage: 1, size: 0.26 },
+  shadowling: { name: 'かげのこびと', element: 'dark', hp: 510, speed: 1.3, drop: 3, damage: 1, size: 0.26 },
+  lightguard: { name: 'ひかりのたて', element: 'light', hp: 1360, speed: 0.7, drop: 4, damage: 1, size: 0.34 },
+  darkguard: { name: 'やみのたて', element: 'dark', hp: 1360, speed: 0.7, drop: 4, damage: 1, size: 0.34 },
+  eclipse: { name: 'にっしょく', element: 'dark', hp: 5950, speed: 0.6, drop: 20, damage: 2, size: 0.44, elite: true },
+  borderking: { name: 'さかいのおう', element: 'light', hp: 15300, speed: 0.4, drop: 60, damage: 0, size: 0.5, boss: true },
+
+  // --- 魔王城（闇1） ---
+  imp: { name: 'こあくま', element: 'dark', hp: 460, speed: 1.5, drop: 3, damage: 1, size: 0.26 },
+  gargoyle: { name: 'ガーゴイル', element: 'dark', hp: 780, speed: 1.1, drop: 4, damage: 1, size: 0.32 },
+  lich: { name: 'リッチ', element: 'dark', hp: 980, speed: 0.9, drop: 4, damage: 1, size: 0.32 },
+  darkknight: { name: 'やみのきし', element: 'dark', hp: 1430, speed: 0.7, drop: 5, damage: 1, size: 0.36 },
+  demonlord: { name: 'まぞく', element: 'dark', hp: 5850, speed: 0.6, drop: 30, damage: 2, size: 0.44, elite: true },
+  maou: { name: 'まおう', element: 'dark', hp: 19500, speed: 0.35, drop: 150, damage: 0, size: 0.52, boss: true },
 };
