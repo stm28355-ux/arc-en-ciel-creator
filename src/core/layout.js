@@ -62,7 +62,7 @@ export function canPlace(map, layout, item, ignore) {
  *   groupSize: 1度にまとめて出すウェーブの数（1 + 動いている角笛の数）
  *   carried:   資材が入る持ち込みの資源地 [{ x, y, element }]
  *   slow:      Map<'x,y', 0〜1> 敵を遅くするマスと割合（霧の噴水）
- *   units の splash = true は、範囲のマスにいる敵すべてに当たる（雷の塔）
+ *   units の splash = true は、範囲のマスにいる敵すべてに当たる（雷の塔）。burn はやけど（かがり火）、chill は凍えて遅くなる（つららの塔）
  */
 export function resolveLayout(map, layout) {
   const facilities = layout.facilities;
@@ -141,7 +141,9 @@ export function resolveLayout(map, layout) {
   for (const f of running) {
     const def = FACILITIES[f.kind];
     if (!def.atk) continue;
-    units.push({ id: f.id, source: 'facility', x: f.x, y: f.y, element: 'none', atk: def.atk * facilityMul, interval: def.interval, targets: new Set(targetsOf(f).map(keyOf)), buffed: {}, splash: !!def.splash });
+    units.push({ id: f.id, source: 'facility', x: f.x, y: f.y, element: 'none', atk: def.atk * facilityMul, interval: def.interval, targets: new Set(targetsOf(f).map(keyOf)), buffed: {}, splash: !!def.splash,
+      burn: def.burn && { dps: def.burn.dps * facilityMul, dur: def.burn.dur },
+      chill: def.chill && { slow: Math.min(0.8, def.chill.slow * facilityMul), dur: def.chill.dur } });
   }
   const groupSize = 1 + running.filter((f) => FACILITIES[f.kind].effect === 'group').length;
 

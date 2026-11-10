@@ -1,14 +1,15 @@
-// 地方と地域。第1地方（草原・森・砂漠）と第2地方（川・雷雨・海）が遊べる。地方の正式な名前は未決。
+// 地方と地域。第1地方（草原・森・砂漠）・第2地方（川・雷雨・海）・第3地方（火山・雪山・混成）が遊べる。地方の正式な名前は未決。
 //
 // マップの記号
 //   .  地面（モンスター・施設を置ける。見た目は地域の ground で変わる）
 //   #  道（敵が通る。置けない）   S 敵が出てくる所   B 拠点
 //   資源地：N 無  W 風  E 土  A 水  Z 雷  F 炎  I 氷  L 光  D 闇
-//   T  木（置けない）   ~  水（置けない）   R  岩（置けない）
+//   T  木（置けない）   ~  水（置けない）   R  岩（置けない）   V  溶岩（置けない）
+//   S と B は複数あってよい（2か所から出る、拠点が2か所）。道は二股に分かれたり合流したりしてよい
 //
 // elements：その地域で手に入るエレメント（多い順）。資源地と敵の属性をこの割合にする
 // requires：この地域を攻略すると開く
-// ground：地面の見た目（grass 草原 / forest 森 / sand 砂漠 / river 川 / storm 雷雨 / sea 海）
+// ground：地面の見た目（grass 草原 / forest 森 / sand 砂漠 / river 川 / storm 雷雨 / sea 海 / volcano 火山 / snow 雪山 / mixed 混成）
 export const REGIONS = {
   grassland: {
     name: '草原',
@@ -343,6 +344,177 @@ export const REGIONS = {
       ],
     ],
   },
+  // ===== 第3地方（炎・氷）。道の形が地域ごとに違う =====
+  volcano: {
+    name: '火山',
+    province: 'p3',
+    elements: ['fire', 'earth', 'thunder'], // 炎＞土・雷
+    requires: 'sea',
+    ground: 'volcano',
+    baseHp: 3,
+    waveGap: 4,
+    // 道が二股に分かれて、また合流する（敵は上と下の道に交互に入る）。真ん中は溶岩
+    map: [
+      'VV...........Z..............',
+      'V......................RR...',
+      '.....############...........',
+      '.....#..........#...........',
+      '..F..#....F.....#.....F.....',
+      '.....#..........#...........',
+      '.....#..VVVVVV..#...........',
+      'S#####..VVVVVV..###########B',
+      '.....#..VVVVVV..#...........',
+      '.....#..........#...........',
+      '.....#....F.....#...E.......',
+      '.....#..........#........Z..',
+      '.....############...........',
+      '..E.........................',
+      '.......R...........V.......V',
+      '............R.......V.....VV',
+    ],
+    waves: [
+      [
+        { enemy: 'firesprite', count: 10, interval: 0.9, delay: 0 },
+        { enemy: 'sparkfox', count: 4, interval: 1, delay: 5 },
+      ],
+      [
+        { enemy: 'lavaslug', count: 6, interval: 1.6, delay: 0 },
+        { enemy: 'firesprite', count: 10, interval: 0.7, delay: 3 },
+      ],
+      [
+        { enemy: 'magmarock', count: 6, interval: 1.5, delay: 0 },
+        { enemy: 'firesprite', count: 10, interval: 0.6, delay: 3 },
+        { enemy: 'sparkfox', count: 6, interval: 0.8, delay: 6 },
+      ],
+      [
+        { enemy: 'lavaslug', count: 8, interval: 1.2, delay: 0 },
+        { enemy: 'magmarock', count: 6, interval: 1.3, delay: 3 },
+        { enemy: 'firesprite', count: 10, interval: 0.6, delay: 6 },
+        { enemy: 'flamegiant', count: 1, interval: 1, delay: 10 },
+      ],
+      [
+        { enemy: 'firesprite', count: 12, interval: 0.5, delay: 0 },
+        { enemy: 'volcanoking', count: 1, interval: 1, delay: 6 },
+        { enemy: 'lavaslug', count: 8, interval: 1, delay: 9 },
+        { enemy: 'sparkfox', count: 6, interval: 0.8, delay: 12 },
+        { enemy: 'flamegiant', count: 2, interval: 3, delay: 14 },
+      ],
+    ],
+  },
+  snow: {
+    name: '雪山',
+    province: 'p3',
+    elements: ['ice', 'water', 'wind'], // 氷＞水・風
+    requires: 'volcano',
+    ground: 'snow',
+    baseHp: 3,
+    waveGap: 4,
+    // 敵が上と下の2か所から出てきて、途中で合流する
+    map: [
+      '..TT..........TT..........TT',
+      '............................',
+      'S##########...............R.',
+      '..........#.......W.........',
+      '.....I....#.................',
+      '..........#...........#####B',
+      '..........#..I....R...#.....',
+      '.......R..#...........#.....',
+      '..T....R..#######.....#.A...',
+      '...T...R..#.....#.....#.....',
+      '..........#.....#..I..#.....',
+      '..........#.R...#.....#....T',
+      '.....I....#.....#######.....',
+      '..........#.................',
+      'S##########..A...........W..',
+      '....................TT..R...',
+    ],
+    waves: [
+      [
+        { enemy: 'snowhare', count: 10, interval: 0.9, delay: 0 },
+        { enemy: 'gust', count: 4, interval: 0.8, delay: 5 },
+      ],
+      [
+        { enemy: 'icebeetle', count: 6, interval: 1.6, delay: 0 },
+        { enemy: 'snowhare', count: 10, interval: 0.7, delay: 3 },
+      ],
+      [
+        { enemy: 'sleetcloud', count: 8, interval: 1.2, delay: 0 },
+        { enemy: 'snowhare', count: 10, interval: 0.6, delay: 3 },
+        { enemy: 'gust', count: 6, interval: 0.6, delay: 6 },
+      ],
+      [
+        { enemy: 'icebeetle', count: 8, interval: 1.2, delay: 0 },
+        { enemy: 'sleetcloud', count: 6, interval: 1.2, delay: 3 },
+        { enemy: 'snowhare', count: 10, interval: 0.6, delay: 6 },
+        { enemy: 'yeti', count: 1, interval: 1, delay: 10 },
+      ],
+      [
+        { enemy: 'snowhare', count: 12, interval: 0.5, delay: 0 },
+        { enemy: 'snowqueen', count: 1, interval: 1, delay: 6 },
+        { enemy: 'icebeetle', count: 8, interval: 1, delay: 9 },
+        { enemy: 'gust', count: 6, interval: 0.6, delay: 12 },
+        { enemy: 'yeti', count: 2, interval: 3, delay: 14 },
+      ],
+    ],
+  },
+  mixed: {
+    name: '混成',
+    province: 'p3',
+    elements: ['fire', 'ice', 'none'], // 炎・氷＞無
+    requires: 'snow',
+    ground: 'mixed',
+    baseHp: 3,
+    waveGap: 4,
+    // 途中で分かれて、拠点が上と下の2か所にある（拠点の耐久は1つ。どちらに通されても減る）。上は溶岩、下は岩
+    map: [
+      'VVV.......VV..............VV',
+      'V.............F............V',
+      '............................',
+      '........############........',
+      '........#..........#...F....',
+      '....F...#..........#........',
+      '........#.......VV.########B',
+      '........#...................',
+      'S########....N..........N...',
+      '........#...................',
+      '........#.......RR.########B',
+      '....I...#..........#........',
+      '........#..........#...I....',
+      '........############........',
+      'R..........................R',
+      'RRR.......RR..I...........RR',
+    ],
+    waves: [
+      [
+        { enemy: 'firefly', count: 8, interval: 0.9, delay: 0 },
+        { enemy: 'frostfly', count: 8, interval: 0.9, delay: 0.45 },
+      ],
+      [
+        { enemy: 'greyslime', count: 8, interval: 1, delay: 0 },
+        { enemy: 'firefly', count: 8, interval: 0.8, delay: 3 },
+        { enemy: 'frostfly', count: 8, interval: 0.8, delay: 3.4 },
+      ],
+      [
+        { enemy: 'ashgolem', count: 5, interval: 1.6, delay: 0 },
+        { enemy: 'frostgolem', count: 5, interval: 1.6, delay: 0.8 },
+        { enemy: 'greyslime', count: 6, interval: 0.8, delay: 6 },
+      ],
+      [
+        { enemy: 'firefly', count: 10, interval: 0.6, delay: 0 },
+        { enemy: 'frostfly', count: 10, interval: 0.6, delay: 0.3 },
+        { enemy: 'ashgolem', count: 4, interval: 1.4, delay: 4 },
+        { enemy: 'frostgolem', count: 4, interval: 1.4, delay: 4.7 },
+        { enemy: 'chimera', count: 1, interval: 1, delay: 10 },
+      ],
+      [
+        { enemy: 'greyslime', count: 10, interval: 0.6, delay: 0 },
+        { enemy: 'twinking', count: 1, interval: 1, delay: 6 },
+        { enemy: 'firefly', count: 8, interval: 0.7, delay: 9 },
+        { enemy: 'frostfly', count: 8, interval: 0.7, delay: 9.35 },
+        { enemy: 'chimera', count: 2, interval: 3, delay: 14 },
+      ],
+    ],
+  },
 };
 
 export const PROVINCES = [
@@ -351,6 +523,6 @@ export const PROVINCES = [
   // 第3・第4地方の手に入るエレメント（企画者の案。作るときにこの割合にする）
   //   火山：炎＞土・雷 / 雪山：氷＞水・風 / 混成：炎・氷＞無
   //   第4地方は資材が少なめで、資源地の数で決める。聖域：光2・炎1 / 境界：光1・闇1 / 魔王城：闇1
-  { id: 'p3', name: '第3地方', elements: ['fire', 'ice'], regions: [], note: '火山・雪山・混成（炎・氷）' },
+  { id: 'p3', name: '第3地方（名前は未定）', elements: ['fire', 'ice'], regions: ['volcano', 'snow', 'mixed'] },
   { id: 'p4', name: '第4地方', elements: ['light', 'dark'], regions: [], note: '聖域・境界・魔王城（光・闇）。資材が少なめ' },
 ];

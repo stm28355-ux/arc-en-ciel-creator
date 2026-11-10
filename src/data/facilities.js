@@ -65,6 +65,28 @@ export const FACILITIES = {
     splash: true,
     shape: ['xxx', 'xxx', '.o.'],
   },
+  // --- 第3地方の資材（炎・氷）で建てる ---
+  brazier: {
+    name: 'かがり火',
+    type: 'combat',
+    cost: { fire: 2, earth: 1 },
+    desc: 'まわり8マスの敵すべてに火をつけ、3秒のあいだやけどにする（毎秒10）',
+    atk: 4,
+    interval: 1.0,
+    splash: true,
+    burn: { dps: 10, dur: 3 },
+    shape: ['xxx', 'xox', 'xxx'],
+  },
+  icicle: {
+    name: 'つららの塔',
+    type: 'combat',
+    cost: { ice: 2, water: 1 },
+    desc: '向いている方へまっすぐ5マス。当たった敵を2秒のあいだ50%遅くする',
+    atk: 14,
+    interval: 1.2,
+    chill: { slow: 0.5, dur: 2 },
+    shape: ['x', 'x', 'x', 'x', 'x', 'o'],
+  },
   // 研究「資源地の持ち込み」で置ける資源地。資材は使わない。element は置くときに選ぶ（攻略した地域の資源地の属性）
   carry: {
     name: '持ち込みの資源地',
@@ -75,6 +97,6 @@ export const FACILITIES = {
   },
 };
 
-export const FACILITY_ORDER = ['beam', 'smithy', 'sword', 'flag', 'horn', 'fog', 'tower'];
+export const FACILITY_ORDER = ['beam', 'smithy', 'sword', 'flag', 'horn', 'fog', 'tower', 'brazier', 'icicle'];
 
 export const FACILITY_TYPE_NAME = { combat: '戦闘施設', progress: '進行施設', production: '製造施設', carry: '持ち込み' };

@@ -29,13 +29,15 @@ test('草原のマップ：S から B まで道が1本でつながる', () => {
   assert.ok(map.nodes.length >= 6);
 });
 
-test('3つの地域：どのマップも S から B まで道が1本でつながり、28×16', () => {
+test('どの地域も：S から B まで道がつながり、道のマスは全部どれかの道で通る。28×16、ウェーブ5つで最後にボス', () => {
   for (const [id, r] of Object.entries(REGIONS)) {
     const m = parseMap(r.map);
     assert.equal(m.w, 28, id);
     assert.equal(m.h, 16, id);
     const pathCells = r.map.join('').split('').filter((c) => '#SB'.includes(c)).length;
-    assert.equal(m.path.length, pathCells, id);
+    const used = new Set(m.routes.flatMap((r) => r.map((c) => `${c.x},${c.y}`)));
+    assert.equal(used.size, pathCells, `${id}：使われない道のマスがない`);
+    for (const route of m.routes) assert.ok(m.bases.some((b) => b.x === route.at(-1).x && b.y === route.at(-1).y), `${id}：道は拠点で終わる`);
     assert.equal(r.waves.length, 5, id);
     assert.ok(r.waves.at(-1).some((g) => ENEMIES[g.enemy].boss), `${id} の最後のウェーブにボス`);
   }
@@ -51,11 +53,17 @@ test('地域で手に入るエレメント：敵の落とす量と資源地の�
     assert.deepEqual(Object.keys(nodes).sort(), [...r.elements].sort(), `${id} の資源地の属性`);
     const [top, ...rest] = r.elements;
     for (const e of rest) {
-      assert.ok(drops[top] > drops[e], `${id}：${top} が ${e} より多く落ちる`);
+      assert.ok(drops[top] >= drops[e], `${id}：${top} が ${e} 以上落ちる`);
       assert.ok(nodes[top] >= nodes[e], `${id}：${top} の資源地が ${e} 以上`);
     }
   }
   assert.ok(!REGIONS.grassland.elements.includes('earth'), '草原には土がない');
+  for (const id of Object.keys(REGIONS)) {
+    const r = REGIONS[id];
+    const drops = {};
+    for (const w of r.waves) for (const g of w) drops[ENEMIES[g.enemy].element] = (drops[ENEMIES[g.enemy].element] ?? 0) + g.count * ENEMIES[g.enemy].drop;
+    assert.ok(drops[r.elements[0]] > drops[r.elements.at(-1)], `${id}：一番の属性は最後の属性より多い`);
+  }
 });
 
 test('地域は順に開く：草原 → 森 → 砂漠', () => {
@@ -318,6 +326,68 @@ test('見本の配置：第2地方は、川 Lv20・雷雨 Lv25・海 Lv30 では
   for (const [id, lost, won] of [['river', 20, 25], ['storm', 25, 30], ['sea', 30, 35]]) {
     assert.equal(simulate(id, SAMPLES[id][`第2地方の仲間 Lv${lost}`]).b.phase, 'lost', `${id} Lv${lost}`);
     const { b } = simulate(id, SAMPLES[id][`第2地方の仲間 Lv${won}`]);
+    assert.equal(b.phase, 'won', `${id} Lv${won}`);
+    paces.push(pace(b));
+  }
+  assert.ok(paces[0] < paces[1] && paces[1] < paces[2], paces.map((p) => p.toFixed(2)).join(' < '));
+});
+
+test('道の形：火山は二股から合流、雪山は2か所から出て合流、混成は拠点が2か所。敵は道を交互に使う', () => {
+  const volcano = parseMap(REGIONS.volcano.map);
+  assert.equal(volcano.starts.length, 1);
+  assert.equal(volcano.routes.length, 2);
+  assert.equal(volcano.bases.length, 1);
+  const snow = parseMap(REGIONS.snow.map);
+  assert.equal(snow.starts.length, 2);
+  assert.equal(snow.routes.length, 2);
+  const mixed = parseMap(REGIONS.mixed.map);
+  assert.equal(mixed.bases.length, 2);
+  assert.equal(mixed.routes.length, 2);
+  // 敵は道を交互に使う。拠点が2か所でも、拠点の耐久は1つ
+  const b = createBattle(REGIONS.mixed, mixed);
+  startBattle(b);
+  for (let i = 0; i < 40; i++) step(b, 0.1, { units: [], groupSize: 1 });
+  assert.deepEqual([...new Set(b.enemies.map((e) => e.route))].sort(), [0, 1]);
+  while (b.phase === 'running') step(b, 0.1, { units: [], groupSize: 1 });
+  assert.equal(b.phase, 'lost');
+  assert.equal(b.baseHp, 0);
+});
+
+test('やけどと凍える：かがり火は範囲の敵すべてをやけどにし、つららの塔は当たった敵を遅くする', () => {
+  const b = createBattle(grass, map);
+  b.phase = 'running';
+  b.wavesStarted = 1;
+  b.enemies.push({ id: 1, kind: 'sheep', hp: 75, maxHp: 75, dist: 0.2, wave: 0, route: 0 }, { id: 2, kind: 'sheep', hp: 75, maxHp: 75, dist: 1.2, wave: 0, route: 0 });
+  const targets = new Set(['0,3', '1,3']);
+  const brazier = { id: 'f', x: 0, y: 2, atk: 4, interval: 1, targets, splash: true, burn: { dps: 10, dur: 3 }, buffed: {} };
+  step(b, 0.01, { units: [brazier], groupSize: 1 });
+  assert.deepEqual(b.enemies.map((e) => e.hp), [71, 71], '当たったときの4');
+  for (let i = 0; i < 10; i++) step(b, 0.1, { units: [], groupSize: 1 });
+  assert.ok(b.enemies.every((e) => Math.abs(e.hp - 61) < 1e-6), '1秒やけど（10）');
+  const c = createBattle(grass, map);
+  c.phase = 'running';
+  c.wavesStarted = 1;
+  c.enemies.push({ id: 1, kind: 'sheep', hp: 999, maxHp: 999, dist: 0.2, wave: 0, route: 0 });
+  step(c, 0.01, { units: [{ id: 'i', x: 0, y: 2, atk: 1, interval: 9, targets, chill: { slow: 0.5, dur: 2 }, buffed: {} }], groupSize: 1 });
+  const before = c.enemies[0].dist;
+  step(c, 1, { units: [], groupSize: 1 });
+  assert.ok(Math.abs(c.enemies[0].dist - before - 0.75 * 0.5) < 1e-9, '凍えている間は半分の速さ');
+});
+
+test('第3地方：海を攻略すると火山が開き、火山 → 雪山 → 混成 の順に開く', () => {
+  const s = newSave();
+  assert.equal(regionOpen(s, 'volcano'), false);
+  s.regions.sea = { cleared: true };
+  assert.equal(regionOpen(s, 'volcano'), true);
+  assert.deepEqual(opensAfter('volcano'), ['snow']);
+  assert.deepEqual(opensAfter('snow'), ['mixed']);
+});
+
+test('見本の配置：第3地方は、火山 Lv35・雪山 Lv40・混成 Lv45 では負け、5レベル上げると攻略できる。獲得ペースは 火山 < 雪山 < 混成', () => {
+  const paces = [];
+  for (const [id, lost, won] of [['volcano', 35, 40], ['snow', 40, 45], ['mixed', 45, 50]]) {
+    assert.equal(simulate(id, SAMPLES[id][`第3地方の仲間 Lv${lost}`]).b.phase, 'lost', `${id} Lv${lost}`);
+    const { b } = simulate(id, SAMPLES[id][`第3地方の仲間 Lv${won}`]);
     assert.equal(b.phase, 'won', `${id} Lv${won}`);
     paces.push(pace(b));
   }

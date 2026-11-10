@@ -9,7 +9,7 @@ export const MIX_MIN_TOTAL = 10; // 調合錬成に使うエレメントの合�
 export const MIX_MAX_TOTAL = 60;
 
 // 調合錬成で使えるエレメント（今の表にある属性）。地方を作るごとに増やす。無以外は研究で開放する
-export const MIX_ELEMENTS = ['none', 'wind', 'earth', 'water', 'thunder'];
+export const MIX_ELEMENTS = ['none', 'wind', 'earth', 'water', 'thunder', 'fire', 'ice'];
 
 export const RECIPES = [
   { kind: 'prism', special: { none: 1, wind: 1, earth: 1 } },
@@ -50,6 +50,36 @@ export const RECIPES = [
 
   { kind: 'singer', types: 3, first: 'water' },
   { kind: 'raijin', types: 3, first: 'thunder' },
+
+  // --- 第3地方（炎・氷） ---
+  { kind: 'hinoko', types: 1, first: 'fire' },
+  { kind: 'penguin', types: 1, first: 'ice' },
+
+  { kind: 'stovesprite', types: 2, first: 'fire', second: 'none' },
+  { kind: 'firebird', types: 2, first: 'fire', second: 'wind' },
+  { kind: 'lavaturtle', types: 2, first: 'fire', second: 'earth' },
+  { kind: 'steamghost', types: 2, first: 'fire', second: 'water' },
+  { kind: 'firework', types: 2, first: 'fire', second: 'thunder' },
+  { kind: 'twinslime', types: 2, first: 'fire', second: 'ice' },
+  { kind: 'snowkid', types: 2, first: 'ice', second: 'none' },
+  { kind: 'blizzardwolf', types: 2, first: 'ice', second: 'wind' },
+  { kind: 'icerock', types: 2, first: 'ice', second: 'earth' },
+  { kind: 'seal', types: 2, first: 'ice', second: 'water' },
+  { kind: 'aurorajelly', types: 2, first: 'ice', second: 'thunder' },
+  { kind: 'yukionna', types: 2, first: 'ice', second: 'fire' },
+  { kind: 'candle', types: 2, first: 'none', second: 'fire' },
+  { kind: 'snowman', types: 2, first: 'none', second: 'ice' },
+  { kind: 'flamebat', types: 2, first: 'wind', second: 'fire' },
+  { kind: 'snowowl', types: 2, first: 'wind', second: 'ice' },
+  { kind: 'magmagolem', types: 2, first: 'earth', second: 'fire' },
+  { kind: 'mammoth', types: 2, first: 'earth', second: 'ice' },
+  { kind: 'kappa', types: 2, first: 'water', second: 'fire' },
+  { kind: 'icefish', types: 2, first: 'water', second: 'ice' },
+  { kind: 'plasmabot', types: 2, first: 'thunder', second: 'fire' },
+  { kind: 'thunderpenguin', types: 2, first: 'thunder', second: 'ice' },
+
+  { kind: 'flamelord', types: 3, first: 'fire' },
+  { kind: 'icewitch', types: 3, first: 'ice' },
 ];
 
 // 図鑑錬成の値段：一度手に入れたモンスターを、考えずに作れる決まった量（調合の最小より少し多い）
@@ -113,6 +143,35 @@ export const CODEX_COST = {
   cannon: { thunder: 36, earth: 18 },
   squid: { water: 20, none: 10 },
   kraken: { water: 36, thunder: 18 },
+  // 第3地方（炎・氷）
+  hinoko: { fire: 12 },
+  penguin: { ice: 12 },
+  stovesprite: { fire: 8, none: 4 },
+  firebird: { fire: 8, wind: 4 },
+  lavaturtle: { fire: 8, earth: 4 },
+  steamghost: { fire: 8, water: 4 },
+  firework: { fire: 8, thunder: 4 },
+  twinslime: { fire: 8, ice: 4 },
+  snowkid: { ice: 8, none: 4 },
+  blizzardwolf: { ice: 8, wind: 4 },
+  icerock: { ice: 8, earth: 4 },
+  seal: { ice: 8, water: 4 },
+  aurorajelly: { ice: 8, thunder: 4 },
+  yukionna: { ice: 8, fire: 4 },
+  candle: { none: 8, fire: 4 },
+  snowman: { none: 8, ice: 4 },
+  flamebat: { wind: 8, fire: 4 },
+  snowowl: { wind: 8, ice: 4 },
+  magmagolem: { earth: 8, fire: 4 },
+  mammoth: { earth: 8, ice: 4 },
+  kappa: { water: 8, fire: 4 },
+  icefish: { water: 8, ice: 4 },
+  plasmabot: { thunder: 8, fire: 4 },
+  thunderpenguin: { thunder: 8, ice: 4 },
+  flamelord: { fire: 6, earth: 3, thunder: 3 },
+  icewitch: { ice: 6, water: 3, wind: 3 },
+  wisp: { fire: 20, none: 10 },
+  winterghost: { ice: 36, fire: 18 },
 };
 
 // 図鑑で、まだ手に入れていないモンスターに出すヒント

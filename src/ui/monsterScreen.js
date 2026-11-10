@@ -5,7 +5,7 @@ import { RECIPES, HINTS, MIX_MIN_TOTAL, MIX_MAX_TOTAL, MIX_ELEMENTS } from '../d
 import { FAMILY_ORDER, RARE_FUSIONS, familyName } from '../data/families.js';
 import { REGIONS } from '../data/regions.js';
 import { EVOLUTIONS, EVOLVED_FROM } from '../data/evolutions.js';
-import { mixResult, canPay, pay, codexCost, levelUpCost, levelUpPayment, levelElements, atkAt, LEVEL_CAP, LEVEL_ELEMENTS, LEVEL_TIER2_FROM } from '../core/alchemy.js';
+import { mixResult, canPay, pay, codexCost, levelUpCost, levelUpPayment, levelElements, atkAt, LEVEL_CAP, LEVEL_ELEMENTS, LEVEL_TIER2_FROM, LEVEL_TIER3_FROM } from '../core/alchemy.js';
 import { levelCap, researchedLevel, mixElements } from '../core/research.js';
 import { RESEARCH, MIX_UNLOCK } from '../data/research.js';
 import { addMonster } from '../core/save.js';
@@ -202,9 +202,9 @@ function rosterView(api, state) {
     const def = MONSTERS[sel.kind];
     const cap = levelCap(save);
     const atMax = sel.level >= cap;
-    const tier = sel.level >= LEVEL_TIER2_FROM ? '第2地方（水・雷）' : '第1地方';
+    const tier = sel.level >= LEVEL_TIER3_FROM ? '第3地方（炎・氷）' : sel.level >= LEVEL_TIER2_FROM ? '第2地方（水・雷）' : '第1地方';
     const order = levelElements(sel.level).includes(def.element) ? `${ELEMENT[def.element].name}から先に使う` : '多く持っているものから使う';
-    const nextLimit = cap >= 40 ? null : cap >= 30 ? ['limit2', '限界突破 II', 40] : ['limit1', '限界突破 I', 30];
+    const nextLimit = cap >= 50 ? null : cap >= 40 ? ['limit3', '限界突破 III', 50] : cap >= 30 ? ['limit2', '限界突破 II', 40] : ['limit1', '限界突破 I', 30];
     const maxText = !nextLimit
       ? 'レベルの上限です'
       : researchedLevel(save, nextLimit[0])
@@ -290,7 +290,7 @@ function mixView(api, state) {
     <p>合計 <b>${total}</b></p>
     ${preview}
     <div class="row"><button class="primary" data-mact="mix-go" ${r.kind ? '' : 'disabled'}>錬成する</button><button data-mact="mix-clear">空にする</button></div>
-    ${others.length ? '<p class="hint">第3地方より先のエレメントの配合は、まだ表にありません。</p>' : ''}
+    ${others.length ? '<p class="hint">第4地方のエレメントの配合は、まだ表にありません。</p>' : ''}
   </div>`;
 }
 

@@ -127,3 +127,19 @@ test('持ち込みの資源地：まわりのモンスターから資材が入�
   assert.equal(two.prod.bag.wind - none.wind, 2);
   assert.equal(two.carried.length, 2);
 });
+
+test('限界突破 III（仮）：II のあと。上限 50、41からは炎・氷で上げる。炎・氷の調合も研究で開く', () => {
+  const s = rich();
+  s.elements = { ...s.elements, fire: 9999, ice: 9999 };
+  assert.match(whyNot(s, 'limit3'), /限界突破 II/);
+  for (const id of ['limit1', 'limit2', 'limit3']) doResearch(s, id);
+  assert.equal(levelCap(s), 50);
+  toggleResearch(s, 'limit2', false);
+  assert.equal(levelCap(s), 30, 'II を OFF にすると III も効かない');
+  assert.equal(levelUpPayment({ water: 9999 }, 'none', 40), null);
+  assert.ok(levelUpPayment({ fire: 9999 }, 'none', 40));
+  assert.ok(!mixElements(s).includes('fire'));
+  doResearch(s, 'mixFire');
+  doResearch(s, 'mixIce');
+  assert.ok(mixElements(s).includes('fire') && mixElements(s).includes('ice'));
+});

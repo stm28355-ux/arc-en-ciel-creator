@@ -51,11 +51,12 @@ export function toggleResearch(save, id, on) {
   else save.researchOff[id] = true;
 }
 
-/** レベルの上限。限界突破 II は限界突破 I が ON のときだけ効く。 */
+/** レベルの上限。限界突破 II は I が、III は II が ON のときだけ効く。 */
 export function levelCap(save) {
   const one = activeLevel(save, 'limit1') > 0;
   const two = one && activeLevel(save, 'limit2') > 0;
-  return LEVEL_CAP + (one ? 15 : 0) + (two ? 10 : 0);
+  const three = two && activeLevel(save, 'limit3') > 0;
+  return LEVEL_CAP + (one ? 15 : 0) + (two ? 10 : 0) + (three ? 10 : 0);
 }
 
 /** 調合錬成で使えるエレメント（無は最初から。ほかは研究で開放）。 */

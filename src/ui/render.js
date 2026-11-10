@@ -9,7 +9,7 @@ import { cellsOf, rotate } from '../core/shape.js';
 
 export const CELL = 32;
 
-const FACILITY_ICON = { beam: '光', sword: '剣', flag: '旗', horn: '笛', smithy: '鍛', carry: '◆', fog: '霧', tower: '雷' };
+const FACILITY_ICON = { beam: '光', sword: '剣', flag: '旗', horn: '笛', smithy: '鍛', carry: '◆', fog: '霧', tower: '雷', brazier: '火', icicle: '氷' };
 export const facilityIcon = (kind) => FACILITY_ICON[kind] ?? '施';
 export const FACILITY_COLOR = { combat: '#f0d9a7', progress: '#c9a7f0', production: '#a7d8f0', carry: '#e0e0e0' };
 
@@ -80,6 +80,9 @@ const GROUND = {
   river: ['#5a9a56', '#5f9f5a', '#c9b089'],
   storm: ['#4f5d58', '#54635d', '#8f8a7a'],
   sea: ['#e2cf98', '#e6d49e', '#c2a46e'],
+  volcano: ['#4a3a34', '#4f3e37', '#7a5a4a'],
+  snow: ['#dfe7ec', '#e6edf1', '#aab8c2'],
+  mixed: ['#6b6670', '#706b75', '#9a8f86'],
 };
 
 function drawGround(ctx, map, ground = 'grass') {
@@ -101,6 +104,12 @@ function drawGround(ctx, map, ground = 'grass') {
         ctx.fillRect(px, py, CELL, CELL);
         ctx.fillStyle = 'rgba(255,255,255,0.18)';
         ctx.fillRect(px + 6, py + 10, 12, 2);
+      } else if (t === 'lava') {
+        ctx.fillStyle = '#c4421f';
+        ctx.fillRect(px, py, CELL, CELL);
+        ctx.fillStyle = 'rgba(255,200,80,0.55)';
+        ctx.fillRect(px + 5, py + 8, 10, 3);
+        ctx.fillRect(px + 16, py + 20, 9, 3);
       } else if (t === 'rock') {
         ctx.fillStyle = '#8b7d6b';
         ctx.beginPath();
@@ -136,14 +145,15 @@ function drawGround(ctx, map, ground = 'grass') {
     ctx.lineTo(map.w * CELL, y * CELL + 0.5);
   }
   ctx.stroke();
-  const s = map.start;
-  ctx.fillStyle = 'rgba(160,40,40,0.55)';
-  ctx.fillRect(s.x * CELL, s.y * CELL, CELL, CELL);
-  ctx.fillStyle = '#fff';
-  ctx.font = 'bold 16px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('▶', s.x * CELL + CELL / 2, s.y * CELL + CELL / 2);
+  for (const s of map.starts ?? [map.start]) {
+    ctx.fillStyle = 'rgba(160,40,40,0.55)';
+    ctx.fillRect(s.x * CELL, s.y * CELL, CELL, CELL);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 16px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('▶', s.x * CELL + CELL / 2, s.y * CELL + CELL / 2);
+  }
 }
 
 function drawNodes(ctx, nodes, perNode) {
@@ -196,8 +206,12 @@ function label(ctx, text, x, y) {
   ctx.fillText(text, x, y);
 }
 
+// 拠点が2か所あっても、拠点の耐久は1つ（両方に同じ数を出す）
 function drawBase(ctx, map, battle) {
-  const b = map.base;
+  for (const b of map.bases ?? [map.base]) drawOneBase(ctx, b, battle);
+}
+
+function drawOneBase(ctx, b, battle) {
   const px = b.x * CELL;
   const py = b.y * CELL;
   ctx.fillStyle = '#8a8fa8';
@@ -317,7 +331,7 @@ function cross(ctx, x, y) {
 function drawEnemies(ctx, map, battle) {
   for (const e of battle.enemies) {
     const def = ENEMIES[e.kind];
-    const p = pointOnPath(map.path, e.dist);
+    const p = pointOnPath(map.routes?.[e.route ?? 0] ?? map.path, e.dist);
     const r = def.size * CELL;
     ctx.fillStyle = ELEMENT[def.element].color;
     ctx.strokeStyle = def.boss ? '#8a0000' : def.elite ? '#7a4a00' : '#3a1010';

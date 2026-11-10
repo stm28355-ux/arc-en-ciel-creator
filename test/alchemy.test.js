@@ -49,7 +49,10 @@ test('調合錬成：3種類なら一番多い属性で決まり、ぴったり�
 test('調合錬成：合計が少ない・多すぎる・表にない組み合わせでは生まれない', () => {
   assert.equal(mixResult({ none: 9 }).kind, null);
   assert.equal(mixResult({ none: 61 }).kind, null);
-  assert.equal(mixResult({ fire: 10 }).kind, null, '第3地方より先のエレメントはまだ表にない');
+  assert.equal(mixResult({ light: 10 }).kind, null, '第4地方のエレメントはまだ表にない');
+  assert.equal(mixResult({ fire: 10 }).kind, 'hinoko', '第3地方（炎・氷）は表にある');
+  assert.equal(mixResult({ ice: 6, fire: 4 }).kind, 'yukionna');
+  assert.equal(mixResult({ earth: 5, ice: 3, fire: 2 }).kind, 'crab', '3種類以上は一番多い属性');
 });
 
 test('調合錬成：第2地方（水・雷）。3種類以上は一番多い属性で決まり、4種類でも同じ', () => {

@@ -2,13 +2,18 @@
 // 資源地の記号 → 属性
 const NODE_CHARS = { N: 'none', W: 'wind', E: 'earth', A: 'water', Z: 'thunder', F: 'fire', I: 'ice', L: 'light', D: 'dark' };
 
+/**
+ * 戻り値：{ w, h, cells, nodes, routes, starts, bases, path, start, base }
+ *   routes：敵の通る道（S から B までのマスの列）。二股・合流・2列・拠点2か所なら複数になる
+ *   path / start / base は routes[0] とその始まりと終わり（道が1本の地域と同じに使える）
+ */
 export function parseMap(rows) {
   const h = rows.length;
   const w = rows[0].length;
   const cells = [];
   const nodes = [];
-  let start = null;
-  let base = null;
+  const starts = [];
+  const bases = [];
   for (let y = 0; y < h; y++) {
     if (rows[y].length !== w) throw new Error(`map row ${y} has width ${rows[y].length}, expected ${w}`);
     const row = [];
@@ -20,41 +25,45 @@ export function parseMap(rows) {
       else if (c === 'T') type = 'tree';
       else if (c === '~') type = 'water';
       else if (c === 'R') type = 'rock';
+      else if (c === 'V') type = 'lava';
       else if (NODE_CHARS[c]) {
         type = 'node';
         nodes.push({ x, y, element: NODE_CHARS[c] });
       } else throw new Error(`unknown map char "${c}" at ${x},${y}`);
-      if (c === 'S') start = { x, y };
-      if (c === 'B') base = { x, y };
+      if (c === 'S') starts.push({ x, y });
+      if (c === 'B') bases.push({ x, y });
       row.push(type);
     }
     cells.push(row);
   }
-  if (!start || !base) throw new Error('map needs S and B');
-  const path = tracePath(cells, start, base);
-  return { w, h, cells, nodes, path, start, base };
+  if (!starts.length || !bases.length) throw new Error('map needs S and B');
+  const isBase = (p) => bases.some((b) => b.x === p.x && b.y === p.y);
+  const routes = starts.flatMap((s) => traceRoutes(cells, s, isBase));
+  if (!routes.length) throw new Error('no route from S to B');
+  return { w, h, cells, nodes, routes, starts, bases, path: routes[0], start: routes[0][0], base: routes[0].at(-1) };
 }
 
-// S から B まで、道のマスを1本の列としてたどる（分かれ道はない前提）。
-function tracePath(cells, start, base) {
-  const path = [start];
-  const seen = new Set([`${start.x},${start.y}`]);
-  let cur = start;
-  while (cur.x !== base.x || cur.y !== base.y) {
-    const next = [
+// S から B まで、道のマスをたどって、通れる道を全部集める（分かれ道ではどちらにも進む。同じマスは2度通らない）。
+function traceRoutes(cells, start, isBase) {
+  const out = [];
+  const walk = (route, seen) => {
+    const cur = route.at(-1);
+    if (isBase(cur)) return out.push(route);
+    if (out.length > 16) throw new Error('道が多すぎる（道どうしがくっついていないか見る）');
+    for (const [dx, dy] of [
       [1, 0],
       [-1, 0],
       [0, 1],
       [0, -1],
-    ]
-      .map(([dx, dy]) => ({ x: cur.x + dx, y: cur.y + dy }))
-      .find((p) => cells[p.y]?.[p.x] === 'path' && !seen.has(`${p.x},${p.y}`));
-    if (!next) throw new Error(`path breaks at ${cur.x},${cur.y}`);
-    seen.add(`${next.x},${next.y}`);
-    path.push(next);
-    cur = next;
-  }
-  return path;
+    ]) {
+      const p = { x: cur.x + dx, y: cur.y + dy };
+      const k = `${p.x},${p.y}`;
+      if (cells[p.y]?.[p.x] !== 'path' || seen.has(k)) continue;
+      walk([...route, p], new Set(seen).add(k));
+    }
+  };
+  walk([start], new Set([`${start.x},${start.y}`]));
+  return out;
 }
 
 /** 道に沿って dist マス進んだ位置（マスの中心が整数＋0.5）。 */

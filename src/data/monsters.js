@@ -1,6 +1,7 @@
-// モンスター（仮）。第1地方（無・風・土）の33種と、第2地方（水・雷）の22種。
+// モンスター（仮）。第1地方（無・風・土）の33種、第2地方（水・雷）の22種、第3地方（炎・氷）の28種。
 //   第1地方：調合で作れる13種 / 進化で手に入る6種 / 融合でしか生まれない12種 / 特別な組み合わせの融合でだけ生まれる2種
 //   第2地方：調合で作れる18種 / 融合でしか生まれない4種（マシン系・テンタクル系）
+//   第3地方：調合で作れる26種 / 融合でしか生まれない2種（レイス系）
 // 入手は錬成・融合・進化だけ（戦闘でのドロップはない）。作り方は src/data/recipes.js、進化は src/data/evolutions.js、
 // 融合のルール（系統の表と位階）は src/data/families.js。
 // それぞれのモンスターは自分の「技」を1つ持つ（atk・interval・shape・skill がその技）。
@@ -88,4 +89,41 @@ export const MONSTERS = {
   cannon: { name: 'いかずちキャノン', element: 'thunder', family: 'machine', rank: 5, atk: 60, interval: 1.6, skill: 'いかずちほう', shape: ['x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'o'], fusion: true },
   squid: { name: 'うずまきイカ', element: 'water', family: 'mollusk', rank: 3, atk: 9, interval: 0.5, skill: 'うずまき', shape: ['.xxx.', 'x...x', 'x.o.x', 'x...x', '.xxx.'], fusion: true },
   kraken: { name: 'クラーケン', element: 'water', family: 'mollusk', rank: 5, atk: 18, interval: 0.7, skill: 'おおうずしお', shape: ['xxxxxxx', 'xxxxxxx', 'xxxxxxx', '...o...'], fusion: true },
+
+  // ===== 第3地方（炎・氷）。調合で使うには研究「炎の調合」「氷の調合」が要る =====
+  // --- 1種類だけで作る（位階1） ---
+  hinoko: { name: 'ひのこだま', element: 'fire', family: 'gel', rank: 1, atk: 12, interval: 0.8, skill: 'ひのこ', shape: ['.x.', 'xxx', 'xox'] },
+  penguin: { name: 'ちびペンギン', element: 'ice', family: 'bird', rank: 1, atk: 16, interval: 1.1, skill: 'こおりすべり', shape: ['x', 'x', 'x', 'x', 'x', 'o'] },
+
+  // --- 2種類で作る（一番多い属性 > 二番目。位階2） ---
+  stovesprite: { name: 'かまどのこびと', element: 'fire', family: 'fiend', rank: 2, atk: 14, interval: 0.9, skill: 'かまどのひ', shape: ['xxx', 'xxx', 'xox'] },
+  firebird: { name: 'ほのおのとり', element: 'fire', family: 'bird', rank: 2, atk: 22, interval: 1.2, skill: 'ひのはばたき', shape: ['x...x', 'xx.xx', '.xxx.', '..o..'] },
+  lavaturtle: { name: 'ようがんガメ', element: 'fire', family: 'rock', rank: 2, atk: 40, interval: 1.8, skill: 'ようがんおとし', shape: ['xxx', 'xxx', '.o.'] },
+  steamghost: { name: 'ゆげおばけ', element: 'fire', family: 'wraith', rank: 2, atk: 9, interval: 0.6, skill: 'ゆげのまく', shape: ['xxxxx', 'x.o.x', 'xxxxx'] },
+  firework: { name: 'はなびロボ', element: 'fire', family: 'machine', rank: 2, atk: 34, interval: 1.6, skill: 'うちあげはなび', shape: ['.xxx.', '.xxx.', '..x..', '..x..', '..o..'] },
+  twinslime: { name: 'あかあおスライム', element: 'fire', family: 'gel', rank: 2, atk: 13, interval: 0.8, skill: 'あかあおビーム', shape: ['x...x', 'x...x', 'x.o.x'] },
+  snowkid: { name: 'ゆきんこ', element: 'ice', family: 'fiend', rank: 2, atk: 10, interval: 0.6, skill: 'ゆきつぶて', shape: ['.x.', 'xxx', '.x.', '.o.'] },
+  blizzardwolf: { name: 'ふぶきオオカミ', element: 'ice', family: 'beast', rank: 2, atk: 9, interval: 0.45, skill: 'ふぶきのきば', shape: ['xxx', 'xox', 'xxx'] },
+  icerock: { name: 'つららいわ', element: 'ice', family: 'rock', rank: 2, atk: 26, interval: 1.4, skill: 'つららおとし', shape: ['x.x.x', '.....', 'x.o.x'] },
+  seal: { name: 'ゆきアザラシ', element: 'ice', family: 'beast', rank: 2, atk: 18, interval: 1.0, skill: 'こおりのみち', shape: ['x', 'x', 'x', 'x', 'x', 'x', 'x', 'o'] },
+  aurorajelly: { name: 'オーロラクラゲ', element: 'ice', family: 'mollusk', rank: 2, atk: 8, interval: 0.6, skill: 'オーロラのひかり', shape: ['xxxxx', 'xxxxx', '.xox.'] },
+  yukionna: { name: 'ゆきおんな', element: 'ice', family: 'wraith', rank: 2, atk: 12, interval: 0.8, skill: 'こおりのいき', shape: ['xxxxx', '.xxx.', '..o..', '.xxx.'] },
+  candle: { name: 'ろうそくおばけ', element: 'none', family: 'wraith', rank: 2, atk: 11, interval: 0.8, skill: 'ゆらめくひ', shape: ['.x.', 'xox', '.x.', '.x.'] },
+  snowman: { name: 'ゆきだるま', element: 'none', family: 'gel', rank: 2, atk: 24, interval: 1.4, skill: 'ゆきだまころがし', shape: ['xxx', 'xxx', 'xxx', '.o.'] },
+  flamebat: { name: 'かえんコウモリ', element: 'wind', family: 'beast', rank: 2, atk: 8, interval: 0.45, skill: 'ひのこのは', shape: ['.xxx.', 'xxoxx', '.xxx.'] },
+  snowowl: { name: 'ゆきフクロウ', element: 'wind', family: 'bird', rank: 2, atk: 20, interval: 1.1, skill: 'ゆきのかぜきり', shape: ['x...x', '.x.x.', 'x.o.x'] },
+  magmagolem: { name: 'マグマゴーレム', element: 'earth', family: 'rock', rank: 2, atk: 60, interval: 2.0, skill: 'マグマパンチ', shape: ['xx', 'o.'] },
+  mammoth: { name: 'こおりマンモス', element: 'earth', family: 'beast', rank: 2, atk: 46, interval: 1.9, skill: 'はなでなぎはらう', shape: ['xxx', 'xxx', 'x.x', '.o.'] },
+  kappa: { name: 'おんせんカッパ', element: 'water', family: 'fiend', rank: 2, atk: 15, interval: 0.9, skill: 'あついみずでっぽう', shape: ['x', 'x', 'x', 'x', 'x', 'x', 'o'] },
+  icefish: { name: 'つららウオ', element: 'water', family: 'scale', rank: 2, atk: 11, interval: 0.6, skill: 'つららとばし', shape: ['x.x', 'x.x', 'x.x', '.o.'] },
+  plasmabot: { name: 'プラズマロボ', element: 'thunder', family: 'machine', rank: 2, atk: 16, interval: 0.8, skill: 'プラズマほう', shape: ['xxx', '.x.', '.x.', '.o.'] },
+  thunderpenguin: { name: 'かみなりペンギン', element: 'thunder', family: 'bird', rank: 2, atk: 13, interval: 0.7, skill: 'でんげきすべり', shape: ['x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'o'] },
+
+  // --- 3種類以上で作る（一番多い属性で決まる。位階3） ---
+  flamelord: { name: 'えんの剣士', element: 'fire', family: 'fiend', rank: 3, atk: 30, interval: 1.0, skill: 'ほのおぎり', shape: ['xxx', 'xxx', 'xox', 'xxx'] },
+  icewitch: { name: 'ひょうけつのまじょ', element: 'ice', family: 'fiend', rank: 3, atk: 12, interval: 0.6, skill: 'ひょうけつまほう', shape: ['.xxxxx.', 'xxxxxxx', '.xxxxx.', '...o...'] },
+
+  // --- 融合でしか生まれない（レイス系） ---
+  wisp: { name: 'さまようひとだま', element: 'fire', family: 'wraith', rank: 3, atk: 14, interval: 0.6, skill: 'ひとだまのひ', shape: ['xxx', 'x.x', 'xox', 'x.x', 'xxx'], fusion: true },
+  winterghost: { name: 'ふゆのぼうれい', element: 'ice', family: 'wraith', rank: 5, atk: 26, interval: 0.7, skill: 'ふゆのよび声', shape: ['xxxxxxx', 'xxxxxxx', 'x.....x', 'x..o..x'], fusion: true },
 };

@@ -31,6 +31,18 @@ export const RESEARCH = {
     max: 1,
     costs: [{ thunder: 30, water: 30 }],
   },
+  mixFire: {
+    name: '炎の調合',
+    desc: '調合錬成で炎のエレメントを使えるようにする',
+    max: 1,
+    costs: [{ fire: 40, thunder: 40 }],
+  },
+  mixIce: {
+    name: '氷の調合',
+    desc: '調合錬成で氷のエレメントを使えるようにする',
+    max: 1,
+    costs: [{ ice: 40, water: 40 }],
+  },
   baseHp: {
     name: '拠点の耐久',
     desc: '拠点の耐久 +1（どの地域でも）',
@@ -74,12 +86,20 @@ export const RESEARCH = {
     needs: 'limit1',
     costs: [{ water: 300, thunder: 300 }],
   },
+  // 仮：企画まとめでは 30・40 までだが、第3地方の強さのために足した（あとで確認）
+  limit3: {
+    name: '限界突破 III',
+    desc: 'レベルの上限 40 → 50。41からは第3地方のエレメント（炎・氷）で上げる',
+    max: 1,
+    needs: 'limit2',
+    costs: [{ fire: 400, ice: 400 }],
+  },
 };
 
-export const RESEARCH_ORDER = ['mixWind', 'mixEarth', 'mixWater', 'mixThunder', 'baseHp', 'attack', 'facility', 'pace', 'carry', 'limit1', 'limit2'];
+export const RESEARCH_ORDER = ['mixWind', 'mixEarth', 'mixWater', 'mixThunder', 'mixFire', 'mixIce', 'baseHp', 'attack', 'facility', 'pace', 'carry', 'limit1', 'limit2', 'limit3'];
 
 /** 調合錬成で使うのに研究が要るエレメント → 研究 */
-export const MIX_UNLOCK = { wind: 'mixWind', earth: 'mixEarth', water: 'mixWater', thunder: 'mixThunder' };
+export const MIX_UNLOCK = { wind: 'mixWind', earth: 'mixEarth', water: 'mixWater', thunder: 'mixThunder', fire: 'mixFire', ice: 'mixIce' };
 
 // 1レベルあたりの効き目
 export const BASE_HP_PER_LEVEL = 1;

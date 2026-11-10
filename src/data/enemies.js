@@ -1,6 +1,6 @@
 // 敵（仮）。倒すと drop の数だけ、その敵の属性のエレメントが手に入る。
 // 地域ごとに、手に入るエレメントの割合が地域の属性になるように敵を出す（草原：無＞風、森：風＞土・無、砂漠：土＞風・無、
-// 川：水＞無・土、雷雨：雷＞水・土、海：水＞雷・風）。
+// 川：水＞無・土、雷雨：雷＞水・土、海：水＞雷・風、火山：炎＞土・雷、雪山：氷＞水・風、混成：炎・氷＞無）。
 //   speed: 1秒に進むマス数 / damage: 拠点まで通したときに減る拠点の耐久
 //   boss: 最後のボス。通したら拠点の耐久が全部なくなる（倒さないとクリアにならない）
 //   elite: 強めの敵。拠点を2減らす
@@ -51,4 +51,29 @@ export const ENEMIES = {
   stingray: { name: 'しびれエイ', element: 'thunder', hp: 730, speed: 0.9, drop: 3, damage: 1, size: 0.34 },
   bigoctopus: { name: 'おおダコ', element: 'water', hp: 4250, speed: 0.6, drop: 14, damage: 2, size: 0.44, elite: true },
   seaking: { name: 'うみのおう', element: 'water', hp: 10750, speed: 0.4, drop: 60, damage: 0, size: 0.5, boss: true },
+
+  // --- 火山（炎＞土・雷） ---
+  firesprite: { name: 'ほのおのこ', element: 'fire', hp: 380, speed: 1.4, drop: 2, damage: 1, size: 0.26 },
+  lavaslug: { name: 'ようがんナメクジ', element: 'fire', hp: 750, speed: 0.6, drop: 3, damage: 1, size: 0.34 },
+  magmarock: { name: 'マグマいし', element: 'earth', hp: 810, speed: 0.7, drop: 2, damage: 1, size: 0.34 },
+  sparkfox: { name: 'いなずまギツネ', element: 'thunder', hp: 480, speed: 1.5, drop: 2, damage: 1, size: 0.28 },
+  flamegiant: { name: 'ほのおのきょじん', element: 'fire', hp: 3250, speed: 0.6, drop: 14, damage: 2, size: 0.44, elite: true },
+  volcanoking: { name: 'かざんのおう', element: 'fire', hp: 8750, speed: 0.4, drop: 60, damage: 0, size: 0.5, boss: true },
+
+  // --- 雪山（氷＞水・風） ---
+  snowhare: { name: 'ゆきウサギ', element: 'ice', hp: 640, speed: 1.7, drop: 3, damage: 1, size: 0.25 },
+  icebeetle: { name: 'こおりカブト', element: 'ice', hp: 1610, speed: 0.7, drop: 4, damage: 1, size: 0.34 },
+  sleetcloud: { name: 'みぞれぐも', element: 'water', hp: 1040, speed: 0.9, drop: 2, damage: 1, size: 0.32 },
+  gust: { name: 'こがらし', element: 'wind', hp: 740, speed: 2.0, drop: 2, damage: 1, size: 0.25 },
+  yeti: { name: 'イエティ', element: 'ice', hp: 6900, speed: 0.6, drop: 20, damage: 2, size: 0.44, elite: true },
+  snowqueen: { name: 'ゆきの女王', element: 'ice', hp: 18400, speed: 0.4, drop: 100, damage: 0, size: 0.5, boss: true },
+
+  // --- 混成（炎・氷＞無） ---
+  firefly: { name: 'ひのこムシ', element: 'fire', hp: 420, speed: 1.5, drop: 2, damage: 1, size: 0.25 },
+  frostfly: { name: 'こおりムシ', element: 'ice', hp: 420, speed: 1.5, drop: 2, damage: 1, size: 0.25 },
+  ashgolem: { name: 'はいのゴーレム', element: 'fire', hp: 960, speed: 0.6, drop: 3, damage: 1, size: 0.36 },
+  frostgolem: { name: 'しものゴーレム', element: 'ice', hp: 960, speed: 0.6, drop: 3, damage: 1, size: 0.36 },
+  greyslime: { name: 'はいいろスライム', element: 'none', hp: 600, speed: 1.0, drop: 1, damage: 1, size: 0.3 },
+  chimera: { name: 'キメラ', element: 'fire', hp: 3840, speed: 0.6, drop: 20, damage: 2, size: 0.44, elite: true },
+  twinking: { name: 'えんひょうのおう', element: 'ice', hp: 10800, speed: 0.4, drop: 60, damage: 0, size: 0.5, boss: true },
 };

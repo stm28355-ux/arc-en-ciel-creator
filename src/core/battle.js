@@ -5,13 +5,18 @@ import { emptyBag, bagTotal } from '../data/elements.js';
 import { pointOnPath, pathLength } from './map.js';
 
 /** opts.baseHpAdd：研究で増えた拠点の耐久 */
+// 道が複数ある地域（二股・合流・2列・拠点2か所）では、敵は道を順番に使う（ウェーブのグループで route を決めることもできる）。
+// 拠点の耐久は、拠点が2か所あっても1つ（どちらに通されても減る）。
 export function createBattle(region, map, { baseHpAdd = 0 } = {}) {
+  const routes = map.routes ?? [map.path];
   return {
     phase: 'ready', // ready → running → won | lost
     waves: region.waves,
     waveGap: region.waveGap,
-    pathLen: pathLength(map.path),
-    path: map.path,
+    routes,
+    lens: routes.map(pathLength),
+    pathLen: pathLength(routes[0]),
+    path: routes[0],
     baseHp: region.baseHp + baseHpAdd,
     baseMax: region.baseHp + baseHpAdd,
     time: 0, // 獲得ペース用のタイマー。step を呼ばない間（一時停止中）は進まない
@@ -42,7 +47,7 @@ function startGroup(b, size) {
 function startWave(b) {
   const w = b.wavesStarted;
   for (const g of b.waves[w]) {
-    for (let i = 0; i < g.count; i++) b.pending.push({ at: b.time + g.delay + i * g.interval, enemy: g.enemy, wave: w });
+    for (let i = 0; i < g.count; i++) b.pending.push({ at: b.time + g.delay + i * g.interval, enemy: g.enemy, wave: w, route: g.route ?? i % b.routes.length });
   }
   b.pending.sort((p, q) => p.at - q.at);
   b.wavesStarted += 1;
@@ -58,27 +63,29 @@ export function step(b, dt, ctx) {
   while (b.pending.length && b.pending[0].at <= b.time) {
     const p = b.pending.shift();
     const def = ENEMIES[p.enemy];
-    b.enemies.push({ id: b.nextEnemyId++, kind: p.enemy, hp: def.hp, maxHp: def.hp, dist: 0, wave: p.wave });
+    b.enemies.push({ id: b.nextEnemyId++, kind: p.enemy, hp: def.hp, maxHp: def.hp, dist: 0, wave: p.wave, route: p.route ?? 0 });
   }
+  const lenOf = (e) => b.lens[e.route ?? 0];
+  const posOf = (e) => pointOnPath(b.routes[e.route ?? 0], e.dist);
 
   // 移動と、拠点まで通された敵
-  // 足止めのマスにいる敵は遅くなる
+  // 足止めのマスにいる敵と、凍えている敵（つららの塔）は遅くなる。重なったときは大きい方だけ
   for (const e of b.enemies) {
-    let mul = 1;
+    let slow = e.chill && e.chill.until > b.time ? e.chill.slow : 0;
     if (ctx.slow?.size) {
-      const p = pointOnPath(b.path, e.dist);
-      mul = 1 - (ctx.slow.get(`${Math.floor(p.x)},${Math.floor(p.y)}`) ?? 0);
+      const p = posOf(e);
+      slow = Math.max(slow, ctx.slow.get(`${Math.floor(p.x)},${Math.floor(p.y)}`) ?? 0);
     }
-    e.dist += ENEMIES[e.kind].speed * mul * dt;
+    e.dist += ENEMIES[e.kind].speed * (1 - slow) * dt;
   }
-  const leaked = b.enemies.filter((e) => e.dist >= b.pathLen);
+  const leaked = b.enemies.filter((e) => e.dist >= lenOf(e));
   if (leaked.length) {
     // ボスを通したら拠点は全損（ボスを倒さないとクリアにならない）
     for (const e of leaked) {
       if (ENEMIES[e.kind].boss) b.bossLeaked = true;
       b.baseHp -= ENEMIES[e.kind].boss ? b.baseHp : ENEMIES[e.kind].damage;
     }
-    b.enemies = b.enemies.filter((e) => e.dist < b.pathLen);
+    b.enemies = b.enemies.filter((e) => e.dist < lenOf(e));
     if (b.baseHp <= 0) {
       b.baseHp = 0;
       b.phase = 'lost';
@@ -86,7 +93,15 @@ export function step(b, dt, ctx) {
     }
   }
 
-  // 攻撃：範囲のマスにいる敵のうち、一番先に進んでいる敵をねらう。splash のユニットは範囲の敵すべてに当たる
+  // やけど（かがり火）：時間がたつごとに体力が減る
+  for (const e of b.enemies) {
+    if (!e.burn || e.burn.until <= b.time || e.hp <= 0) continue;
+    e.hp -= e.burn.dps * dt;
+    if (e.hp <= 0 && !e.killedBy) e.killedBy = e.burn.src;
+  }
+
+  // 攻撃：範囲のマスにいる敵のうち、拠点まで一番近い敵をねらう。splash のユニットは範囲の敵すべてに当たる
+  //   burn = { dps, dur }：当たった敵をやけどにする / chill = { slow, dur }：当たった敵を凍えさせて遅くする
   for (const e of b.effects) e.life -= dt;
   b.effects = b.effects.filter((e) => e.life > 0);
   for (const u of ctx.units) {
@@ -98,16 +113,18 @@ export function step(b, dt, ctx) {
     const inRange = [];
     for (const e of b.enemies) {
       if (e.hp <= 0) continue;
-      const p = pointOnPath(b.path, e.dist);
-      if (u.targets.has(`${Math.floor(p.x)},${Math.floor(p.y)}`)) inRange.push({ e, p });
+      const p = posOf(e);
+      if (u.targets.has(`${Math.floor(p.x)},${Math.floor(p.y)}`)) inRange.push({ e, p, left: lenOf(e) - e.dist });
     }
     if (!inRange.length) {
       b.cooldowns[u.id] = 0;
       continue;
     }
-    const hits = u.splash ? inRange : [inRange.reduce((a, c) => (c.e.dist > a.e.dist ? c : a))];
+    const hits = u.splash ? inRange : [inRange.reduce((a, c) => (c.left < a.left ? c : a))];
     for (const { e, p } of hits) {
       e.hp -= u.atk;
+      if (u.burn) e.burn = { dps: u.burn.dps, until: b.time + u.burn.dur, src: u };
+      if (u.chill) e.chill = { slow: u.chill.slow, until: b.time + u.chill.dur };
       if (e.hp <= 0 && !e.killedBy) e.killedBy = u;
       b.effects.push({ from: { x: u.x + 0.5, y: u.y + 0.5 }, to: p, element: u.element, life: 0.12 });
     }

@@ -51,13 +51,20 @@ const DESERT_TEAM = [
 /**
  * 見本の配置を自動で作る（地域が増えて、手で置くのが大変なため）。
  * team = [{ kind, level }]：1体ずつ、道に届くマスの数＋資源地から入る資材×0.5 が一番多い場所・向きに置く
+ *   道が複数ある地域では、すでに届いているマスほど点を下げて、どの道にも置くようにする（1マスの点 = 1 / (1 + 届いている数)）
  * facilities = [kind]：攻撃・足止めの施設は道に届くマスが一番多い場所、剣・旗は効果の範囲にいるモンスターが一番多い場所に置く
  * extra：配置に足すもの（atkMul・facilityMul など研究の効き目）
  */
 export function autoLayout(regionId, team, facilities = [], extra = {}) {
   const map = parseMap(REGIONS[regionId].map);
-  const onPath = new Set(map.path.map(keyOf));
+  const onPath = new Set(map.routes.flatMap((r) => r.map(keyOf)));
   const layout = { monsters: [], facilities: [] };
+  const spread = map.routes.length > 1;
+  const covered = new Map(); // マス → 届いているユニットの数
+  const pathScore = (cells) => cells.filter((c) => onPath.has(keyOf(c))).reduce((sum, c) => sum + (spread ? 1 / (1 + (covered.get(keyOf(c)) ?? 0)) : 1), 0);
+  const cover = (cells) => {
+    for (const c of cells) if (onPath.has(keyOf(c))) covered.set(keyOf(c), (covered.get(keyOf(c)) ?? 0) + 1);
+  };
   const best = (make, score) => {
     let top = null;
     for (let y = 0; y < map.h; y++)
@@ -76,12 +83,14 @@ export function autoLayout(regionId, team, facilities = [], extra = {}) {
       (m) => {
         const t = targetsOf(m);
         const set = new Set(t.map(keyOf));
-        const hits = t.filter((c) => onPath.has(keyOf(c))).length;
+        const hits = pathScore(t);
         const got = map.nodes.reduce((sum, n) => sum + yieldFrom({ x: m.x, y: m.y, element: MONSTERS[kind].element, targets: set }, n), 0);
         return hits + 0.5 * got;
       },
     );
-    if (item) layout.monsters.push(item);
+    if (!item) return;
+    layout.monsters.push(item);
+    cover(targetsOf(item));
   });
   facilities.forEach((kind, i) => {
     const def = FACILITIES[kind];
@@ -93,10 +102,12 @@ export function autoLayout(regionId, team, facilities = [], extra = {}) {
           const set = new Set(t.map(keyOf));
           return layout.monsters.filter((m) => set.has(keyOf(m))).length;
         }
-        return t.filter((c) => onPath.has(keyOf(c))).length;
+        return pathScore(t);
       },
     );
-    if (item) layout.facilities.push(item);
+    if (!item) return;
+    layout.facilities.push(item);
+    if (!def.buff) cover(targetsOf(item));
   });
   return { ...layout, ...extra };
 }
@@ -134,6 +145,14 @@ export const SAMPLES = {
 SAMPLES.river = { '第2地方の仲間 Lv20': p2('river', 20), '第2地方の仲間 Lv25': p2('river', 25) };
 SAMPLES.storm = { '第2地方の仲間 Lv25': p2('storm', 25), '第2地方の仲間 Lv30': p2('storm', 30) };
 SAMPLES.sea = { '第2地方の仲間 Lv30': p2('sea', 30), '第2地方の仲間 Lv35': p2('sea', 35) };
+
+// 第3地方に来たころの仲間（第2地方までの強いものと、炎・氷の新しいモンスター）。研究は攻撃力 +20%、戦闘施設 +40% くらい
+const P3_TEAM = ['cannon', 'kraken', 'earthgiant', 'irongolem', 'eagle', 'griffon', 'cloudbird', 'magmagolem', 'mammoth', 'firebird', 'yukionna', 'icewitch'];
+const P3_FAC = ['beam', 'beam', 'flag', 'fog', 'tower', 'brazier', 'icicle'];
+const p3 = (regionId, level) => autoLayout(regionId, team(P3_TEAM, level), P3_FAC, { atkMul: 1.2, facilityMul: 1.4 });
+SAMPLES.volcano = { '第3地方の仲間 Lv35': p3('volcano', 35), '第3地方の仲間 Lv40': p3('volcano', 40) };
+SAMPLES.snow = { '第3地方の仲間 Lv40': p3('snow', 40), '第3地方の仲間 Lv45': p3('snow', 45) };
+SAMPLES.mixed = { '第3地方の仲間 Lv45': p3('mixed', 45), '第3地方の仲間 Lv50': p3('mixed', 50) };
 
 export function simulate(regionId, layout, { maxTime = 1200 } = {}) {
   const region = REGIONS[regionId];
