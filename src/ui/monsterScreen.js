@@ -1,6 +1,7 @@
 // モンスター画面：手持ち（レベルアップ・進化）・錬成（調合錬成）・融合（技の継承）・図鑑（図鑑錬成）。
 import { ELEMENT, ELEMENTS } from '../data/elements.js';
 import { MONSTERS } from '../data/monsters.js';
+import { FLAVOR } from '../data/flavor.js';
 import { RECIPES, HINTS, MIX_MIN_TOTAL, MIX_MAX_TOTAL, MIX_ELEMENTS } from '../data/recipes.js';
 import { FAMILY_ORDER, RARE_FUSIONS, familyName } from '../data/families.js';
 import { REGIONS } from '../data/regions.js';
@@ -226,6 +227,7 @@ function rosterView(api, state) {
       <h3>${def.name} <small>Lv${sel.level} / ${cap}</small></h3>
       ${sel.level > cap ? `<p class="hint">研究「限界突破」が OFF なので、戦闘では Lv${cap} として戦います</p>` : ''}
       <p>属性：${ELEMENT[def.element].name} · ${famRank(sel.kind)}</p>
+      <p class="flavor">${FLAVOR[sel.kind]}</p>
       ${skillsBlock(api, sel)}
       ${
         atMax
@@ -410,6 +412,7 @@ function codexCard(api, save, kind, no) {
   const badge = BADGE(def) ? `<span class="badge">${BADGE(def)}</span>` : '';
   return `<div class="card codex">
       <h3>No.${no} ${def.name} <small>位階${def.rank}</small> ${badge}</h3>
+      <p class="flavor">${FLAVOR[kind]}</p>
       <div class="detail-shape">${api.shapePreview(def.shape)}<span>${ELEMENT[def.element].name} · 攻撃${def.atk} · 間隔${def.interval}秒 · 技「${def.skill}」</span></div>
       <p class="hint">作り方：${recipeText(kind)}</p>
       <div class="row"><button data-mact="codex-go" data-kind="${kind}" ${canPay(save.elements, cost) ? '' : 'disabled'}>図鑑錬成</button>${api.costText(cost)}</div>

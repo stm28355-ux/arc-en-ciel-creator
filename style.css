@@ -476,6 +476,14 @@ details.help ul {
 .codex.unknown {
   opacity: 0.6;
 }
+/* 図鑑のフレーバー（見た目と性格の一言） */
+.flavor {
+  margin: 6px 0;
+  padding-left: 8px;
+  border-left: 3px solid var(--line);
+  font-size: 13px;
+  line-height: 1.6;
+}
 .card.born {
   border-color: var(--good);
   background: #1f3a2a;

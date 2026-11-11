@@ -127,3 +127,10 @@ test('調合錬成：9属性の組み合わせが全部表にある（1種類9�
   assert.equal(mixResult(Object.fromEntries(ids.map((id) => [id, 6]))).kind, 'arcenciel');
   assert.equal(mixResult({ ...Object.fromEntries(ids.map((id) => [id, 2])), light: 3 }).kind, 'archangel', '1つでもずれると、ふつうの表（光が一番多い3種類以上 → だいてんし）');
 });
+
+test('図鑑のフレーバー：どのモンスターにも1つずつあり、余分なものはない', async () => {
+  const { FLAVOR } = await import('../src/data/flavor.js');
+  const { MONSTERS } = await import('../src/data/monsters.js');
+  for (const kind of Object.keys(MONSTERS)) assert.ok(FLAVOR[kind] && FLAVOR[kind].length >= 10, `${kind} のフレーバーがない`);
+  for (const kind of Object.keys(FLAVOR)) assert.ok(MONSTERS[kind], `${kind} はモンスターにいない`);
+});

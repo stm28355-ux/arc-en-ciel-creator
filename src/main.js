@@ -18,7 +18,7 @@ import { RESEARCH, MIX_UNLOCK } from './data/research.js';
 import { regionOpen as isRegionOpen, opensAfter } from './core/progress.js';
 import { renderResearchScreen, onResearchAction } from './ui/researchScreen.js';
 
-const VERSION = 'v0.7.2';
+const VERSION = 'v0.8.0';
 const STEP = 1 / 60;
 const AUTO_RETRY_DELAY = 1500; // ミリ秒
 // 自動で再挑戦している間の速さの上限。周回が攻略後の自動獲得より速くなりすぎないようにする
