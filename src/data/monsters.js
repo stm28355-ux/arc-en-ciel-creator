@@ -7,7 +7,8 @@
 // 融合のルール（系統の表と位階）は src/data/families.js。
 // それぞれのモンスターは自分の「技」を1つ持つ（atk・interval・shape・skill がその技）。
 // 融合で親の技を引き継ぐと、技を最大3つまで持てる。技は種類のIDで表す（例：'hawk' の技＝まいおりる）。
-//   element: モンスターの属性（調合で一番多く使ったエレメント）
+//   element: モンスターの属性。見た目と名前に合わせる。調合の表のモンスターは、ふつうは一番多く使ったエレメントと同じだが、
+//            二番目のエレメントのほうが見た目に合うときはそちらにする（例：無＞氷で作るゆきだるまは氷。2026-11-12 に見直した）
 //   family: 系統（体の種類）/ rank: 位階（系統の中での強さの順。融合で生まれるモンスターを決める）
 //   atk: レベル1の1回の攻撃のダメージ / interval: 攻撃の間隔（秒）
 //   shape: 攻撃範囲。上を向いたときの形（o = 自分、x = 攻撃が届くマス）。向きに合わせて回る
@@ -20,7 +21,7 @@ export const MONSTERS = {
 
   // --- 2種類で作る（一番多い属性 > 二番目。位階2） ---
   sprite: { name: 'のはらの精', element: 'none', family: 'plant', rank: 2, atk: 6, interval: 0.8, skill: 'はっぱとばし', shape: ['xxxxx', '.xxx.', '..o..'] },
-  dango: { name: 'どろダンゴ', element: 'none', family: 'gel', rank: 2, atk: 9, interval: 1.0, skill: 'ころがる', shape: ['..x..', '..x..', 'xxoxx', '..x..', '..x..'] },
+  dango: { name: 'どろダンゴ', element: 'earth', family: 'gel', rank: 2, atk: 9, interval: 1.0, skill: 'ころがる', shape: ['..x..', '..x..', 'xxoxx', '..x..', '..x..'] },
   hawk: { name: 'つむじタカ', element: 'wind', family: 'bird', rank: 2, atk: 14, interval: 1.2, skill: 'まいおりる', shape: ['x', 'x', 'x', 'x', 'x', 'x', 'o'] },
   weasel: { name: 'かまいたち', element: 'wind', family: 'beast', rank: 2, atk: 7, interval: 0.6, skill: 'ななめぎり', shape: ['x...x', '.x.x.', '..o..'] },
   golem: { name: 'ねんどゴーレム', element: 'earth', family: 'rock', rank: 2, atk: 40, interval: 1.8, skill: 'おしつぶす', shape: ['x', 'o'] },
@@ -44,7 +45,7 @@ export const MONSTERS = {
 
   // --- 融合でしか生まれない（融合のルールで決まる。一度手に入れれば図鑑錬成できる） ---
   stoneslime: { name: 'いしころスライム', element: 'earth', family: 'gel', rank: 3, atk: 30, interval: 1.5, skill: 'いしつぶて', shape: ['.x.', 'xxx', 'xox'], fusion: true },
-  auroragel: { name: 'オーロラゲル', element: 'none', family: 'gel', rank: 5, atk: 12, interval: 0.7, skill: 'オーロラのまく', shape: ['xxxxxxx', 'xxxxxxx', '.xxxxx.', '...o...'], fusion: true },
+  auroragel: { name: 'オーロラゲル', element: 'light', family: 'gel', rank: 5, atk: 12, interval: 0.7, skill: 'オーロラのまく', shape: ['xxxxxxx', 'xxxxxxx', '.xxxxx.', '...o...'], fusion: true },
   vine: { name: 'からみツタ', element: 'earth', family: 'plant', rank: 3, atk: 9, interval: 0.7, skill: 'からみつく', shape: ['x.x.x', '.xxx.', 'xxoxx'], fusion: true },
   ancienttree: { name: 'せんねんじゅ', element: 'earth', family: 'plant', rank: 5, atk: 22, interval: 1.4, skill: 'ねっこのうねり', shape: ['.xxxxx.', 'xxxxxxx', 'xxxoxxx', 'xxxxxxx', '.xxxxx.'], fusion: true },
   falcon: { name: 'はやてハヤブサ', element: 'wind', family: 'bird', rank: 3, atk: 10, interval: 0.7, skill: 'はやてづき', shape: ['xxx', 'xxx', 'xxx', 'xxx', '.o.'], fusion: true },
@@ -69,15 +70,15 @@ export const MONSTERS = {
   frog: { name: 'みずたまガエル', element: 'water', family: 'scale', rank: 2, atk: 12, interval: 0.9, skill: 'したのばし', shape: ['x', 'x', 'x', 'x', 'o'] },
   flyfish: { name: 'しぶきトビウオ', element: 'water', family: 'scale', rank: 2, atk: 8, interval: 0.6, skill: 'しぶきとばし', shape: ['x...x', 'x...x', '.x.x.', '..o..'] },
   mudoctopus: { name: 'どろタコ', element: 'water', family: 'mollusk', rank: 2, atk: 11, interval: 1.0, skill: 'はっぽうすみ', shape: ['x.x.x', '.....', 'x.o.x', '.....', 'x.x.x'] },
-  shockjelly: { name: 'でんきクラゲ', element: 'water', family: 'mollusk', rank: 2, atk: 6, interval: 0.5, skill: 'しびれしょくしゅ', shape: ['xxx', 'xox', 'xxx'] },
+  shockjelly: { name: 'でんきクラゲ', element: 'thunder', family: 'mollusk', rank: 2, atk: 6, interval: 0.5, skill: 'しびれしょくしゅ', shape: ['xxx', 'xox', 'xxx'] },
   zapslime: { name: 'ビリビリスライム', element: 'thunder', family: 'gel', rank: 2, atk: 15, interval: 1.1, skill: 'ほうでん', shape: ['.x.', 'xxx', 'xxx', '.o.'] },
   thunderbird: { name: 'らいちょう', element: 'thunder', family: 'bird', rank: 2, atk: 20, interval: 1.3, skill: 'いなずまがえし', shape: ['x.....x', '.x...x.', '..x.x..', '...o...'] },
   magnetgolem: { name: 'じしゃくゴーレム', element: 'thunder', family: 'machine', rank: 2, atk: 32, interval: 1.6, skill: 'じりょくパンチ', shape: ['xxx', '.o.'] },
   eel: { name: 'でんきウナギ', element: 'thunder', family: 'scale', rank: 2, atk: 9, interval: 0.6, skill: 'でんげき', shape: ['xxxx', 'x...', 'o...'] },
-  waterslime: { name: 'みずたまスライム', element: 'none', family: 'gel', rank: 2, atk: 10, interval: 0.9, skill: 'みずはね', shape: ['xxxxx', '..o..', 'xxxxx'] },
+  waterslime: { name: 'みずたまスライム', element: 'water', family: 'gel', rank: 2, atk: 10, interval: 0.9, skill: 'みずはね', shape: ['xxxxx', '..o..', 'xxxxx'] },
   windup: { name: 'ねじまき兵', element: 'none', family: 'machine', rank: 2, atk: 14, interval: 1.0, skill: 'ぜんまいやり', shape: ['xxx', 'xxx', 'xxx', '.o.'] },
   gull: { name: 'あまぐもカモメ', element: 'wind', family: 'bird', rank: 2, atk: 11, interval: 0.8, skill: 'あまつぶ', shape: ['.x.', 'xxx', '.x.', '.x.', '.o.'] },
-  thunderweasel: { name: 'かみなりイタチ', element: 'wind', family: 'beast', rank: 2, atk: 6, interval: 0.4, skill: 'いなびかり', shape: ['x.x', 'xox', 'x.x'] },
+  thunderweasel: { name: 'かみなりイタチ', element: 'thunder', family: 'beast', rank: 2, atk: 6, interval: 0.4, skill: 'いなびかり', shape: ['x.x', 'xox', 'x.x'] },
   croc: { name: 'どろんこワニ', element: 'earth', family: 'scale', rank: 2, atk: 30, interval: 1.7, skill: 'かみつく', shape: ['xx', 'xx', 'o.'] },
   magnetrock: { name: 'でんじいわ', element: 'earth', family: 'rock', rank: 2, atk: 12, interval: 1.2, skill: 'じばのなみ', shape: ['xx.xx', 'x...x', '..o..', 'x...x', 'xx.xx'] },
 
@@ -109,14 +110,14 @@ export const MONSTERS = {
   seal: { name: 'ゆきアザラシ', element: 'ice', family: 'beast', rank: 2, atk: 18, interval: 1.0, skill: 'こおりのみち', shape: ['x', 'x', 'x', 'x', 'x', 'x', 'x', 'o'] },
   aurorajelly: { name: 'オーロラクラゲ', element: 'ice', family: 'mollusk', rank: 2, atk: 8, interval: 0.6, skill: 'オーロラのひかり', shape: ['xxxxx', 'xxxxx', '.xox.'] },
   yukionna: { name: 'ゆきおんな', element: 'ice', family: 'wraith', rank: 2, atk: 12, interval: 0.8, skill: 'こおりのいき', shape: ['xxxxx', '.xxx.', '..o..', '.xxx.'] },
-  candle: { name: 'ろうそくおばけ', element: 'none', family: 'wraith', rank: 2, atk: 11, interval: 0.8, skill: 'ゆらめくひ', shape: ['.x.', 'xox', '.x.', '.x.'] },
-  snowman: { name: 'ゆきだるま', element: 'none', family: 'gel', rank: 2, atk: 24, interval: 1.4, skill: 'ゆきだまころがし', shape: ['xxx', 'xxx', 'xxx', '.o.'] },
-  flamebat: { name: 'かえんコウモリ', element: 'wind', family: 'beast', rank: 2, atk: 8, interval: 0.45, skill: 'ひのこのは', shape: ['.xxx.', 'xxoxx', '.xxx.'] },
-  snowowl: { name: 'ゆきフクロウ', element: 'wind', family: 'bird', rank: 2, atk: 20, interval: 1.1, skill: 'ゆきのかぜきり', shape: ['x...x', '.x.x.', 'x.o.x'] },
-  magmagolem: { name: 'マグマゴーレム', element: 'earth', family: 'rock', rank: 2, atk: 60, interval: 2.0, skill: 'マグマパンチ', shape: ['xx', 'o.'] },
-  mammoth: { name: 'こおりマンモス', element: 'earth', family: 'beast', rank: 2, atk: 46, interval: 1.9, skill: 'はなでなぎはらう', shape: ['xxx', 'xxx', 'x.x', '.o.'] },
+  candle: { name: 'ろうそくおばけ', element: 'fire', family: 'wraith', rank: 2, atk: 11, interval: 0.8, skill: 'ゆらめくひ', shape: ['.x.', 'xox', '.x.', '.x.'] },
+  snowman: { name: 'ゆきだるま', element: 'ice', family: 'gel', rank: 2, atk: 24, interval: 1.4, skill: 'ゆきだまころがし', shape: ['xxx', 'xxx', 'xxx', '.o.'] },
+  flamebat: { name: 'かえんコウモリ', element: 'fire', family: 'beast', rank: 2, atk: 8, interval: 0.45, skill: 'ひのこのは', shape: ['.xxx.', 'xxoxx', '.xxx.'] },
+  snowowl: { name: 'ゆきフクロウ', element: 'ice', family: 'bird', rank: 2, atk: 20, interval: 1.1, skill: 'ゆきのかぜきり', shape: ['x...x', '.x.x.', 'x.o.x'] },
+  magmagolem: { name: 'マグマゴーレム', element: 'fire', family: 'rock', rank: 2, atk: 60, interval: 2.0, skill: 'マグマパンチ', shape: ['xx', 'o.'] },
+  mammoth: { name: 'こおりマンモス', element: 'ice', family: 'beast', rank: 2, atk: 46, interval: 1.9, skill: 'はなでなぎはらう', shape: ['xxx', 'xxx', 'x.x', '.o.'] },
   kappa: { name: 'おんせんカッパ', element: 'water', family: 'fiend', rank: 2, atk: 15, interval: 0.9, skill: 'あついみずでっぽう', shape: ['x', 'x', 'x', 'x', 'x', 'x', 'o'] },
-  icefish: { name: 'つららウオ', element: 'water', family: 'scale', rank: 2, atk: 11, interval: 0.6, skill: 'つららとばし', shape: ['x.x', 'x.x', 'x.x', '.o.'] },
+  icefish: { name: 'つららウオ', element: 'ice', family: 'scale', rank: 2, atk: 11, interval: 0.6, skill: 'つららとばし', shape: ['x.x', 'x.x', 'x.x', '.o.'] },
   plasmabot: { name: 'プラズマロボ', element: 'thunder', family: 'machine', rank: 2, atk: 16, interval: 0.8, skill: 'プラズマほう', shape: ['xxx', '.x.', '.x.', '.o.'] },
   thunderpenguin: { name: 'かみなりペンギン', element: 'thunder', family: 'bird', rank: 2, atk: 13, interval: 0.7, skill: 'でんげきすべり', shape: ['x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'o'] },
 
@@ -139,7 +140,7 @@ export const MONSTERS = {
   crystalgolem: { name: 'すいしょうゴーレム', element: 'light', family: 'rock', rank: 2, atk: 70, interval: 2.0, skill: 'すいしょうのこぶし', shape: ['xxx', '.o.'] },
   prismjelly: { name: 'にじいろクラゲ', element: 'light', family: 'mollusk', rank: 2, atk: 11, interval: 0.6, skill: 'にじのしょくしゅ', shape: ['.xxx.', 'xxoxx', '.xxx.', '..x..'] },
   holybot: { name: 'てんしロボ', element: 'light', family: 'machine', rank: 2, atk: 22, interval: 1.0, skill: 'せいなるビーム', shape: ['x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'o'] },
-  phoenix: { name: 'ほうおう', element: 'light', family: 'bird', rank: 2, atk: 30, interval: 1.3, skill: 'ほうおうのつばさ', shape: ['xxxxx', 'xxxxx', '..o..'] },
+  phoenix: { name: 'ほうおう', element: 'fire', family: 'bird', rank: 2, atk: 30, interval: 1.3, skill: 'ほうおうのつばさ', shape: ['xxxxx', 'xxxxx', '..o..'] },
   diamondfox: { name: 'ダイヤギツネ', element: 'light', family: 'beast', rank: 2, atk: 12, interval: 0.5, skill: 'ダイヤのきば', shape: ['.x.', 'xxx', 'xox'] },
   twilight: { name: 'たそがれの精', element: 'light', family: 'plant', rank: 2, atk: 14, interval: 0.8, skill: 'たそがれのはな', shape: ['xxxxx', '.xxx.', '..o..', '.xxx.'] },
   shade: { name: 'かげぼうし', element: 'dark', family: 'wraith', rank: 2, atk: 15, interval: 0.7, skill: 'かげぬい', shape: ['x.x', '.x.', 'xox'] },
@@ -150,8 +151,8 @@ export const MONSTERS = {
   hellhound: { name: 'ヘルハウンド', element: 'dark', family: 'beast', rank: 2, atk: 14, interval: 0.5, skill: 'じごくのきば', shape: ['xxx', 'xxx', 'xox'] },
   reaper: { name: 'しにがみ', element: 'dark', family: 'wraith', rank: 2, atk: 38, interval: 1.4, skill: 'たましいがり', shape: ['xxxxx', 'x.o.x'] },
   fallen: { name: 'だてんし', element: 'dark', family: 'fiend', rank: 2, atk: 24, interval: 1.0, skill: 'くろいや', shape: ['x.x', 'x.x', 'x.x', 'x.x', '.o.'] },
-  lightslime: { name: 'ひかりスライム', element: 'none', family: 'gel', rank: 2, atk: 16, interval: 0.9, skill: 'ぴかぴかたいあたり', shape: ['xxx', 'xxx', 'xxx', '.o.'] },
-  darkslime: { name: 'やみスライム', element: 'none', family: 'gel', rank: 2, atk: 18, interval: 1.0, skill: 'やみのしずく', shape: ['xxxxx', 'xxoxx'] },
+  lightslime: { name: 'ひかりスライム', element: 'light', family: 'gel', rank: 2, atk: 16, interval: 0.9, skill: 'ぴかぴかたいあたり', shape: ['xxx', 'xxx', 'xxx', '.o.'] },
+  darkslime: { name: 'やみスライム', element: 'dark', family: 'gel', rank: 2, atk: 18, interval: 1.0, skill: 'やみのしずく', shape: ['xxxxx', 'xxoxx'] },
   pegasus: { name: 'ペガサス', element: 'wind', family: 'beast', rank: 2, atk: 24, interval: 1.0, skill: 'てんくうのひづめ', shape: ['x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'o'] },
   nightjar: { name: 'よたか', element: 'wind', family: 'bird', rank: 2, atk: 12, interval: 0.5, skill: 'よるのかぜきり', shape: ['x.x', 'x.x', '.o.'] },
   amberturtle: { name: 'こはくガメ', element: 'earth', family: 'rock', rank: 2, atk: 44, interval: 1.6, skill: 'こはくのいし', shape: ['xxx', 'xxx', 'xox'] },
@@ -159,7 +160,7 @@ export const MONSTERS = {
   pearlclam: { name: 'しんじゅガイ', element: 'water', family: 'mollusk', rank: 2, atk: 34, interval: 1.4, skill: 'しんじゅだん', shape: ['x', 'x', 'x', 'x', 'x', 'x', 'o'] },
   inkling: { name: 'すみイカ', element: 'water', family: 'mollusk', rank: 2, atk: 12, interval: 0.6, skill: 'すみはき', shape: ['xxxxx', 'xxxxx', '.x.x.', '..o..'] },
   lightningmage: { name: 'いなずまのまどうし', element: 'thunder', family: 'fiend', rank: 2, atk: 28, interval: 1.1, skill: 'ひかりのいかずち', shape: ['x.x.x', 'x.x.x', '..o..'] },
-  shadowbot: { name: 'かげロボ', element: 'thunder', family: 'machine', rank: 2, atk: 17, interval: 0.7, skill: 'かげのでんげき', shape: ['xxx', 'xox', 'x.x'] },
+  shadowbot: { name: 'かげロボ', element: 'dark', family: 'machine', rank: 2, atk: 17, interval: 0.7, skill: 'かげのでんげき', shape: ['xxx', 'xox', 'x.x'] },
   torchbearer: { name: 'せいかのもりびと', element: 'fire', family: 'fiend', rank: 2, atk: 22, interval: 0.9, skill: 'せいかのほのお', shape: ['xxx', 'xxx', 'xxx', 'xox'] },
   hellfire: { name: 'じごくび', element: 'fire', family: 'wraith', rank: 2, atk: 13, interval: 0.5, skill: 'じごくのほのお', shape: ['.xxx.', 'xxoxx', '.xxx.'] },
   frostflower: { name: 'しもばなの精', element: 'ice', family: 'plant', rank: 2, atk: 15, interval: 0.8, skill: 'しもばなふぶき', shape: ['xxxxxxx', '.xxxxx.', '...o...'] },
