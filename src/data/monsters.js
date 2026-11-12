@@ -1,4 +1,5 @@
-// モンスター（仮）。第1地方（無・風・土）の33種、第2地方（水・雷）の22種、第3地方（炎・氷）の28種、第4地方（光・闇）の35種。
+// モンスター（仮）。第1地方（無・風・土）の33種、第2地方（水・雷）の22種、第3地方（炎・氷）の28種、第4地方（光・闇）の35種、
+// 敵から名簿に入った15種（敵はどれも名簿のモンスター。src/data/enemies.js の monster）。
 //   第1地方：調合で作れる13種 / 進化で手に入る6種 / 融合でしか生まれない12種 / 特別な組み合わせの融合でだけ生まれる2種
 //   第2地方：調合で作れる18種 / 融合でしか生まれない4種（マシン系・テンタクル系）
 //   第3地方：調合で作れる26種 / 融合でしか生まれない2種（レイス系）
@@ -172,4 +173,26 @@ export const MONSTERS = {
 
   // --- 特殊（9属性を同じ量ずつ入れたときだけ。ゲームの名前「虹」のモンスター） ---
   arcenciel: { name: 'アルカンシエル', element: 'light', family: 'gel', rank: 6, atk: 40, interval: 0.8, skill: 'にじのかけはし', shape: ['xxxxxxx', 'xxxxxxx', 'xxxxxxx', 'xxxoxxx', 'xxxxxxx'], special: true },
+
+  // ===== 敵から名簿に入ったモンスター（2026-11-12、Issue #28）。敵として出てくるモンスターは、どれも作れるようにする =====
+  // 手に入れ方は仮。ボスは「その地域のエレメントの比率」をぴったり合わせた特殊な調合、まおうは まじん の進化
+  // --- 特別な組み合わせの融合（src/data/families.js の RARE_FUSIONS） ---
+  windrabbit: { name: 'かぜウサギ', element: 'wind', family: 'beast', rank: 2, atk: 8, interval: 0.5, skill: 'かぜのとびげり', shape: ['.x.', 'x.x', '.x.', '.o.'], rare: true },
+  mole: { name: 'つちモグラ', element: 'earth', family: 'beast', rank: 2, atk: 12, interval: 0.8, skill: 'あなほり', shape: ['x.x', '.o.', 'x.x'], rare: true },
+  // --- 融合でしか生まれない ---
+  fluffysheep: { name: 'もこもこヒツジ', element: 'none', family: 'beast', rank: 2, atk: 16, interval: 1.2, skill: 'もこもこタックル', shape: ['xxx', '.o.'], fusion: true },
+  chimera: { name: 'キメラ', element: 'fire', family: 'beast', rank: 4, atk: 24, interval: 0.9, skill: 'みつくちのほのお', shape: ['xxx', 'xxx', 'xxx', 'xox'], fusion: true },
+  shark: { name: 'ちびザメ', element: 'water', family: 'scale', rank: 2, atk: 13, interval: 0.7, skill: 'かみつき', shape: ['x', 'x', 'x', 'o'], fusion: true },
+  catfish: { name: 'おおナマズ', element: 'water', family: 'scale', rank: 3, atk: 20, interval: 1.1, skill: 'ひげむち', shape: ['xxxxx', 'x.o.x'], fusion: true },
+  // --- 進化で手に入る（src/data/evolutions.js） ---
+  wildram: { name: 'あばれヒツジ', element: 'none', family: 'beast', rank: 4, atk: 34, interval: 1.2, skill: 'つのつき', shape: ['xxx', 'xxx', '.o.'], evolved: true },
+  bigmole: { name: 'おおモグラ', element: 'earth', family: 'beast', rank: 4, atk: 28, interval: 1.0, skill: 'じなりほり', shape: ['x...x', '.x.x.', '..o..', '.x.x.', 'x...x'], evolved: true },
+  maou: { name: 'まおう', element: 'dark', family: 'fiend', rank: 5, atk: 90, interval: 1.4, skill: 'まおうのいかずち', shape: ['xxxxx', 'xxxxx', 'xxxxx', 'xxoxx', 'xxxxx'], evolved: true },
+  // --- 特殊（地域のボス。その地域のエレメントの比率をぴったり合わせた調合だけ） ---
+  forestlord: { name: 'もりのぬし', element: 'wind', family: 'plant', rank: 5, atk: 20, interval: 1.0, skill: 'もりのいぶき', shape: ['.xxx.', 'xxxxx', 'xxoxx', 'xxxxx', '.xxx.'], special: true },
+  riverdragon: { name: 'かわのりゅう', element: 'water', family: 'scale', rank: 5, atk: 30, interval: 1.0, skill: 'かわのながれ', shape: ['xxx', 'xxx', 'xxx', 'xxx', 'xxx', '.o.'], special: true },
+  volcanoking: { name: 'かざんのおう', element: 'fire', family: 'scale', rank: 5, atk: 45, interval: 1.3, skill: 'ふんかのブレス', shape: ['xxxxx', 'xxxxx', 'xxxxx', '..o..'], special: true },
+  twinking: { name: 'えんひょうのおう', element: 'ice', family: 'gel', rank: 5, atk: 24, interval: 0.8, skill: 'えんひょうのあらし', shape: ['xxxxx', 'x...x', 'x.o.x', 'x...x', 'xxxxx'], special: true },
+  sanctuaryguard: { name: 'せいいきのまもりて', element: 'light', family: 'rock', rank: 5, atk: 70, interval: 1.8, skill: 'せいなるいしのて', shape: ['xxx', 'xxx', 'xox'], special: true },
+  borderking: { name: 'さかいのおう', element: 'light', family: 'wraith', rank: 5, atk: 30, interval: 0.9, skill: 'さかいのひかり', shape: ['xxxxxxx', '.xxxxx.', '..xox..'], special: true },
 };

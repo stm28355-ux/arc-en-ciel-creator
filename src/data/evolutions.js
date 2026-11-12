@@ -6,6 +6,7 @@
 //   eliteKills   【強】の敵を倒した数
 //   bossKills    ボスにとどめを刺した数
 //   workerClears 鍛冶場で作業したまま地域を攻略した数
+//   bossKills:敵の種類  そのボスにとどめを刺した数（例：bossKills:maou）
 export const EVOLUTIONS = {
   slime: { to: 'bigslime', stat: 'kills', n: 100, text: '敵を100体倒す' },
   sprite: { to: 'forestsprite', stat: 'bossKills', n: 1, text: 'ボスにとどめを刺す' },
@@ -13,6 +14,9 @@ export const EVOLUTIONS = {
   hawk: { to: 'eagle', stat: 'eliteKills', n: 3, text: '【強】の敵を3体倒す' },
   turtle: { to: 'rockturtle', stat: 'swordKills', n: 30, text: '剣の台座の効果が乗った状態で、敵を30体倒す' },
   golem: { to: 'irongolem', stat: 'workerClears', n: 1, text: '鍛冶場で作業したまま、地域を攻略する' },
+  fluffysheep: { to: 'wildram', stat: 'kills', n: 150, text: '敵を150体倒す' },
+  mole: { to: 'bigmole', stat: 'eliteKills', n: 5, text: '【強】の敵を5体倒す' },
+  demon: { to: 'maou', stat: 'bossKills:maou', n: 1, text: '魔王城のまおうにとどめを刺す' },
 };
 
 /** 進化後 → 進化前 */

@@ -439,3 +439,12 @@ test('見本の配置：第4地方は資源地を5つ持ち込み、聖域 Lv50�
   }
   assert.ok(paces[0] < paces[1] && paces[1] < paces[2], paces.map((p) => p.toFixed(2)).join(' < '));
 });
+
+test('敵はどれも名簿のモンスター：名前はモンスターの名前、属性はモンスターと同じ', async () => {
+  const { MONSTERS } = await import('../src/data/monsters.js');
+  for (const [kind, e] of Object.entries(ENEMIES)) {
+    assert.ok(MONSTERS[e.monster], `${kind} のモンスター ${e.monster} がいない`);
+    assert.equal(e.element, MONSTERS[e.monster].element, `${kind} の属性`);
+    assert.equal(e.name, MONSTERS[e.monster].name, `${kind} の名前`);
+  }
+});

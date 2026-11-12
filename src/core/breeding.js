@@ -141,7 +141,10 @@ export function recordBattle(save, kills, { won = false, workers = [] } = {}) {
     if (k.sword) add(k.owner, 'swordKills');
     if (k.flag) add(k.owner, 'flagKills');
     if (k.elite) add(k.owner, 'eliteKills');
-    if (k.boss) add(k.owner, 'bossKills');
+    if (k.boss) {
+      add(k.owner, 'bossKills');
+      add(k.owner, `bossKills:${k.enemy}`); // どのボスか（進化の条件に使う）
+    }
   }
   if (won) for (const uid of workers) add(uid, 'workerClears');
 }

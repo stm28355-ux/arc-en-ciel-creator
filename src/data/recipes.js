@@ -3,7 +3,7 @@
 //   types 1：一番多い（＝使った）エレメントで決まる
 //   types 2：一番多い＋二番目で決まる
 //   types 3：3種類以上。一番多いエレメントで決まる
-//   special：比率をぴったり合わせたときだけ生まれる。ふつうの表より先に見る
+//   special：比率をぴったり合わせたときだけ生まれる。ふつうの表より先に見る（hint は図鑑で、まだ手に入れていないときに出す）
 // 同じ量のときは ELEMENTS の並び（無・風・土・…）で前のものを「多い」とする。
 export const MIX_MIN_TOTAL = 10; // 調合錬成に使うエレメントの合計の最小
 export const MIX_MAX_TOTAL = 60;
@@ -15,6 +15,13 @@ export const RECIPES = [
   { kind: 'prism', special: { none: 1, wind: 1, earth: 1 } },
   // 9属性を同じ量ずつ（合計18〜54）→ アルカンシエル（虹）
   { kind: 'arcenciel', special: { none: 1, wind: 1, earth: 1, water: 1, thunder: 1, fire: 1, ice: 1, light: 1, dark: 1 } },
+  // 地域のボス：その地域のエレメントの比率をぴったり合わせる（森 風2:土1:無1 など）
+  { kind: 'forestlord', special: { wind: 2, earth: 1, none: 1 }, hint: '森の比率（風2・土1・無1）で、ぴったり合わせる' },
+  { kind: 'riverdragon', special: { water: 2, none: 1, earth: 1 }, hint: '川の比率（水2・無1・土1）で、ぴったり合わせる' },
+  { kind: 'volcanoking', special: { fire: 2, earth: 1, thunder: 1 }, hint: '火山の比率（炎2・土1・雷1）で、ぴったり合わせる' },
+  { kind: 'twinking', special: { fire: 2, ice: 2, none: 1 }, hint: '混成の比率（炎2・氷2・無1）で、ぴったり合わせる' },
+  { kind: 'sanctuaryguard', special: { light: 3, fire: 1 }, hint: '聖域の比率（光3・炎1）で、ぴったり合わせる' },
+  { kind: 'borderking', special: { light: 1, dark: 1 }, hint: '境界の比率（光1・闇1）で、ぴったり合わせる' },
 
   { kind: 'slime', types: 1, first: 'none' },
   { kind: 'bat', types: 1, first: 'wind' },
@@ -248,6 +255,22 @@ export const CODEX_COST = {
   archangel: { light: 6, fire: 3, wind: 3 },
   demon: { dark: 6, fire: 3, earth: 3 },
   arcenciel: { none: 10, wind: 10, earth: 10, water: 10, thunder: 10, fire: 10, ice: 10, light: 10, dark: 10 },
+  // 敵から名簿に入ったモンスター
+  windrabbit: { wind: 20, none: 10 },
+  mole: { earth: 20, none: 10 },
+  fluffysheep: { none: 20, wind: 10 },
+  chimera: { fire: 28, earth: 12 },
+  shark: { water: 20, thunder: 10 },
+  catfish: { water: 24, earth: 12 },
+  wildram: { none: 30, wind: 12 },
+  bigmole: { earth: 30, none: 12 },
+  maou: { dark: 60, fire: 20, earth: 20 },
+  forestlord: { wind: 20, earth: 10, none: 10 },
+  riverdragon: { water: 20, none: 10, earth: 10 },
+  volcanoking: { fire: 20, earth: 10, thunder: 10 },
+  twinking: { fire: 16, ice: 16, none: 8 },
+  sanctuaryguard: { light: 30, fire: 10 },
+  borderking: { light: 20, dark: 20 },
 };
 
 // 図鑑で、まだ手に入れていないモンスターに出すヒント

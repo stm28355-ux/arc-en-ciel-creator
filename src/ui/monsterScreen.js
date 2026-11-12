@@ -402,7 +402,7 @@ function hintText(kind) {
   if (d.fusion) return `${HINTS.fusion}（${fusionRangeText(kind)}）`;
   if (d.rare) return HINTS.rare;
   const r = RECIPES.find((x) => x.kind === kind);
-  return r.special ? HINTS.special : HINTS[`types${r.types}`];
+  return r.special ? (r.hint ?? HINTS.special) : HINTS[`types${r.types}`];
 }
 
 function codexCard(api, save, kind, no) {

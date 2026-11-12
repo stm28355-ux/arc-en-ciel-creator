@@ -85,4 +85,6 @@ export const FUSION_RANK_UP = 1;
 export const RARE_FUSIONS = [
   { kind: 'skyshell', parents: ['turtle', 'swallow'] },
   { kind: 'sandscarecrow', parents: ['scarecrow', 'lizard'] },
+  { kind: 'windrabbit', parents: ['bat', 'sprite'] },
+  { kind: 'mole', parents: ['hedgehog', 'dango'] },
 ];
