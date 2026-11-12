@@ -476,6 +476,34 @@ details.help ul {
 .codex.unknown {
   opacity: 0.6;
 }
+/* モンスターの絵（32×32 のドット絵。拡大してもぼやけないように） */
+img.sprite,
+img.codex-sprite,
+img.detail-sprite {
+  image-rendering: pixelated;
+}
+.icon.sprite,
+.item .icon.sprite {
+  width: 32px;
+  height: 32px;
+  border-radius: 0;
+  background: none;
+}
+.codex-sprite {
+  float: left;
+  margin: 0 10px 4px 0;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+.codex.unknown .codex-sprite {
+  opacity: 0.9;
+}
+.detail-sprite {
+  float: right;
+  margin: 0 0 6px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
 /* 図鑑のフレーバー（見た目と性格の一言） */
 .flavor {
   margin: 6px 0;

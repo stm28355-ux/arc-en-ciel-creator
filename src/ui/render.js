@@ -6,6 +6,7 @@ import { ENEMIES } from '../data/enemies.js';
 import { pointOnPath } from '../core/map.js';
 import { footprintOf, targetsOf } from '../core/layout.js';
 import { cellsOf, rotate } from '../core/shape.js';
+import { spriteCanvas } from './spriteImage.js';
 
 export const CELL = 32;
 
@@ -261,18 +262,26 @@ function drawMonster(ctx, m, unit, working) {
   const def = MONSTERS[m.kind];
   const cx = m.x * CELL + CELL / 2;
   const cy = m.y * CELL + CELL / 2;
-  ctx.fillStyle = ELEMENT[def.element].color;
-  ctx.strokeStyle = '#1b1b1b';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(cx, cy, 11, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = '#1b1b1b';
-  ctx.font = 'bold 13px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(def.name[0], cx, cy + 1);
+  // 絵は左向きに描いてあるので、右を向いているときは左右を反転する
+  const [fx] = rotate([0, -1], m.dir ?? 'up');
+  const img = spriteCanvas(m.kind, 'ally', fx > 0);
+  if (img) {
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(img, m.x * CELL, m.y * CELL, CELL, CELL);
+  } else {
+    ctx.fillStyle = ELEMENT[def.element].color;
+    ctx.strokeStyle = '#1b1b1b';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 11, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#1b1b1b';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(def.name[0], cx, cy + 1);
+  }
   facing(ctx, cx, cy, m.dir, 11);
   if (working) label(ctx, '作業', cx, cy + 12);
   if (unit?.buffed.sword) mark(ctx, cx - 11, cy - 11, '#ffd36b');
@@ -334,18 +343,25 @@ function cross(ctx, x, y) {
 function drawEnemies(ctx, map, battle) {
   for (const e of battle.enemies) {
     const def = ENEMIES[e.kind];
-    const p = pointOnPath(map.routes?.[e.route ?? 0] ?? map.path, e.dist);
-    const r = def.size * CELL;
-    ctx.fillStyle = ELEMENT[def.element].color;
-    ctx.strokeStyle = def.boss ? '#8a0000' : def.elite ? '#7a4a00' : '#3a1010';
-    ctx.lineWidth = def.boss || def.elite ? 3 : 2;
-    ctx.beginPath();
-    ctx.arc(p.x * CELL, p.y * CELL, r, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle = '#3a1010';
-    ctx.fillRect(p.x * CELL - r * 0.4, p.y * CELL - r * 0.2, 2, 3);
-    ctx.fillRect(p.x * CELL + r * 0.3, p.y * CELL - r * 0.2, 2, 3);
+    const route = map.routes?.[e.route ?? 0] ?? map.path;
+    const p = pointOnPath(route, e.dist);
+    // 敵も名簿のモンスターの絵。大きさは同じで、縁取りの色とオーラで分ける。進む向きに合わせて左右を反転
+    const ahead = pointOnPath(route, e.dist + 0.3);
+    const img = spriteCanvas(def.monster, def.boss ? 'boss' : def.elite ? 'elite' : 'enemy', ahead.x - p.x > 0.05);
+    let r = def.size * CELL;
+    if (img) {
+      r = CELL / 2;
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(img, p.x * CELL - r, p.y * CELL - r, CELL, CELL);
+    } else {
+      ctx.fillStyle = ELEMENT[def.element].color;
+      ctx.strokeStyle = def.boss ? '#8a0000' : def.elite ? '#7a4a00' : '#3a1010';
+      ctx.lineWidth = def.boss || def.elite ? 3 : 2;
+      ctx.beginPath();
+      ctx.arc(p.x * CELL, p.y * CELL, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
     if (def.boss) label(ctx, '王', p.x * CELL, p.y * CELL - r - 12);
     const w = Math.max(16, r * 2);
     ctx.fillStyle = '#300';

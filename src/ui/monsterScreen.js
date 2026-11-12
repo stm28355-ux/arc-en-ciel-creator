@@ -2,6 +2,7 @@
 import { ELEMENT, ELEMENTS } from '../data/elements.js';
 import { MONSTERS } from '../data/monsters.js';
 import { FLAVOR } from '../data/flavor.js';
+import { spriteImg } from './spriteImage.js';
 import { RECIPES, HINTS, MIX_MIN_TOTAL, MIX_MAX_TOTAL, MIX_ELEMENTS } from '../data/recipes.js';
 import { FAMILY_ORDER, RARE_FUSIONS, familyName } from '../data/families.js';
 import { REGIONS } from '../data/regions.js';
@@ -157,13 +158,15 @@ export function onMonsterAction(api, state, act, data) {
   }
 }
 
+// 一覧のアイコン：モンスターの絵（まだ絵がないときは、属性の色の丸に名前の1文字）
 function icon(kind) {
   const def = MONSTERS[kind];
-  return `<span class="icon" style="background:${ELEMENT[def.element].color}">${def.name[0]}</span>`;
+  return spriteImg(kind, { cls: 'icon sprite' }) ?? `<span class="icon" style="background:${ELEMENT[def.element].color}">${def.name[0]}</span>`;
 }
 
-function unknownIcon() {
-  return '<span class="icon" style="background:#4a4a55;color:#ddd">？</span>';
+// まだ図鑑にないモンスター：絵のかげ
+function unknownIcon(kind) {
+  return (kind && spriteImg(kind, { look: 'silhouette', cls: 'icon sprite' })) ?? '<span class="icon" style="background:#4a4a55;color:#ddd">？</span>';
 }
 
 /** 「ゲル系・位階3」 */
@@ -224,7 +227,7 @@ function rosterView(api, state) {
     const payment = atMax ? null : levelUpPayment(save.elements, def.element, sel.level);
     const cost = atMax ? 0 : levelUpCost(sel.level);
     detail = `<div class="card info">
-      <h3>${def.name} <small>Lv${sel.level} / ${cap}</small></h3>
+      ${spriteImg(sel.kind, { size: 96, cls: 'detail-sprite' }) ?? ''}<h3>${def.name} <small>Lv${sel.level} / ${cap}</small></h3>
       ${sel.level > cap ? `<p class="hint">研究「限界突破」が OFF なので、戦闘では Lv${cap} として戦います</p>` : ''}
       <p>属性：${ELEMENT[def.element].name} · ${famRank(sel.kind)}</p>
       <p class="flavor">${FLAVOR[sel.kind]}</p>
@@ -329,7 +332,7 @@ function fuseView(api, state) {
     const rule = fusionRule(a.kind, b.kind);
     const kinds = fusionCandidates(a, b)
       .map(({ kind: k, how }) => {
-        const who = save.codex[k] ? `${icon(k)}<span>${MONSTERS[k].name}</span>` : `${unknownIcon()}<span>？？？</span>`;
+        const who = save.codex[k] ? `${icon(k)}<span>${MONSTERS[k].name}</span>` : `${unknownIcon(k)}<span>？？？</span>`;
         return `<button class="item ${f.kind === k ? 'sel' : ''}" data-mact="fuse-kind" data-kind="${k}">${who}<span class="state ${how === 'rare' ? 'placed' : ''}">${HOW_LABEL[how]}</span><span class="sub">${famRank(k)}</span></button>`;
       })
       .join('');
@@ -407,11 +410,12 @@ function hintText(kind) {
 
 function codexCard(api, save, kind, no) {
   const def = MONSTERS[kind];
-  if (!save.codex[kind]) return `<div class="card codex unknown"><h3>No.${no} ？？？ <small>位階${def.rank}</small></h3><p class="hint">${hintText(kind)}</p></div>`;
+  const pic = (look) => spriteImg(kind, { look, size: 64, cls: 'codex-sprite' }) ?? '';
+  if (!save.codex[kind]) return `<div class="card codex unknown">${pic('silhouette')}<h3>No.${no} ？？？ <small>位階${def.rank}</small></h3><p class="hint">${hintText(kind)}</p></div>`;
   const cost = codexCost(kind);
   const badge = BADGE(def) ? `<span class="badge">${BADGE(def)}</span>` : '';
   return `<div class="card codex">
-      <h3>No.${no} ${def.name} <small>位階${def.rank}</small> ${badge}</h3>
+      ${pic('ally')}<h3>No.${no} ${def.name} <small>位階${def.rank}</small> ${badge}</h3>
       <p class="flavor">${FLAVOR[kind]}</p>
       <div class="detail-shape">${api.shapePreview(def.shape)}<span>${ELEMENT[def.element].name} · 攻撃${def.atk} · 間隔${def.interval}秒 · 技「${def.skill}」</span></div>
       <p class="hint">作り方：${recipeText(kind)}</p>

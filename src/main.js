@@ -12,13 +12,16 @@ import { createBattle, startBattle, step, pace, paceBag, waveSummary, rechargeUn
 import { loadSave, writeSave, clearSave, regionSave, newSave } from './core/save.js';
 import { draw, CELL, facilityIcon, FACILITY_COLOR } from './ui/render.js';
 import { renderMonsterScreen, onMonsterAction } from './ui/monsterScreen.js';
+import { spriteImg } from './ui/spriteImage.js';
 import { recordBattle, skillsOf } from './core/breeding.js';
 import { researchEffects, researchedLevel } from './core/research.js';
 import { RESEARCH, MIX_UNLOCK } from './data/research.js';
 import { regionOpen as isRegionOpen, opensAfter } from './core/progress.js';
 import { renderResearchScreen, onResearchAction } from './ui/researchScreen.js';
 
-const VERSION = 'v0.8.1';
+const VERSION = 'v0.8.2';
+// 地域マップの canvas は、1マス32を2倍の細かさで描く（画面の大きさは今までと同じ）
+const DRAW_SCALE = 2;
 const STEP = 1 / 60;
 const AUTO_RETRY_DELAY = 1500; // ミリ秒
 // 自動で再挑戦している間の速さの上限。周回が攻略後の自動獲得より速くなりすぎないようにする
@@ -272,7 +275,7 @@ function openRegion(regionId) {
       <div>
         <div class="hud" id="hud"></div>
         <div class="canvas-wrap">
-          <canvas id="cv" width="${map.w * CELL}" height="${map.h * CELL}"></canvas>
+          <canvas id="cv" width="${map.w * CELL * DRAW_SCALE}" height="${map.h * CELL * DRAW_SCALE}"></canvas>
           <div id="overlay"></div>
         </div>
         <p class="hint" id="hint"></p>
@@ -281,6 +284,7 @@ function openRegion(regionId) {
     </div>`;
   const cv = document.getElementById('cv');
   s.ctx = cv.getContext('2d');
+  s.ctx.setTransform(DRAW_SCALE, 0, 0, DRAW_SCALE, 0, 0); // 2倍の細かさで描く（ドット絵をくっきり見せる）
   cv.addEventListener('mousemove', (ev) => (s.hover = cellAt(cv, ev, map)));
   cv.addEventListener('mouseleave', () => (s.hover = null));
   cv.addEventListener('click', (ev) => onCellClick(s, cellAt(cv, ev, map)));
@@ -799,7 +803,7 @@ function renderSide(s) {
         const sel = s.sel?.type === 'monster' && s.sel.uid === r.uid;
         const state = !p ? ['待機', ''] : working.has(r.uid) ? ['作業中', 'placed'] : ['配置中', 'placed'];
         return `<button class="item ${sel ? 'sel' : ''}" data-act="pick-monster" data-uid="${r.uid}">
-          <span class="icon" style="background:${ELEMENT[def.element].color}">${def.name[0]}</span>
+          ${spriteImg(r.kind, { cls: 'icon sprite' }) ?? `<span class="icon" style="background:${ELEMENT[def.element].color}">${def.name[0]}</span>`}
           <span>${def.name} Lv${r.level}${skillsOf(r).length > 1 ? ` <small>技${skillsOf(r).length}</small>` : ''}</span>
           <span class="state ${state[1]}">${state[0]}</span>
           <span class="sub">${shapePreview(def.shape)}<span>${ELEMENT[def.element].name} · 技「${skillsOf(r).map((k) => MONSTERS[k].skill).join('・')}」</span></span>
