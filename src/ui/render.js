@@ -10,7 +10,11 @@ import { spriteCanvas } from './spriteImage.js';
 
 export const CELL = 32;
 
-const FACILITY_ICON = { beam: '光', sword: '剣', flag: '旗', horn: '笛', smithy: '鍛', carry: '◆', fog: '霧', tower: '雷', brazier: '火', icicle: '氷', altar: '光', darktower: '闇' };
+const FACILITY_ICON = {
+  beam: '光', sword: '剣', flag: '旗', horn: '笛', smithy: '鍛', carry: '◆', fog: '霧', tower: '雷', brazier: '火', icicle: '氷', altar: '祭', darktower: '闇',
+  stonethrower: '石', lightningrod: '針', atelier: '錬', acidpotion: '酸', buffpotion: '速', firearrow: '矢', frostcannon: '砲',
+  magiclab: '魔', flamecircle: '炎', blizzardcircle: '吹', mirror: '鏡', extremelab: '極', lightbook: '光', darkbook: '闇',
+};
 export const facilityIcon = (kind) => FACILITY_ICON[kind] ?? '施';
 export const FACILITY_COLOR = { combat: '#f0d9a7', progress: '#c9a7f0', production: '#a7d8f0', carry: '#e0e0e0' };
 
@@ -286,6 +290,7 @@ function drawMonster(ctx, m, unit, working) {
   if (working) label(ctx, '作業', cx, cy + 12);
   if (unit?.buffed.sword) mark(ctx, cx - 11, cy - 11, '#ffd36b');
   if (unit?.buffed.flag) mark(ctx, cx + 11, cy - 11, '#9ff0b0');
+  if (unit?.buffed.other && !unit.buffed.sword && !unit.buffed.flag) mark(ctx, cx - 11, cy + 11, '#d8b0ff');
 }
 
 function mark(ctx, x, y, color) {
@@ -298,7 +303,7 @@ function mark(ctx, x, y, color) {
   ctx.stroke();
 }
 
-const STATUS_TEXT = { materials: '資材不足', 'no-worker': '作業なし', 'needs-smithy': '鍛冶場停止' };
+const STATUS_TEXT = { materials: '資材不足', 'no-worker': '作業なし', 'needs-producer': '作業施設停止' };
 
 function drawFacility(ctx, f, status) {
   const def = FACILITIES[f.kind];

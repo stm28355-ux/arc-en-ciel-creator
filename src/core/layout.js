@@ -56,7 +56,7 @@ export function canPlace(map, layout, item, ignore) {
  *   working:   Set<uid>         製造施設で作業しているモンスター（作業場所にいて、攻撃範囲が施設に重なる）
  *   prod:      production() の戻り値
  *   alloc:     allocate() の戻り値
- *   status:    Map<id, 'active'|'materials'|'no-worker'|'needs-smithy'>
+ *   status:    Map<id, 'active'|'materials'|'no-worker'|'needs-producer'|'research-off'>（needs-producer：要る製造施設が動いていない）
  *   units:     戦闘で攻撃するもの [{ id, owner?, skill?, source, x, y, element, atk, interval, targets:Set, buffed }]
  *              モンスターは技1つにつき1ユニット（id = 'uid:技'、owner = uid）
  *   groupSize: 1度にまとめて出すウェーブの数（1 + 動いている角笛の数）
@@ -89,8 +89,8 @@ export function resolveLayout(map, layout) {
   const carried = facilities.filter((f) => carryOn.has(f.id)).map((f) => ({ x: f.x, y: f.y, element: f.element }));
   const prod = production([...map.nodes, ...carried], all);
 
-  // 資材を割り当てる。鍛冶場が動いていなければ、鍛冶場が要る施設は資材を使わずに止める
-  const withCost = (list) => list.map((f) => ({ ...f, cost: FACILITIES[f.kind].cost }));
+  // 資材を割り当てる。製造施設（鍛冶場・アトリエ・研究所）が動いていなければ、それが要る施設は資材を使わずに止める
+  const withCost = (list) => list.map((f) => ({ ...f, cost: FACILITIES[f.kind].cost, costAny: FACILITIES[f.kind].costAny }));
   let alloc = allocate(prod.bag, withCost(facilities));
   const producing = (kind) =>
     facilities.some((f) => f.kind === kind && alloc.active.has(f.id) && workerOf.has(f.id));
@@ -101,7 +101,7 @@ export function resolveLayout(map, layout) {
   for (const f of facilities) {
     const def = FACILITIES[f.kind];
     if (def.type === 'carry') status.set(f.id, carryOn.has(f.id) ? 'active' : 'research-off');
-    else if (blocked.has(f.id)) status.set(f.id, 'needs-smithy');
+    else if (blocked.has(f.id)) status.set(f.id, 'needs-producer');
     else if (!alloc.active.has(f.id)) status.set(f.id, 'materials');
     else if (def.type === 'production' && !workerOf.has(f.id)) status.set(f.id, 'no-worker');
     else status.set(f.id, 'active');
@@ -111,17 +111,19 @@ export function resolveLayout(map, layout) {
   // 戦闘ユニット
   const buffs = running
     .filter((f) => FACILITIES[f.kind].buff)
-    .map((f) => ({ buff: FACILITIES[f.kind].buff, cells: new Set(targetsOf(f).map(keyOf)) }));
+    .map((f) => ({ kind: f.kind, buff: FACILITIES[f.kind].buff, cells: new Set(targetsOf(f).map(keyOf)) }));
   const facilityMul = layout.facilityMul ?? 1; // 研究「戦闘施設の強化」
   const units = [];
   for (const m of all) {
     const def = MONSTERS[m.kind];
     let atkAdd = 0;
     let speedAdd = 0;
+    const from = new Set(); // 効果が乗っている施設の種類（進化の条件「剣の台座の効果が乗った状態で」などに使う）
     for (const b of buffs) {
       if (!b.cells.has(keyOf(m))) continue;
       atkAdd += (b.buff.atkAdd ?? 0) * facilityMul;
       speedAdd += (b.buff.speedAdd ?? 0) * facilityMul;
+      from.add(b.kind);
     }
     for (const skill of skillList(m)) {
       units.push({
@@ -135,14 +137,14 @@ export function resolveLayout(map, layout) {
         atk: atkAt(skill, m.level) * (1 + atkAdd) * (m.atkMul ?? 1),
         interval: MONSTERS[skill].interval / (1 + speedAdd),
         targets: new Set(skillTargets(m, skill).map(keyOf)),
-        buffed: { sword: atkAdd > 0, flag: speedAdd > 0 },
+        buffed: { sword: from.has('sword'), flag: from.has('flag'), other: atkAdd > 0 || speedAdd > 0 },
       });
     }
   }
   for (const f of running) {
     const def = FACILITIES[f.kind];
     if (!def.atk) continue;
-    units.push({ id: f.id, source: 'facility', x: f.x, y: f.y, element: 'none', atk: def.atk * facilityMul, interval: def.interval, targets: new Set(targetsOf(f).map(keyOf)), buffed: {}, splash: !!def.splash,
+    units.push({ id: f.id, source: 'facility', x: f.x, y: f.y, element: def.element ?? 'none', atk: def.atk * facilityMul, interval: def.interval, targets: new Set(targetsOf(f).map(keyOf)), buffed: {}, splash: !!def.splash,
       burn: def.burn && { dps: def.burn.dps * facilityMul, dur: def.burn.dur },
       chill: def.chill && { slow: Math.min(0.8, def.chill.slow * facilityMul), dur: def.chill.dur },
       bossMul: def.bossMul });

@@ -18,8 +18,9 @@ import { researchEffects, researchedLevel } from './core/research.js';
 import { RESEARCH, MIX_UNLOCK } from './data/research.js';
 import { regionOpen as isRegionOpen, opensAfter } from './core/progress.js';
 import { renderResearchScreen, onResearchAction } from './ui/researchScreen.js';
+import { renderFacilityScreen, facilityCostText } from './ui/facilityScreen.js';
 
-const VERSION = 'v0.8.3';
+const VERSION = 'v0.8.4';
 // 地域マップの canvas は、1マス32を2倍の細かさで描く（画面の大きさは今までと同じ）
 const DRAW_SCALE = 2;
 const STEP = 1 / 60;
@@ -129,7 +130,7 @@ function guideStep() {
 function renderGuide() {
   const step = guideStep();
   guideEl.innerHTML = step ? `<div class="guide"><b>はじめに</b> ${step}</div>` : '';
-  const cur = screen.name === 'monsters' || screen.name === 'research' ? screen.name : 'regions';
+  const cur = ['monsters', 'research', 'facilities'].includes(screen.name) ? screen.name : 'regions';
   for (const b of navEl.querySelectorAll('[data-nav]')) b.classList.toggle('on', b.dataset.nav === cur);
 }
 
@@ -138,6 +139,7 @@ navEl.addEventListener('click', (ev) => {
   if (!b) return;
   if (b.dataset.nav === 'monsters') goMonsters();
   else if (b.dataset.nav === 'research') goResearch();
+  else if (b.dataset.nav === 'facilities') goFacilities();
   else goHome();
 });
 
@@ -182,6 +184,15 @@ function goResearch() {
   screen = { name: 'research' };
   renderBank();
   renderResearchScreen(app, researchApi);
+}
+
+// ---------- 施設の一覧 ----------
+function goFacilities() {
+  if (screen.name === 'map') leaveMap(screen);
+  screen = { name: 'facilities' };
+  renderBank();
+  window.scrollTo(0, 0);
+  renderFacilityScreen(app, { costText, shapePreview });
 }
 
 // ---------- ホーム：地方選択 → 地域選択 ----------
@@ -409,7 +420,7 @@ function selectedPlaced(s) {
   return null;
 }
 
-/** 鍛冶場が要る施設を、今建てられるか。 */
+/** 製造施設（鍛冶場・アトリエ・研究所）が要る施設を、今建てられるか。 */
 function requirementMet(s, kind) {
   const req = FACILITIES[kind].requires;
   if (!req) return true;
@@ -429,7 +440,7 @@ function ghostAt(s, c) {
   if (sel.type === 'build') {
     const def = FACILITIES[sel.kind];
     const item = { id: 'ghost', kind: sel.kind, x: c.x, y: c.y, dir: s.placeDir, ...(sel.element ? { element: sel.element } : {}) };
-    const ok = canPlace(s.map, s.layout, item) && canAfford(s.resolved.alloc.remaining, def.cost) && requirementMet(s, sel.kind) && (sel.kind !== 'carry' || carryRoom(s));
+    const ok = canPlace(s.map, s.layout, item) && canAfford(s.resolved.alloc.remaining, def.cost, def.costAny) && requirementMet(s, sel.kind) && (sel.kind !== 'carry' || carryRoom(s));
     return { item, ok };
   }
   if (sel.type === 'facility') {
@@ -449,8 +460,8 @@ function onCellClick(s, c) {
     if (!g.ok) {
       if (s.sel.type === 'build') {
         const def = FACILITIES[s.sel.kind];
-        if (!canAfford(s.resolved.alloc.remaining, def.cost)) return hint(s, '資材が足りません');
-        if (!requirementMet(s, s.sel.kind)) return hint(s, '鍛冶場が動いていないので建てられません');
+        if (!canAfford(s.resolved.alloc.remaining, def.cost, def.costAny)) return hint(s, '資材が足りません');
+        if (!requirementMet(s, s.sel.kind)) return hint(s, `${FACILITIES[def.requires].name}が動いていないので建てられません`);
         if (s.sel.kind === 'carry' && !carryRoom(s)) return hint(s, '持ち込める数まで置いています');
       }
       return hint(s, 'そこには置けません（道・資源地・木・池・ほかのものがあるマス）');
@@ -781,7 +792,7 @@ const STATUS_LABEL = {
   active: ['動いている', 'placed'],
   materials: ['停止（資材不足）', 'stopped'],
   'no-worker': ['停止（作業場所に、施設の方を向いたモンスターがいない）', 'stopped'],
-  'needs-smithy': ['停止（鍛冶場が動いていない）', 'stopped'],
+  'needs-producer': ['停止（作業施設が動いていない）', 'stopped'],
   'research-off': ['資材が入らない（研究「資源地の持ち込み」がOFFか、持ち込める数より多い）', 'stopped'],
 };
 
@@ -848,20 +859,21 @@ function renderSide(s) {
     body += `<div class="card"><h3>施設を建てる <small>資材を使う</small></h3><div class="list">${FACILITY_ORDER.map((kind) => {
       const def = FACILITIES[kind];
       const sel = s.sel?.type === 'build' && s.sel.kind === kind;
-      const ok = canAfford(alloc.remaining, def.cost) && requirementMet(s, kind);
+      const ok = canAfford(alloc.remaining, def.cost, def.costAny) && requirementMet(s, kind);
       const count = L.facilities.filter((f) => f.kind === kind).length;
       return `<button class="item ${sel ? 'sel' : ''}" data-act="pick-build" data-kind="${kind}" ${ok || sel ? '' : 'disabled'}>
         <span class="icon sq" style="background:${FACILITY_COLOR[def.type]}">${facilityIcon(kind)}</span>
         <span>${def.name}${count ? ` ×${count}` : ''}</span>
         <span class="state">${FACILITY_TYPE_NAME[def.type]}</span>
-        <span class="sub">${def.shape.length > 1 ? shapePreview(def.shape) : ''}<span>${costText(def.cost)}<br>${def.desc}</span></span>
+        <span class="sub">${def.shape.length > 1 ? shapePreview(def.shape) : ''}<span>${facilityCostText({ costText }, def)}<br>${def.desc}</span></span>
       </button>`;
     }).join('')}</div></div>`;
     if (L.facilities.length) {
       body += `<div class="card"><h3>建てた施設 <small>建てた順。押すと選べる</small></h3><div class="list">${L.facilities
         .map((f) => {
           const def = FACILITIES[f.kind];
-          const [text, cls] = STATUS_LABEL[status.get(f.id)];
+          const st = status.get(f.id);
+          const [text, cls] = st === 'needs-producer' ? [`停止（${FACILITIES[def.requires].name}が動いていない）`, 'stopped'] : STATUS_LABEL[st];
           const sel = s.sel?.type === 'facility' && s.sel.id === f.id;
           return `<button class="item ${sel ? 'sel' : ''}" data-act="pick-facility" data-id="${f.id}">
             <span class="icon sq" style="background:${f.kind === 'carry' ? ELEMENT[f.element].color : FACILITY_COLOR[def.type]}">${facilityIcon(f.kind)}</span>

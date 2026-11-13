@@ -1,24 +1,48 @@
 // 施設（仮）。区分は3つ。
-//   戦闘施設：戦いそのものに効く（敵を撃つ、モンスターを強くする）
+//   戦闘施設：戦いそのものに効く（敵を撃つ、モンスターを強くする、敵を弱くする）
 //   進行施設：戦闘の進み方を変える
-//   製造施設：作業場所（w）にいて、攻撃範囲が施設に重なるモンスターがいる間だけ動き、別の施設を建てられるようにする
+//   製造施設（作業施設）：作業場所（w）にいて、攻撃範囲が施設に重なるモンスターがいる間だけ動く。
+//                         動いている間だけ、その施設が要る施設（requires）が動く
 // cost は資材の量。資材は地域マップの中だけで使い、持ち出さない。
+// costAny は「どの属性でもよい」資材の量（ほかの施設が使っていない資材の合計から使う。連戦の角笛）。
 // shape は上を向いたときの形（o = 施設のマス、x = 攻撃・効果が届くマス、w = 作業場所）。
+// element は攻撃する施設の属性（2026-11-13 決定。属性の相性 #24 を入れるときに使う）。
+// どの属性にも、その属性の資材だけで建てられる施設がある（2026-11-13 企画者の注文）。
 export const FACILITIES = {
+  // ===== 第1地方（無・風・土） =====
   beam: {
     name: '光線塔',
     type: 'combat',
+    element: 'none',
     cost: { none: 3 },
     desc: '向いている方へまっすぐ8マス、敵を撃つ',
     atk: 8,
     interval: 1.0,
     shape: ['x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'o'],
   },
+  flag: {
+    name: '追い風の旗',
+    type: 'combat',
+    cost: { wind: 2 },
+    desc: '向いている方の6マスのモンスターの攻撃の速さ +30%',
+    buff: { speedAdd: 0.3 },
+    shape: ['xxx', 'xxx', '.o.'],
+  },
+  stonethrower: {
+    name: '投石台',
+    type: 'combat',
+    element: 'earth',
+    cost: { earth: 3 },
+    desc: '前の6マスにいる敵1体に、重い岩を投げる',
+    atk: 22,
+    interval: 2.0,
+    shape: ['xxx', 'xxx', '.o.'],
+  },
   smithy: {
     name: '鍛冶場',
     type: 'production',
     cost: { earth: 1 },
-    desc: '作業場所（前の2マス）に、攻撃範囲が鍛冶場に重なる向きでモンスターを置くと動く。動いている間だけ剣の台座を建てられる。作業中も攻撃と生産をする',
+    desc: '作業場所（前の2マス）に、攻撃範囲が鍛冶場に重なる向きでモンスターを置くと動く。動いている間だけ剣の台座が動く。作業中も攻撃と生産をする',
     shape: ['ww', 'oo'],
   },
   sword: {
@@ -30,23 +54,16 @@ export const FACILITIES = {
     buff: { atkAdd: 0.5 },
     shape: ['xxx', 'xox', 'xxx'],
   },
-  flag: {
-    name: '追い風の旗',
-    type: 'combat',
-    cost: { wind: 2 },
-    desc: '向いている方の6マスのモンスターの攻撃の速さ +30%',
-    buff: { speedAdd: 0.3 },
-    shape: ['xxx', 'xxx', '.o.'],
-  },
   horn: {
     name: '連戦の角笛',
     type: 'progress',
-    cost: { wind: 2, earth: 2 },
-    desc: 'ウェーブをまとめて出す。1個で2つずつ（2-2-1）、2個で3つずつ（3-2）…',
+    cost: {},
+    costAny: 4,
+    desc: 'ウェーブをまとめて出す。1個で2つずつ（2-2-1）、2個で3つずつ（3-2）…。ほかの施設が使っていない資材なら、どの属性でも合わせて4で動く',
     effect: 'group',
     shape: ['o'],
   },
-  // --- 第2地方の資材（水・雷）で建てる ---
+  // ===== 第2地方（水・雷） =====
   fog: {
     name: '霧の噴水',
     type: 'combat',
@@ -58,6 +75,7 @@ export const FACILITIES = {
   tower: {
     name: '雷の塔',
     type: 'combat',
+    element: 'thunder',
     cost: { thunder: 2, earth: 1 },
     desc: '前の6マスにいる敵すべてに、雷を落とす',
     atk: 10,
@@ -65,10 +83,47 @@ export const FACILITIES = {
     splash: true,
     shape: ['xxx', 'xxx', '.o.'],
   },
-  // --- 第3地方の資材（炎・氷）で建てる ---
+  lightningrod: {
+    name: '避雷針',
+    type: 'combat',
+    element: 'thunder',
+    cost: { thunder: 3 },
+    desc: '上下左右2マスにいる敵すべてに、雷を落とす',
+    atk: 12,
+    interval: 1.6,
+    splash: true,
+    shape: ['..x..', '..x..', 'xxoxx', '..x..', '..x..'],
+  },
+  atelier: {
+    name: '錬金アトリエ',
+    type: 'production',
+    cost: { water: 1, thunder: 1 },
+    desc: '2×2マス。作業場所（前の2マス）に、攻撃範囲がアトリエに重なる向きでモンスターを置くと動く。動いている間だけポーションが動く',
+    shape: ['ww', 'oo', 'oo'],
+  },
+  acidpotion: {
+    name: 'アシッドポーション',
+    type: 'combat',
+    cost: { water: 2 },
+    requires: 'atelier',
+    desc: 'まわり8マスにいる敵が受けるダメージ +30%（アトリエが動いている間だけ。重ねても一番大きいものだけ）',
+    expose: 0.3,
+    shape: ['xxx', 'xox', 'xxx'],
+  },
+  buffpotion: {
+    name: 'バフポーション',
+    type: 'combat',
+    cost: { thunder: 2 },
+    requires: 'atelier',
+    desc: 'まわり8マスのモンスターの攻撃の速さ +30%（アトリエが動いている間だけ）',
+    buff: { speedAdd: 0.3 },
+    shape: ['xxx', 'xox', 'xxx'],
+  },
+  // ===== 第3地方（炎・氷） =====
   brazier: {
     name: 'かがり火',
     type: 'combat',
+    element: 'fire',
     cost: { fire: 2, earth: 1 },
     desc: 'まわり8マスの敵すべてに火をつけ、3秒のあいだやけどにする（毎秒10）',
     atk: 4,
@@ -77,9 +132,21 @@ export const FACILITIES = {
     burn: { dps: 10, dur: 3 },
     shape: ['xxx', 'xox', 'xxx'],
   },
+  firearrow: {
+    name: '火矢やぐら',
+    type: 'combat',
+    element: 'fire',
+    cost: { fire: 3 },
+    desc: '向いている方へまっすぐ6マス。当たった敵を2秒のあいだやけどにする（毎秒6）',
+    atk: 6,
+    interval: 0.8,
+    burn: { dps: 6, dur: 2 },
+    shape: ['x', 'x', 'x', 'x', 'x', 'x', 'o'],
+  },
   icicle: {
     name: 'つららの塔',
     type: 'combat',
+    element: 'ice',
     cost: { ice: 2, water: 1 },
     desc: '向いている方へまっすぐ5マス。当たった敵を2秒のあいだ50%遅くする',
     atk: 14,
@@ -87,24 +154,103 @@ export const FACILITIES = {
     chill: { slow: 0.5, dur: 2 },
     shape: ['x', 'x', 'x', 'x', 'x', 'o'],
   },
-  // --- 第4地方の資材（光・闇）で建てる。第4地方は資材が少ないので、資源地の持ち込みと合わせて使う ---
+  frostcannon: {
+    name: '氷の砲台',
+    type: 'combat',
+    element: 'ice',
+    cost: { ice: 3 },
+    desc: '前の6マスにいる敵1体を撃ち、1.5秒のあいだ30%遅くする',
+    atk: 10,
+    interval: 1.2,
+    chill: { slow: 0.3, dur: 1.5 },
+    shape: ['xxx', 'xxx', '.o.'],
+  },
+  magiclab: {
+    name: '魔術研究所',
+    type: 'production',
+    cost: { fire: 1, ice: 1 },
+    desc: '1×3マス。作業場所（3マスの辺の前）に、攻撃範囲が研究所に重なる向きでモンスターを置くと動く。動いている間だけ魔法陣が動く',
+    shape: ['www', 'ooo'],
+  },
+  flamecircle: {
+    name: '爆炎魔法陣',
+    type: 'combat',
+    element: 'fire',
+    cost: { fire: 2 },
+    requires: 'magiclab',
+    desc: '2×2マス。向いている方の広い範囲（4×3マス）にいる敵すべてに爆炎（魔術研究所が動いている間だけ）',
+    atk: 16,
+    interval: 2.5,
+    splash: true,
+    shape: ['xxxx', 'xxxx', 'xxxx', '.oo.', '.oo.'],
+  },
+  blizzardcircle: {
+    name: '吹雪魔法陣',
+    type: 'combat',
+    element: 'ice',
+    cost: { ice: 2 },
+    requires: 'magiclab',
+    desc: '2×2マス。向いている方の広い範囲（4×3マス）にいる敵すべてに吹雪。2秒のあいだ40%遅くする（魔術研究所が動いている間だけ）',
+    atk: 8,
+    interval: 2.0,
+    splash: true,
+    chill: { slow: 0.4, dur: 2 },
+    shape: ['xxxx', 'xxxx', 'xxxx', '.oo.', '.oo.'],
+  },
+  // ===== 第4地方（光・闇）。第4地方は資材が少ないので、資源地の持ち込みと合わせて使う =====
   altar: {
     name: '光の祭壇',
     type: 'combat',
     cost: { light: 2, fire: 1 },
-    desc: '前の9マスにいる敵が受けるダメージ +25%（いくつ重ねても25%まで）',
+    desc: '前の9マスにいる敵が受けるダメージ +25%（いくつ重ねても一番大きいものだけ）',
     expose: 0.25,
     shape: ['xxx', 'xxx', 'xxx', '.o.'],
+  },
+  mirror: {
+    name: '光の鏡',
+    type: 'combat',
+    element: 'light',
+    cost: { light: 3 },
+    desc: '向いている方へまっすぐ10マス、光を反射して敵を撃つ',
+    atk: 9,
+    interval: 1.0,
+    shape: ['x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'o'],
   },
   darktower: {
     name: '闇の塔',
     type: 'combat',
+    element: 'dark',
     cost: { dark: 2 },
     desc: '向いている方へまっすぐ6マス。【強】とボスには3倍のダメージ',
     atk: 40,
     interval: 2.0,
     bossMul: 3,
     shape: ['x', 'x', 'x', 'x', 'x', 'x', 'o'],
+  },
+  extremelab: {
+    name: '極限研究所',
+    type: 'production',
+    cost: { light: 1, dark: 1 },
+    desc: '2×3マス。作業場所（3マスの辺の前）に、攻撃範囲が研究所に重なる向きでモンスターを置くと動く。動いている間だけ秘伝書が動く',
+    shape: ['www', 'ooo', 'ooo'],
+  },
+  lightbook: {
+    name: '光の秘伝書',
+    type: 'combat',
+    cost: { light: 2 },
+    requires: 'extremelab',
+    desc: '前の1マスのモンスターの攻撃力 +100%（極限研究所が動いている間だけ）',
+    buff: { atkAdd: 1.0 },
+    shape: ['x', 'o'],
+  },
+  darkbook: {
+    name: '闇の秘伝書',
+    type: 'combat',
+    cost: { dark: 2 },
+    requires: 'extremelab',
+    desc: '前の1マスのモンスターの攻撃の速さ +80%（極限研究所が動いている間だけ）',
+    buff: { speedAdd: 0.8 },
+    shape: ['x', 'o'],
   },
   // 研究「資源地の持ち込み」で置ける資源地。資材は使わない。element は置くときに選ぶ（攻略した地域の資源地の属性）
   carry: {
@@ -116,6 +262,12 @@ export const FACILITIES = {
   },
 };
 
-export const FACILITY_ORDER = ['beam', 'smithy', 'sword', 'flag', 'horn', 'fog', 'tower', 'brazier', 'icicle', 'altar', 'darktower'];
+// 建設の一覧の並び（地方ごと）
+export const FACILITY_ORDER = [
+  'beam', 'flag', 'stonethrower', 'smithy', 'sword', 'horn',
+  'fog', 'tower', 'lightningrod', 'atelier', 'acidpotion', 'buffpotion',
+  'brazier', 'firearrow', 'icicle', 'frostcannon', 'magiclab', 'flamecircle', 'blizzardcircle',
+  'altar', 'mirror', 'darktower', 'extremelab', 'lightbook', 'darkbook',
+];
 
 export const FACILITY_TYPE_NAME = { combat: '戦闘施設', progress: '進行施設', production: '製造施設', carry: '持ち込み' };

@@ -173,7 +173,7 @@ test('鍛冶場：作業場所にいて攻撃範囲が鍛冶場に重なるモ�
   const off = { ...sample, monsters: sample.monsters.map((m) => (m.uid === 'm7' ? { ...m, x: 25, y: 15 } : m)) };
   const r2 = resolveLayout(sand, off);
   assert.equal(r2.status.get('f1'), 'no-worker');
-  assert.equal(r2.status.get('f2'), 'needs-smithy');
+  assert.equal(r2.status.get('f2'), 'needs-producer');
   assert.equal(r2.alloc.used.none, 0);
   assert.ok(!r2.units.some((u) => u.buffed.sword));
 });
@@ -447,4 +447,62 @@ test('敵はどれも名簿のモンスター：名前はモンスターの名�
     assert.equal(e.element, MONSTERS[e.monster].element, `${kind} の属性`);
     assert.equal(e.name, MONSTERS[e.monster].name, `${kind} の名前`);
   }
+});
+
+test('施設：どの属性にも、その属性の資材だけで建てられる施設がある。攻撃する施設には属性がある', async () => {
+  const { FACILITIES, FACILITY_ORDER } = await import('../src/data/facilities.js');
+  const { ELEMENT_IDS } = await import('../src/data/elements.js');
+  for (const el of ELEMENT_IDS) {
+    const single = FACILITY_ORDER.filter((k) => !FACILITIES[k].requires && Object.keys(FACILITIES[k].cost).join() === el);
+    assert.ok(single.length, `${el} だけで建てられる施設がない`);
+  }
+  for (const k of FACILITY_ORDER) if (FACILITIES[k].atk) assert.ok(ELEMENT_IDS.includes(FACILITIES[k].element), `${k} の攻撃の属性`);
+  for (const k of FACILITY_ORDER) if (FACILITIES[k].requires) assert.equal(FACILITIES[FACILITIES[k].requires].type, 'production', `${k} が要るのは製造施設`);
+  const r = resolveLayout(map, SAMPLES.grassland['光線塔＋旗']);
+  assert.ok(r.units.filter((u) => u.source === 'facility').every((u) => u.element === 'none'), '光線塔は無');
+});
+
+test('連戦の角笛：ほかの施設が使っていない資材なら、どの属性でも合わせて4で動く', () => {
+  const horn = { id: 'h', cost: {}, costAny: 4 };
+  const beam = { id: 'b', cost: { none: 3 } };
+  assert.ok(allocate({ fire: 4 }, [horn]).active.has('h'));
+  assert.ok(allocate({ fire: 3 }, [horn]).stopped.has('h'));
+  let r = allocate({ none: 5 }, [horn, beam]);
+  assert.ok(r.active.has('b') && r.stopped.has('h'), '光線塔の残り2では角笛は動かない');
+  r = allocate({ none: 3, ice: 2, dark: 2 }, [beam, horn]);
+  assert.ok(r.active.has('b') && r.active.has('h'));
+  assert.equal(Object.values(r.remaining).reduce((a, b) => a + b, 0), 0);
+  assert.equal(r.used.ice + r.used.dark, 4);
+  assert.equal(canAfford({ fire: 4 }, {}, 4), true);
+  assert.equal(canAfford({ none: 5 }, { none: 3 }, 4), false);
+});
+
+test('錬金アトリエ：作業している間だけポーションが動く（アシッドで受けるダメージ増、バフで攻撃の速さ増）', () => {
+  const carry = (id, element, x, y) => ({ ...F(id, 'carry', x, y), element });
+  const feeders = [M('m1', 'slime', 7, 6, 'down'), M('m2', 'slime', 7, 4, 'up')]; // 水と雷の資源地のとなり
+  const facilities = [carry('c1', 'water', 6, 5), carry('c2', 'thunder', 8, 5), F('f1', 'atelier', 12, 10), F('f2', 'acidpotion', 20, 10), F('f3', 'buffpotion', 24, 10)];
+  const target = M('m4', 'slime', 24, 11);
+  const r = resolveLayout(map, { monsters: [...feeders, M('m3', 'slime', 12, 9, 'down'), target], facilities });
+  assert.equal(r.prod.bag.water, 4);
+  assert.equal(r.status.get('f1'), 'active');
+  assert.equal(r.status.get('f2'), 'active');
+  assert.equal(r.status.get('f3'), 'active');
+  assert.equal(r.expose.get('21,10'), 0.3);
+  assert.ok(Math.abs(r.units.find((u) => u.owner === 'm4').interval - 1 / 1.3) < 1e-9);
+  const off = resolveLayout(map, { monsters: [...feeders, target], facilities });
+  assert.equal(off.status.get('f1'), 'no-worker');
+  assert.equal(off.status.get('f2'), 'needs-producer');
+  assert.equal(off.expose.size, 0);
+});
+
+test('極限研究所と秘伝書：前の1マスのモンスターに大きく効く。剣の台座の効果とは別に数える', () => {
+  const carry = (id, element, x, y) => ({ ...F(id, 'carry', x, y), element });
+  const feeders = [M('m1', 'slime', 7, 6, 'down'), M('m2', 'slime', 7, 4, 'up')];
+  const facilities = [carry('c1', 'light', 6, 5), carry('c2', 'dark', 8, 5), F('f1', 'extremelab', 12, 10), F('f2', 'lightbook', 20, 10)];
+  const r = resolveLayout(map, { monsters: [...feeders, M('m3', 'slime', 13, 9, 'down'), M('m4', 'slime', 20, 9)], facilities });
+  assert.equal(r.status.get('f1'), 'active');
+  assert.equal(r.status.get('f2'), 'active');
+  const u = r.units.find((x) => x.owner === 'm4');
+  assert.equal(u.atk, 20, 'プチスライム Lv1 の攻撃10が2倍');
+  assert.deepEqual(u.buffed, { sword: false, flag: false, other: true });
 });
