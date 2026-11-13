@@ -53,7 +53,7 @@ test('ON/OFF：OFF にすると効かない（使ったエレメントは戻ら�
   const s = rich();
   for (const id of ['baseHp', 'attack', 'attack', 'facility', 'pace', 'carry', 'limit1', 'limit2', 'mixWind']) doResearch(s, id);
   const on = researchEffects(s);
-  assert.deepEqual(on, { baseHpAdd: 1, atkMul: 1.1, facilityMul: 1.1, paceMul: 1.1, carrySlots: 1, levelCap: 40, mixElements: ['none', 'wind'] });
+  assert.deepEqual(on, { baseHpAdd: 1, atkMul: 1.1, facilityMul: 1.1, facilityAtkMul: 1, paceMul: 1.1, carrySlots: 1, levelCap: 40, mixElements: ['none', 'wind'] });
   const left = s.elements.wind;
   toggleResearch(s, 'attack', false);
   toggleResearch(s, 'limit1', false);
@@ -97,14 +97,15 @@ test('調合で使えるエレメント：無は最初から、風・土は研�
   assert.equal(whyNot(poor, 'mixWind'), 'エレメントが足りません', '風を手に入れてからでないと研究できない');
 });
 
-test('戦闘施設の強化：光線塔の攻撃力と、剣・旗の効き目が増える', () => {
+test('施設の攻撃力と施設の効き目：光線塔の攻撃力は「施設の攻撃力」、剣・旗の効き目は「施設の効き目」で増える', () => {
   const layout = {
     monsters: [{ uid: 'm1', kind: 'slime', x: 5, y: 6, dir: 'right' }, { uid: 'm3', kind: 'bat', x: 22, y: 9, dir: 'up' }],
     facilities: [{ id: 'f1', kind: 'beam', x: 22, y: 4, dir: 'left' }, { id: 'f2', kind: 'flag', x: 5, y: 7, dir: 'up' }],
   };
   const plain = resolveLayout(map, layout);
-  const boosted = resolveLayout(map, { ...layout, facilityMul: 1.5 });
-  assert.equal(boosted.units.find((u) => u.id === 'f1').atk, plain.units.find((u) => u.id === 'f1').atk * 1.5);
+  const boosted = resolveLayout(map, { ...layout, facilityMul: 1.5, facilityAtkMul: 3 });
+  assert.equal(boosted.units.find((u) => u.id === 'f1').atk, plain.units.find((u) => u.id === 'f1').atk * 3);
+  assert.equal(resolveLayout(map, { ...layout, facilityMul: 1.5 }).units.find((u) => u.id === 'f1').atk, plain.units.find((u) => u.id === 'f1').atk, '効き目の研究では攻撃力は変わらない');
   const slime = (r) => r.units.find((u) => u.owner === 'm1');
   assert.ok(Math.abs(slime(plain).interval - 1 / 1.3) < 1e-9);
   assert.ok(Math.abs(slime(boosted).interval - 1 / 1.45) < 1e-9, '旗の +30% が +45% に');
@@ -158,4 +159,19 @@ test('限界突破は 30・40・50・60・99。61からはどのエレメント�
   for (let i = 0; i < 5; i++) doResearch(s, 'carry');
   assert.equal(researchEffects(s).carrySlots, 5);
   assert.equal(whyNot(s, 'carry'), '研究しきっています');
+});
+
+test('研究の上限（v0.8.5）：攻撃力20・施設の攻撃力30・獲得ペース10。段ごとに、その地方のエレメントで研究する', () => {
+  assert.equal(RESEARCH.attack.max, 20);
+  assert.equal(RESEARCH.facilityAtk.max, 30);
+  assert.equal(RESEARCH.pace.max, 10);
+  for (const id of ['attack', 'facilityAtk', 'pace']) assert.equal(RESEARCH[id].costs.length, RESEARCH[id].max, id);
+  assert.deepEqual(Object.keys(RESEARCH.attack.costs[5]).sort(), ['thunder', 'water']);
+  assert.deepEqual(Object.keys(RESEARCH.attack.costs[19]).sort(), ['dark', 'light']);
+  assert.equal(Object.keys(RESEARCH.facilityAtk.costs[29]).length, 9, '21から先はどのエレメントも');
+  const s = rich();
+  s.elements = Object.fromEntries(Object.keys(s.elements).map((k) => [k, 999999]));
+  for (let i = 0; i < 30; i++) doResearch(s, 'facilityAtk');
+  assert.equal(researchEffects(s).facilityAtkMul, 17, '施設の攻撃力は最大で17倍（レベル99のモンスターの1つの技とだいたい同じ）');
+  assert.equal(whyNot(s, 'facilityAtk'), '研究しきっています');
 });

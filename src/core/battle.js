@@ -29,6 +29,7 @@ export function createBattle(region, map, { baseHpAdd = 0 } = {}) {
     gained: emptyBag(), // この挑戦で手に入れたエレメント
     effects: [], // 描画用：攻撃の線
     kills: [], // 倒した記録（進化の条件に使う）
+    damage: { monster: 0, facility: 0 }, // 与えたダメージ（モンスターと施設。調整の確かめ用）
     log: [],
   };
 }
@@ -97,6 +98,7 @@ export function step(b, dt, ctx) {
   for (const e of b.enemies) {
     if (!e.burn || e.burn.until <= b.time || e.hp <= 0) continue;
     e.hp -= e.burn.dps * dt;
+    b.damage[e.burn.src?.source ?? 'facility'] += e.burn.dps * dt;
     if (e.hp <= 0 && !e.killedBy) e.killedBy = e.burn.src;
   }
 
@@ -126,6 +128,7 @@ export function step(b, dt, ctx) {
       const exposed = 1 + (ctx.expose?.get(`${Math.floor(p.x)},${Math.floor(p.y)}`) ?? 0);
       const vsBoss = u.bossMul && (def.elite || def.boss) ? u.bossMul : 1;
       e.hp -= u.atk * exposed * vsBoss;
+      b.damage[u.source] += u.atk * exposed * vsBoss;
       if (u.burn) e.burn = { dps: u.burn.dps, until: b.time + u.burn.dur, src: u };
       if (u.chill) e.chill = { slow: u.chill.slow, until: b.time + u.chill.dur };
       if (e.hp <= 0 && !e.killedBy) e.killedBy = u;

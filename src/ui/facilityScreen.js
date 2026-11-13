@@ -2,13 +2,14 @@
 import { FACILITIES, FACILITY_ORDER, FACILITY_TYPE_NAME } from '../data/facilities.js';
 import { ELEMENT } from '../data/elements.js';
 import { parseShape } from '../core/shape.js';
+import { facilityImg } from './spriteImage.js';
 
 // 地方ごとの見出し（建設の一覧の並びに合わせる）
 const GROUPS = [
-  ['第1地方（無・風・土）', ['beam', 'flag', 'stonethrower', 'smithy', 'sword', 'horn']],
-  ['第2地方（水・雷）', ['fog', 'tower', 'lightningrod', 'atelier', 'acidpotion', 'buffpotion']],
-  ['第3地方（炎・氷）', ['brazier', 'firearrow', 'icicle', 'frostcannon', 'magiclab', 'flamecircle', 'blizzardcircle']],
-  ['第4地方（光・闇）', ['altar', 'mirror', 'darktower', 'extremelab', 'lightbook', 'darkbook']],
+  ['第1地方（無・風・土）', ['beam', 'flag', 'stonethrower', 'ballista', 'windmill', 'smithy', 'sword', 'horn']],
+  ['第2地方（水・雷）', ['fog', 'tower', 'lightningrod', 'whirlpool', 'atelier', 'acidpotion', 'buffpotion']],
+  ['第3地方（炎・氷）', ['brazier', 'firearrow', 'icicle', 'frostcannon', 'cauldron', 'magiclab', 'flamecircle', 'blizzardcircle']],
+  ['第4地方（光・闇）', ['altar', 'mirror', 'darktower', 'darkclock', 'extremelab', 'lightbook', 'darkbook']],
 ];
 
 /** 施設の大きさ（「2×2マス」など） */
@@ -16,7 +17,7 @@ function sizeText(def) {
   const fp = parseShape(def.shape).footprint;
   const w = Math.max(...fp.map(([x]) => x)) - Math.min(...fp.map(([x]) => x)) + 1;
   const h = Math.max(...fp.map(([, y]) => y)) - Math.min(...fp.map(([, y]) => y)) + 1;
-  return `${w}×${h}マス`;
+  return `${Math.min(w, h)}×${Math.max(w, h)}マス`; // 企画の書き方（1×3マス・2×3マス）に合わせて、小さい方を先に
 }
 
 /** 施設の費用（どの属性でもよい分も） */
@@ -39,6 +40,7 @@ export function renderFacilityScreen(app, api) {
     const makes = Object.entries(FACILITIES).filter(([, d]) => d.requires === kind).map(([, d]) => d.name);
     const element = def.element ? `<span class="chip"><span class="dot" style="background:${ELEMENT[def.element].color}"></span>攻撃の属性：${ELEMENT[def.element].name}</span>` : '';
     return `<div class="card facility-card">
+      ${facilityImg(kind, { scale: 2, cls: 'facility-big' }) ?? ''}
       <h3>${def.name} <small>${FACILITY_TYPE_NAME[def.type]} · ${sizeText(def)}</small></h3>
       <div class="detail-shape">${api.shapePreview(def.shape, 9)}<span>${def.desc}</span></div>
       <div class="row">${facilityCostText(api, def)} ${element}</div>

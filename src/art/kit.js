@@ -40,17 +40,21 @@ export const C = {
   purple: ['#efd8ff', '#c79bf2', '#9666cf', '#6a43a0'],
 };
 
-export function makeCanvas(N = SIZE) {
-  const g = new Array(N * N).fill(null);
-  const inside = (x, y) => x >= 0 && y >= 0 && x < N && y < N;
+// 施設の絵は横と縦の大きさがちがうことがある（2×1マスなら 64×32）。makeCanvas(横, 縦)。N は横の大きさ
+export function makeCanvas(N = SIZE, H = N) {
+  const W = N;
+  const g = new Array(W * H).fill(null);
+  const inside = (x, y) => x >= 0 && y >= 0 && x < W && y < H;
   const c = {
     N,
+    W,
+    H,
     g,
-    get: (x, y) => (inside(x, y) ? g[y * N + x] : null),
+    get: (x, y) => (inside(x, y) ? g[y * W + x] : null),
     px(x, y, col) {
       x = Math.round(x);
       y = Math.round(y);
-      if (inside(x, y)) g[y * N + x] = col;
+      if (inside(x, y)) g[y * W + x] = col;
       return c;
     },
     dots(list, col) {
@@ -58,14 +62,14 @@ export function makeCanvas(N = SIZE) {
       return c;
     },
     each(fn) {
-      for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) fn(x, y);
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) fn(x, y);
     },
     // 楕円（中心 cx,cy と半径。ドットの中心で判定）。test(x,y) が false のドットは塗らない
     ellipse(cx, cy, rx, ry, col, test) {
       c.each((x, y) => {
         const dx = (x + 0.5 - cx) / rx;
         const dy = (y + 0.5 - cy) / ry;
-        if (dx * dx + dy * dy <= 1 && (!test || test(x, y))) g[y * N + x] = col;
+        if (dx * dx + dy * dy <= 1 && (!test || test(x, y))) g[y * W + x] = col;
       });
       return c;
     },
@@ -84,7 +88,7 @@ export function makeCanvas(N = SIZE) {
           const [xj, yj] = pts[j];
           if (yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) inPoly = !inPoly;
         }
-        if (inPoly && (!test || test(x, y))) g[y * N + x] = col;
+        if (inPoly && (!test || test(x, y))) g[y * W + x] = col;
       });
       return c;
     },
@@ -104,7 +108,7 @@ export function makeCanvas(N = SIZE) {
     recolor(from, to, test) {
       const list = Array.isArray(from) ? from : [from];
       c.each((x, y) => {
-        if (list.includes(g[y * N + x]) && (!test || test(x, y))) g[y * N + x] = to;
+        if (list.includes(g[y * W + x]) && (!test || test(x, y))) g[y * W + x] = to;
       });
       return c;
     },
@@ -119,20 +123,20 @@ export function makeCanvas(N = SIZE) {
       return c;
     },
     // 左半分を右へ写す（左右対称の絵）
-    mirror(center = N / 2) {
+    mirror(center = W / 2) {
       c.each((x, y) => {
         if (x + 0.5 < center) {
           const mx = Math.round(2 * center - x - 1);
-          if (inside(mx, y)) g[y * N + mx] = g[y * N + x];
+          if (inside(mx, y)) g[y * W + mx] = g[y * W + x];
         }
       });
       return c;
     },
     // 左右を反転する（向きを変える）
     flip() {
-      for (let y = 0; y < N; y++) {
-        const row = g.slice(y * N, y * N + N).reverse();
-        for (let x = 0; x < N; x++) g[y * N + x] = row[x];
+      for (let y = 0; y < H; y++) {
+        const row = g.slice(y * W, y * W + W).reverse();
+        for (let x = 0; x < W; x++) g[y * W + x] = row[x];
       }
       return c;
     },
@@ -140,21 +144,21 @@ export function makeCanvas(N = SIZE) {
     outline(col = OUTLINE) {
       const add = [];
       c.each((x, y) => {
-        if (g[y * N + x] !== null) return;
+        if (g[y * W + x] !== null) return;
         const near = [c.get(x - 1, y), c.get(x + 1, y), c.get(x, y - 1), c.get(x, y + 1)];
         if (near.some((v) => v !== null && v !== col && v !== SHADOW)) add.push([x, y]);
       });
-      for (const [x, y] of add) g[y * N + x] = col;
+      for (const [x, y] of add) g[y * W + x] = col;
       return c;
     },
     // 足もとの影（縁取りのあとで、空いているところにだけ置く）
-    shadow(cx = N / 2, cy = N - 2.5, rx = 9, ry = 1.6) {
-      c.ellipse(cx, cy, rx, ry, SHADOW, (x, y) => g[y * N + x] === null);
+    shadow(cx = W / 2, cy = H - 2.5, rx = 9, ry = 1.6) {
+      c.ellipse(cx, cy, rx, ry, SHADOW, (x, y) => g[y * W + x] === null);
       return c;
     },
     // 石だたみ・うろこ：inside の中を、種の点に一番近いドットごとに分け、境目を線の色にする
     cells(insideFn, seeds, colors, lineCol, hi, gap = 0.8) {
-      const id = new Array(N * N).fill(-1);
+      const id = new Array(W * H).fill(-1);
       c.each((x, y) => {
         if (!insideFn(x, y)) return;
         let d1 = 1e9;
@@ -168,16 +172,16 @@ export function makeCanvas(N = SIZE) {
             i1 = i;
           } else if (d < d2) d2 = d;
         });
-        if (d2 - d1 < gap) g[y * N + x] = lineCol;
+        if (d2 - d1 < gap) g[y * W + x] = lineCol;
         else {
-          id[y * N + x] = i1;
-          g[y * N + x] = colors[i1 % colors.length];
+          id[y * W + x] = i1;
+          g[y * W + x] = colors[i1 % colors.length];
         }
       });
       if (hi)
         c.each((x, y) => {
-          const i = id[y * N + x];
-          if (i >= 0 && (y === 0 || id[(y - 1) * N + x] !== i)) g[y * N + x] = hi;
+          const i = id[y * W + x];
+          if (i >= 0 && (y === 0 || id[(y - 1) * W + x] !== i)) g[y * W + x] = hi;
         });
       return c;
     },
@@ -270,7 +274,7 @@ export function makeCanvas(N = SIZE) {
         }
         return index.get(col);
       });
-      return { size: N, palette, grid };
+      return { size: W, w: W, h: H, palette, grid };
     },
   };
   return c;

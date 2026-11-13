@@ -54,6 +54,25 @@ export const FACILITIES = {
     buff: { atkAdd: 0.5 },
     shape: ['xxx', 'xox', 'xxx'],
   },
+  ballista: {
+    name: '大いしゆみ',
+    type: 'combat',
+    element: 'wind',
+    cost: { wind: 3, none: 2 },
+    desc: '1×2マス。向いている方へまっすぐ10マス。並んだ敵すべてを、風の矢で貫く',
+    atk: 10,
+    interval: 2.5,
+    splash: true,
+    shape: ['x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'o', 'o'],
+  },
+  windmill: {
+    name: '大風車',
+    type: 'combat',
+    cost: { wind: 2, none: 2 },
+    desc: '2×2マス。まわり12マスのモンスターの攻撃の速さ +20%',
+    buff: { speedAdd: 0.2 },
+    shape: ['xxxx', 'xoox', 'xoox', 'xxxx'],
+  },
   horn: {
     name: '連戦の角笛',
     type: 'progress',
@@ -93,6 +112,18 @@ export const FACILITIES = {
     interval: 1.6,
     splash: true,
     shape: ['..x..', '..x..', 'xxoxx', '..x..', '..x..'],
+  },
+  whirlpool: {
+    name: '大渦の泉',
+    type: 'combat',
+    element: 'water',
+    cost: { water: 3, thunder: 1 },
+    desc: '2×2マス。向いている方の広い範囲（4×3マス）の敵すべてを渦に巻きこみ、1秒のあいだ30%遅くする',
+    atk: 5,
+    interval: 1.0,
+    splash: true,
+    chill: { slow: 0.3, dur: 1 },
+    shape: ['xxxx', 'xxxx', 'xxxx', '.oo.', '.oo.'],
   },
   atelier: {
     name: '錬金アトリエ',
@@ -165,6 +196,18 @@ export const FACILITIES = {
     chill: { slow: 0.3, dur: 1.5 },
     shape: ['xxx', 'xxx', '.o.'],
   },
+  cauldron: {
+    name: '溶岩の大釜',
+    type: 'combat',
+    element: 'fire',
+    cost: { fire: 2, earth: 2 },
+    desc: '2×2マス。まわり12マスの敵すべてに溶岩をかけ、3秒のあいだやけどにする（毎秒16）',
+    atk: 6,
+    interval: 1.0,
+    splash: true,
+    burn: { dps: 16, dur: 3 },
+    shape: ['xxxx', 'xoox', 'xoox', 'xxxx'],
+  },
   magiclab: {
     name: '魔術研究所',
     type: 'production',
@@ -227,6 +270,15 @@ export const FACILITIES = {
     bossMul: 3,
     shape: ['x', 'x', 'x', 'x', 'x', 'x', 'o'],
   },
+  darkclock: {
+    name: '闇の大時計',
+    type: 'combat',
+    cost: { dark: 3 },
+    desc: '2×2マス。向いている方の広い範囲（4×4マス）の時をゆがめる。敵の歩みを30%遅くし、受けるダメージ +20%（どちらも、重ねたときは一番大きいものだけ）',
+    slow: 0.3,
+    expose: 0.2,
+    shape: ['xxxx', 'xxxx', 'xxxx', 'xxxx', '.oo.', '.oo.'],
+  },
   extremelab: {
     name: '極限研究所',
     type: 'production',
@@ -264,10 +316,10 @@ export const FACILITIES = {
 
 // 建設の一覧の並び（地方ごと）
 export const FACILITY_ORDER = [
-  'beam', 'flag', 'stonethrower', 'smithy', 'sword', 'horn',
-  'fog', 'tower', 'lightningrod', 'atelier', 'acidpotion', 'buffpotion',
-  'brazier', 'firearrow', 'icicle', 'frostcannon', 'magiclab', 'flamecircle', 'blizzardcircle',
-  'altar', 'mirror', 'darktower', 'extremelab', 'lightbook', 'darkbook',
+  'beam', 'flag', 'stonethrower', 'ballista', 'windmill', 'smithy', 'sword', 'horn',
+  'fog', 'tower', 'lightningrod', 'whirlpool', 'atelier', 'acidpotion', 'buffpotion',
+  'brazier', 'firearrow', 'icicle', 'frostcannon', 'cauldron', 'magiclab', 'flamecircle', 'blizzardcircle',
+  'altar', 'mirror', 'darktower', 'darkclock', 'extremelab', 'lightbook', 'darkbook',
 ];
 
 export const FACILITY_TYPE_NAME = { combat: '戦闘施設', progress: '進行施設', production: '製造施設', carry: '持ち込み' };

@@ -2,6 +2,7 @@
 //   look：ally（味方）/ enemy（敵：赤）/ elite（強い敵：橙）/ boss（ボス：紫）/ silhouette（図鑑でまだ見ていない）
 // 敵は大きさを変えずに、縁取りの色（palette[1]）とオーラで見分ける（2026-11-12 決定。見本は docs/art/enemy-look.png）。
 import { drawSprite } from '../art/sprites.js';
+import { drawFacilitySprite } from '../art/facility.js';
 
 const LOOKS = {
   ally: { outline: null, aura: null },
@@ -87,4 +88,50 @@ export function spriteUrl(kind, look = 'ally') {
 export function spriteImg(kind, { look = 'ally', size = 32, cls = 'sprite' } = {}) {
   const url = spriteUrl(kind, look);
   return url ? `<img class="${cls}" src="${url}" width="${size}" height="${size}" alt="">` : null;
+}
+
+// ---------- 施設の絵 ----------
+// 施設の絵は施設のマスの大きさ（上を向いたとき）。横（左右）を向いたときは、絵を90度回す（前が向いている方に来るように）。
+// 下を向いたときは回さない（建物がさかさまにならないように）。
+const facilityCanvases = new Map();
+/** 施設の絵の canvas。dir が left / right なら回したもの。絵のない施設は null */
+export function facilityCanvas(kind, dir = 'up') {
+  const turn = dir === 'left' ? -1 : dir === 'right' ? 1 : 0;
+  const key = `${kind}/${turn}`;
+  if (!facilityCanvases.has(key)) {
+    const s = drawFacilitySprite(kind);
+    if (!s) {
+      facilityCanvases.set(key, null);
+      return null;
+    }
+    const src = document.createElement('canvas');
+    src.width = s.w;
+    src.height = s.h;
+    const data = new Uint8ClampedArray(s.w * s.h * 4);
+    s.grid.forEach((v, i) => data.set(parse(s.palette[v]), i * 4));
+    src.getContext('2d').putImageData(new ImageData(data, s.w, s.h), 0, 0);
+    if (!turn) {
+      facilityCanvases.set(key, src);
+    } else {
+      const cv = document.createElement('canvas');
+      cv.width = s.h;
+      cv.height = s.w;
+      const g = cv.getContext('2d');
+      g.imageSmoothingEnabled = false;
+      g.translate(cv.width / 2, cv.height / 2);
+      g.rotate((turn * Math.PI) / 2);
+      g.drawImage(src, -s.w / 2, -s.h / 2);
+      facilityCanvases.set(key, cv);
+    }
+  }
+  return facilityCanvases.get(key);
+}
+
+const facilityUrls = new Map();
+/** 一覧で使う施設の絵（img）。scale 倍で出す。絵がないときは null */
+export function facilityImg(kind, { scale = 1, cls = 'facility-sprite' } = {}) {
+  if (!facilityUrls.has(kind)) facilityUrls.set(kind, facilityCanvas(kind)?.toDataURL() ?? null);
+  const url = facilityUrls.get(kind);
+  const s = drawFacilitySprite(kind);
+  return url ? `<img class="${cls}" src="${url}" width="${s.w * scale}" height="${s.h * scale}" alt="">` : null;
 }

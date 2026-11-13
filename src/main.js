@@ -12,7 +12,7 @@ import { createBattle, startBattle, step, pace, paceBag, waveSummary, rechargeUn
 import { loadSave, writeSave, clearSave, regionSave, newSave } from './core/save.js';
 import { draw, CELL, facilityIcon, FACILITY_COLOR } from './ui/render.js';
 import { renderMonsterScreen, onMonsterAction } from './ui/monsterScreen.js';
-import { spriteImg } from './ui/spriteImage.js';
+import { spriteImg, facilityImg } from './ui/spriteImage.js';
 import { recordBattle, skillsOf } from './core/breeding.js';
 import { researchEffects, researchedLevel } from './core/research.js';
 import { RESEARCH, MIX_UNLOCK } from './data/research.js';
@@ -20,7 +20,7 @@ import { regionOpen as isRegionOpen, opensAfter } from './core/progress.js';
 import { renderResearchScreen, onResearchAction } from './ui/researchScreen.js';
 import { renderFacilityScreen, facilityCostText } from './ui/facilityScreen.js';
 
-const VERSION = 'v0.8.4';
+const VERSION = 'v0.8.5';
 // 地域マップの canvas は、1マス32を2倍の細かさで描く（画面の大きさは今までと同じ）
 const DRAW_SCALE = 2;
 const STEP = 1 / 60;
@@ -364,7 +364,7 @@ function cellAt(cv, ev, map) {
 /** 手持ちのレベルと技、研究の効き目（攻撃力・レベルの上限・持ち込める資源地の数）を配置に入れて計算する。 */
 function withLevels(layout) {
   const fx = researchEffects(save);
-  return { ...layout, monsters: layout.monsters.map(withRoster), carrySlots: fx.carrySlots, facilityMul: fx.facilityMul };
+  return { ...layout, monsters: layout.monsters.map(withRoster), carrySlots: fx.carrySlots, facilityMul: fx.facilityMul, facilityAtkMul: fx.facilityAtkMul };
 }
 function withRoster(m) {
   const r = save.roster.find((x) => x.uid === m.uid);
@@ -862,7 +862,7 @@ function renderSide(s) {
       const ok = canAfford(alloc.remaining, def.cost, def.costAny) && requirementMet(s, kind);
       const count = L.facilities.filter((f) => f.kind === kind).length;
       return `<button class="item ${sel ? 'sel' : ''}" data-act="pick-build" data-kind="${kind}" ${ok || sel ? '' : 'disabled'}>
-        <span class="icon sq" style="background:${FACILITY_COLOR[def.type]}">${facilityIcon(kind)}</span>
+        ${facilityImg(kind, { cls: 'icon facility-sprite' }) ?? `<span class="icon sq" style="background:${FACILITY_COLOR[def.type]}">${facilityIcon(kind)}</span>`}
         <span>${def.name}${count ? ` ×${count}` : ''}</span>
         <span class="state">${FACILITY_TYPE_NAME[def.type]}</span>
         <span class="sub">${def.shape.length > 1 ? shapePreview(def.shape) : ''}<span>${facilityCostText({ costText }, def)}<br>${def.desc}</span></span>
@@ -876,7 +876,7 @@ function renderSide(s) {
           const [text, cls] = st === 'needs-producer' ? [`停止（${FACILITIES[def.requires].name}が動いていない）`, 'stopped'] : STATUS_LABEL[st];
           const sel = s.sel?.type === 'facility' && s.sel.id === f.id;
           return `<button class="item ${sel ? 'sel' : ''}" data-act="pick-facility" data-id="${f.id}">
-            <span class="icon sq" style="background:${f.kind === 'carry' ? ELEMENT[f.element].color : FACILITY_COLOR[def.type]}">${facilityIcon(f.kind)}</span>
+            ${(f.kind !== 'carry' && facilityImg(f.kind, { cls: 'icon facility-sprite' })) || `<span class="icon sq" style="background:${f.kind === 'carry' ? ELEMENT[f.element].color : FACILITY_COLOR[def.type]}">${facilityIcon(f.kind)}</span>`}
             <span>${facilityName(f)}</span>
             <span class="state ${cls}">${text}</span>
           </button>`;

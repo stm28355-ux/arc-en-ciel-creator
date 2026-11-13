@@ -584,3 +584,22 @@ img.detail-sprite {
 .mix-row.locked {
   opacity: 0.6;
 }
+/* 施設の絵（施設のマスの大きさ。一覧では32の枠に収める） */
+img.facility-sprite,
+img.facility-big {
+  image-rendering: pixelated;
+}
+.item .icon.facility-sprite {
+  width: 32px;
+  height: 32px;
+  border-radius: 0;
+  object-fit: contain;
+}
+.facility-big {
+  float: right;
+  margin: 0 0 6px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  max-width: 45%;
+  height: auto;
+}

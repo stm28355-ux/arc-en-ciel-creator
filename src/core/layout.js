@@ -50,7 +50,8 @@ export function canPlace(map, layout, item, ignore) {
 
 /**
  * layout.monsters の各要素は { uid, kind, x, y, dir, level?, skills?, atkMul? }（level がなければ1、skills がなければ自分の技だけ。atkMul は研究の攻撃力）。
- * layout.facilityMul：研究「戦闘施設の強化」の倍率（光線塔の攻撃力、剣・旗の効き目）。
+ * layout.facilityMul：研究「施設の効き目」の倍率（剣・旗・ポーションなどの効き目、遅くする・受けるダメージを増やす割合）。
+ * layout.facilityAtkMul：研究「施設の攻撃力」の倍率（攻撃する施設の攻撃力とやけど）。
  * layout.carrySlots：研究で持ち込める資源地の数（なければ置いた分だけ全部効く）。持ち込みの資源地は facilities に kind 'carry' で入る。
  * 戻り値：
  *   working:   Set<uid>         製造施設で作業しているモンスター（作業場所にいて、攻撃範囲が施設に重なる）
@@ -112,7 +113,8 @@ export function resolveLayout(map, layout) {
   const buffs = running
     .filter((f) => FACILITIES[f.kind].buff)
     .map((f) => ({ kind: f.kind, buff: FACILITIES[f.kind].buff, cells: new Set(targetsOf(f).map(keyOf)) }));
-  const facilityMul = layout.facilityMul ?? 1; // 研究「戦闘施設の強化」
+  const facilityMul = layout.facilityMul ?? 1; // 研究「施設の効き目」
+  const facilityAtkMul = layout.facilityAtkMul ?? 1; // 研究「施設の攻撃力」
   const units = [];
   for (const m of all) {
     const def = MONSTERS[m.kind];
@@ -144,14 +146,14 @@ export function resolveLayout(map, layout) {
   for (const f of running) {
     const def = FACILITIES[f.kind];
     if (!def.atk) continue;
-    units.push({ id: f.id, source: 'facility', x: f.x, y: f.y, element: def.element ?? 'none', atk: def.atk * facilityMul, interval: def.interval, targets: new Set(targetsOf(f).map(keyOf)), buffed: {}, splash: !!def.splash,
-      burn: def.burn && { dps: def.burn.dps * facilityMul, dur: def.burn.dur },
+    units.push({ id: f.id, source: 'facility', x: f.x, y: f.y, element: def.element ?? 'none', atk: def.atk * facilityAtkMul, interval: def.interval, targets: new Set(targetsOf(f).map(keyOf)), buffed: {}, splash: !!def.splash,
+      burn: def.burn && { dps: def.burn.dps * facilityAtkMul, dur: def.burn.dur },
       chill: def.chill && { slow: Math.min(0.8, def.chill.slow * facilityMul), dur: def.chill.dur },
       bossMul: def.bossMul });
   }
   const groupSize = 1 + running.filter((f) => FACILITIES[f.kind].effect === 'group').length;
 
-  // 足止め：動いている霧の噴水の範囲のマス → 遅くする割合（重ねても一番大きいものだけ。戦闘施設の強化で増える。80%まで）
+  // 足止め：動いている霧の噴水・闇の大時計の範囲のマス → 遅くする割合（重ねても一番大きいものだけ。施設の効き目で増える。80%まで）
   const slow = new Map();
   for (const f of running) {
     const s = FACILITIES[f.kind].slow;
@@ -160,7 +162,7 @@ export function resolveLayout(map, layout) {
     for (const c of targetsOf(f)) slow.set(keyOf(c), Math.max(slow.get(keyOf(c)) ?? 0, v));
   }
 
-  // 防御くずし：動いている光の祭壇の範囲のマス → 受けるダメージが増える割合（重ねても一番大きいものだけ。100%まで）
+  // 防御くずし：動いている光の祭壇・ポーション・大時計の範囲のマス → 受けるダメージが増える割合（重ねても一番大きいものだけ。100%まで）
   const expose = new Map();
   for (const f of running) {
     const e = FACILITIES[f.kind].expose;

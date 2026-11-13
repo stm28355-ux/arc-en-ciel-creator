@@ -8,7 +8,9 @@ import { resolveLayout, canPlace } from '../src/core/layout.js';
 import { createBattle, startBattle, step, pace, rechargeUnit } from '../src/core/battle.js';
 import { emptyBag, bagTotal } from '../src/data/elements.js';
 import { ENEMIES } from '../src/data/enemies.js';
-import { simulate, SAMPLES } from '../tools/sim-region.mjs';
+import { simulate, SAMPLES, STAGES, stageLayout } from '../tools/sim-region.mjs';
+import { MONSTERS } from '../src/data/monsters.js';
+import { FACILITIES } from '../src/data/facilities.js';
 import { regionOpen, opensAfter } from '../src/core/progress.js';
 import { newSave } from '../src/core/save.js';
 
@@ -268,21 +270,6 @@ test('見本の配置：草原はモンスターだけでは負け、施設を�
   assert.ok(pace(b) > 0);
 });
 
-test('見本の配置：森と砂漠は、前の地域のころの強さでは負け、育てると攻略できる。獲得ペースは 草原 < 森 < 砂漠', () => {
-  const expect = {
-    forest: { lost: '草原の仲間 Lv5＋光線塔・旗', won: '草原の仲間 Lv10＋光線塔・旗' },
-    desert: { lost: '森の仲間 Lv8＋鍛冶場・剣', won: '森の仲間 Lv13＋鍛冶場・剣' },
-  };
-  const paces = [pace(simulate('grassland', SAMPLES.grassland['光線塔＋旗']).b)];
-  for (const [id, e] of Object.entries(expect)) {
-    assert.equal(simulate(id, SAMPLES[id][e.lost]).b.phase, 'lost', `${id} ${e.lost}`);
-    const { b } = simulate(id, SAMPLES[id][e.won]);
-    assert.equal(b.phase, 'won', `${id} ${e.won}`);
-    paces.push(pace(b));
-  }
-  assert.ok(paces[0] < paces[1] && paces[1] < paces[2], paces.map((p) => p.toFixed(2)).join(' < '));
-});
-
 test('足止め：霧の噴水の範囲のマスにいる敵は遅くなる（重ねても強くならない）', () => {
   const b = createBattle(grass, map);
   startBattle(b);
@@ -324,17 +311,6 @@ test('第2地方：砂漠を攻略すると川が開き、川 → 雷雨 → 海
   assert.deepEqual(opensAfter('desert'), ['river']);
   assert.deepEqual(opensAfter('river'), ['storm']);
   assert.deepEqual(opensAfter('storm'), ['sea']);
-});
-
-test('見本の配置：第2地方は、川 Lv20・雷雨 Lv25・海 Lv30 では負け、5レベル上げると攻略できる。獲得ペースは 川 < 雷雨 < 海', () => {
-  const paces = [];
-  for (const [id, lost, won] of [['river', 20, 25], ['storm', 25, 30], ['sea', 30, 35]]) {
-    assert.equal(simulate(id, SAMPLES[id][`第2地方の仲間 Lv${lost}`]).b.phase, 'lost', `${id} Lv${lost}`);
-    const { b } = simulate(id, SAMPLES[id][`第2地方の仲間 Lv${won}`]);
-    assert.equal(b.phase, 'won', `${id} Lv${won}`);
-    paces.push(pace(b));
-  }
-  assert.ok(paces[0] < paces[1] && paces[1] < paces[2], paces.map((p) => p.toFixed(2)).join(' < '));
 });
 
 test('道の形：火山は二股から合流、雪山は2か所から出て合流、混成は拠点が2か所。敵は道を交互に使う', () => {
@@ -388,17 +364,6 @@ test('第3地方：海を攻略すると火山が開き、火山 → 雪山 → 
   assert.deepEqual(opensAfter('snow'), ['mixed']);
 });
 
-test('見本の配置：第3地方は、火山 Lv35・雪山 Lv40・混成 Lv45 では負け、5レベル上げると攻略できる。獲得ペースは 火山 < 雪山 < 混成', () => {
-  const paces = [];
-  for (const [id, lost, won] of [['volcano', 35, 40], ['snow', 40, 45], ['mixed', 45, 50]]) {
-    assert.equal(simulate(id, SAMPLES[id][`第3地方の仲間 Lv${lost}`]).b.phase, 'lost', `${id} Lv${lost}`);
-    const { b } = simulate(id, SAMPLES[id][`第3地方の仲間 Lv${won}`]);
-    assert.equal(b.phase, 'won', `${id} Lv${won}`);
-    paces.push(pace(b));
-  }
-  assert.ok(paces[0] < paces[1] && paces[1] < paces[2], paces.map((p) => p.toFixed(2)).join(' < '));
-});
-
 test('第4地方：混成を攻略すると聖域が開き、聖域 → 境界 → 魔王城。魔王城で表のクリア。資源地は少ない', () => {
   const s = newSave();
   s.regions.mixed = { cleared: true };
@@ -426,18 +391,6 @@ test('防御くずしと【強】・ボスに強い：光の祭壇の範囲で�
   const targets = new Set(['0,3']);
   step(b, 0.01, { units: [{ id: 'd', x: 0, y: 2, atk: 10, interval: 9, targets, splash: true, bossMul: 3, buffed: {} }], groupSize: 1, expose: new Map([['0,3', 0.25]]) });
   assert.deepEqual(b.enemies.map((e) => e.hp), [999 - 12.5, 999 - 37.5]);
-});
-
-test('見本の配置：第4地方は資源地を5つ持ち込み、聖域 Lv50・境界 Lv55・魔王城 Lv65 では負け、聖域 Lv55・境界 Lv60・魔王城 Lv70 で攻略。獲得ペースは 聖域 < 境界 < 魔王城', () => {
-  const paces = [];
-  for (const [id, lost, won] of [['sanctuary', 50, 55], ['boundary', 55, 60], ['castle', 65, 70]]) {
-    assert.equal(simulate(id, SAMPLES[id][`第4地方の仲間 Lv${lost}`]).b.phase, 'lost', `${id} Lv${lost}`);
-    const { b, r } = simulate(id, SAMPLES[id][`第4地方の仲間 Lv${won}`]);
-    assert.equal(b.phase, 'won', `${id} Lv${won}`);
-    assert.ok([...r.status.values()].every((st) => st === 'active'), `${id}：持ち込みの資源地で施設が全部動く`);
-    paces.push(pace(b));
-  }
-  assert.ok(paces[0] < paces[1] && paces[1] < paces[2], paces.map((p) => p.toFixed(2)).join(' < '));
 });
 
 test('敵はどれも名簿のモンスター：名前はモンスターの名前、属性はモンスターと同じ', async () => {
@@ -505,4 +458,55 @@ test('極限研究所と秘伝書：前の1マスのモンスターに大きく�
   const u = r.units.find((x) => x.owner === 'm4');
   assert.equal(u.atk, 20, 'プチスライム Lv1 の攻撃10が2倍');
   assert.deepEqual(u.buffed, { sword: false, flag: false, other: true });
+});
+
+test('調整の基準（v0.8.5）：どの地域も、基準の仲間は目標のレベルで攻略でき、2つ下では負ける。目標はその地域に行けるころの上限まで', () => {
+  for (const [id, st] of Object.entries(STAGES)) {
+    assert.ok(st.target <= st.cap, `${id}：目標 Lv${st.target} は上限 ${st.cap} まで`);
+    const { b } = simulate(id, stageLayout(id, st.target));
+    assert.equal(b.phase, 'won', `${id} Lv${st.target}`);
+    assert.ok(pace(b) > 0);
+    if (st.target > 2) assert.equal(simulate(id, stageLayout(id, st.target - 2)).b.phase, 'lost', `${id} Lv${st.target - 2}`);
+  }
+});
+
+test('調整の基準：第1地方は融合なし（調合で作れるモンスターだけ）、第2地方からは融合で技を3つ持つ', () => {
+  const madeByMix = (k) => !MONSTERS[k].fusion && !MONSTERS[k].rare && !MONSTERS[k].evolved;
+  for (const [id, st] of Object.entries(STAGES)) {
+    const p1 = REGIONS[id].province === 'p1';
+    for (const m of st.team) {
+      if (p1) {
+        assert.ok(madeByMix(m.kind), `${id}：${m.kind} は調合で作れる`);
+        assert.ok(!m.skills || m.skills.length === 1, `${id}：技は1つ`);
+      } else assert.equal(new Set(m.skills).size, 3, `${id}：${m.kind} は技を3つ`);
+    }
+  }
+  // 雪山（氷）・聖域と境界（闇）は、その地域のエレメントで次の限界突破をするので、限界突破の前の上限で攻略できる
+  assert.ok(STAGES.snow.target <= 40 && STAGES.sanctuary.target <= 50 && STAGES.boundary.target <= 50);
+});
+
+test('1×1マスより大きい施設を5つ足した（大いしゆみ・大風車・大渦の泉・溶岩の大釜・闇の大時計）。それぞれ効く', () => {
+  const big = ['ballista', 'windmill', 'whirlpool', 'cauldron', 'darkclock'];
+  for (const k of big) assert.ok(parseShape(FACILITIES[k].shape).footprint.length >= 2, k);
+  const carry = (id, element, x, y) => ({ id, kind: 'carry', element, x, y, dir: 'up' });
+  // 大風車（風2・無2）：まわり12マスのモンスターが速くなる。資材は持ち込みの資源地から
+  const r = resolveLayout(map, {
+    monsters: [M('m1', 'slime', 9, 10), M('m2', 'slime', 14, 10)],
+    facilities: [carry('c1', 'wind', 8, 10), carry('c2', 'none', 8, 11), F('f1', 'windmill', 10, 10)],
+    carrySlots: 2,
+  });
+  assert.equal(r.status.get('f1'), 'active');
+  const iv = (uid) => r.units.find((u) => u.owner === uid).interval;
+  assert.ok(Math.abs(iv('m1') - 1 / 1.2) < 1e-9, 'となりは +20%');
+  assert.equal(iv('m2'), 1, '離れていると効かない');
+  // 闇の大時計（闇3）：前の4×4マスで、遅くするのと受けるダメージ増の両方
+  const c = resolveLayout(map, { monsters: [M('m1', 'darkbat', 5, 12)], facilities: [carry('c1', 'dark', 5, 13), F('f1', 'darkclock', 10, 10)], carrySlots: 1 });
+  assert.equal(c.status.get('f1'), 'active');
+  assert.equal(c.slow.size, 16);
+  assert.equal(c.expose.size, 16);
+  assert.equal(c.slow.get('10,8'), 0.3);
+  assert.equal(c.expose.get('10,8'), 0.2);
+  // 大いしゆみ・大渦の泉・溶岩の大釜は、範囲の敵すべてに当たる攻撃
+  for (const k of ['ballista', 'whirlpool', 'cauldron']) assert.ok(FACILITIES[k].splash && FACILITIES[k].atk > 0, k);
+  assert.ok(FACILITIES.cauldron.burn && FACILITIES.whirlpool.chill);
 });

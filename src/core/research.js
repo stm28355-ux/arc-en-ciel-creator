@@ -1,5 +1,5 @@
 // 研究：研究する・ON/OFF・今効いている効き目。画面なしで動く。
-import { RESEARCH, MIX_UNLOCK, BASE_HP_PER_LEVEL, ATTACK_PER_LEVEL, PACE_PER_LEVEL, FACILITY_PER_LEVEL } from '../data/research.js';
+import { RESEARCH, MIX_UNLOCK, BASE_HP_PER_LEVEL, ATTACK_PER_LEVEL, PACE_PER_LEVEL, FACILITY_PER_LEVEL, facilityAtkMulAt } from '../data/research.js';
 import { canPay, pay, LEVEL_CAP } from './alchemy.js';
 import { MIX_ELEMENTS } from '../data/recipes.js';
 
@@ -81,6 +81,7 @@ export function researchEffects(save) {
     baseHpAdd: BASE_HP_PER_LEVEL * activeLevel(save, 'baseHp'),
     atkMul: 1 + ATTACK_PER_LEVEL * activeLevel(save, 'attack'),
     facilityMul: 1 + FACILITY_PER_LEVEL * activeLevel(save, 'facility'),
+    facilityAtkMul: facilityAtkMulAt(activeLevel(save, 'facilityAtk')),
     paceMul: 1 + PACE_PER_LEVEL * activeLevel(save, 'pace'),
     carrySlots: activeLevel(save, 'carry'),
     levelCap: levelCap(save),

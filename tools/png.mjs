@@ -50,11 +50,13 @@ export function makeImage(W, H, bg = [0, 0, 0, 0]) {
     fill(x0, y0, w, h, col) {
       for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) img.put(x, y, col);
     },
-    // 絵（{ size, palette, grid }）を scale 倍で置く
+    // 絵（{ size, w?, h?, palette, grid }）を scale 倍で置く。施設の絵は横 w・縦 h
     sprite(s, ox, oy, scale = 1) {
-      for (let y = 0; y < s.size; y++)
-        for (let x = 0; x < s.size; x++) {
-          const col = parseColor(s.palette[s.grid[y * s.size + x]]);
+      const sw = s.w ?? s.size;
+      const sh = s.h ?? s.size;
+      for (let y = 0; y < sh; y++)
+        for (let x = 0; x < sw; x++) {
+          const col = parseColor(s.palette[s.grid[y * sw + x]]);
           if (col[3]) img.fill(ox + x * scale, oy + y * scale, scale, scale, col);
         }
     },

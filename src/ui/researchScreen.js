@@ -1,5 +1,5 @@
 // 研究画面：エレメントを使って、ゲーム全体に効く強化を進める。研究したものは ON/OFF できる。
-import { RESEARCH, RESEARCH_ORDER, BASE_HP_PER_LEVEL, ATTACK_PER_LEVEL, PACE_PER_LEVEL, FACILITY_PER_LEVEL } from '../data/research.js';
+import { RESEARCH, RESEARCH_ORDER, BASE_HP_PER_LEVEL, ATTACK_PER_LEVEL, PACE_PER_LEVEL, FACILITY_PER_LEVEL, facilityAtkMulAt } from '../data/research.js';
 import { ELEMENT } from '../data/elements.js';
 import { researchedLevel, isOn, nextCost, whyNot, doResearch, toggleResearch, researchEffects } from '../core/research.js';
 
@@ -30,7 +30,9 @@ function effectText(id, lv) {
     case 'limit5':
       return 'レベルの上限 99';
     case 'facility':
-      return `戦闘施設の効き目 +${Math.round(FACILITY_PER_LEVEL * lv * 100)}%`;
+      return `施設の効き目 +${Math.round(FACILITY_PER_LEVEL * lv * 100)}%`;
+    case 'facilityAtk':
+      return `施設の攻撃力 ×${facilityAtkMulAt(lv)}`;
     case 'baseHp':
       return `拠点の耐久 +${BASE_HP_PER_LEVEL * lv}`;
     case 'attack':
@@ -79,7 +81,8 @@ export function renderResearchScreen(root, api) {
     `拠点の耐久 +${fx.baseHpAdd}`,
     `調合で使えるエレメント ${fx.mixElements.map((id) => ELEMENT[id].name).join('・')}`,
     `攻撃力 ×${fx.atkMul.toFixed(2)}`,
-    `戦闘施設 ×${fx.facilityMul.toFixed(1)}`,
+    `施設の攻撃力 ×${fx.facilityAtkMul.toFixed(2)}`,
+    `施設の効き目 ×${fx.facilityMul.toFixed(1)}`,
     `自動獲得 ×${fx.paceMul.toFixed(1)}`,
     `持ち込める資源地 ${fx.carrySlots}`,
     `レベルの上限 ${fx.levelCap}`,

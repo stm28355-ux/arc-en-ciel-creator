@@ -6,13 +6,13 @@ import { ENEMIES } from '../data/enemies.js';
 import { pointOnPath } from '../core/map.js';
 import { footprintOf, targetsOf } from '../core/layout.js';
 import { cellsOf, rotate } from '../core/shape.js';
-import { spriteCanvas } from './spriteImage.js';
+import { spriteCanvas, facilityCanvas } from './spriteImage.js';
 
 export const CELL = 32;
 
 const FACILITY_ICON = {
   beam: '光', sword: '剣', flag: '旗', horn: '笛', smithy: '鍛', carry: '◆', fog: '霧', tower: '雷', brazier: '火', icicle: '氷', altar: '祭', darktower: '闇',
-  stonethrower: '石', lightningrod: '針', atelier: '錬', acidpotion: '酸', buffpotion: '速', firearrow: '矢', frostcannon: '砲',
+  stonethrower: '石', ballista: '弓', windmill: '風', whirlpool: '渦', cauldron: '釜', darkclock: '時', lightningrod: '針', atelier: '錬', acidpotion: '酸', buffpotion: '速', firearrow: '矢', frostcannon: '砲',
   magiclab: '魔', flamecircle: '炎', blizzardcircle: '吹', mirror: '鏡', extremelab: '極', lightbook: '光', darkbook: '闇',
 };
 export const facilityIcon = (kind) => FACILITY_ICON[kind] ?? '施';
@@ -316,18 +316,25 @@ function drawFacility(ctx, f, status) {
   const h = (Math.max(...ys) + 1) * CELL - 4 - y0;
   const stopped = status && status !== 'active';
   ctx.globalAlpha *= stopped ? 0.5 : 1;
-  ctx.fillStyle = FACILITY_COLOR[def.type];
-  ctx.strokeStyle = '#1b1b1b';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.roundRect(x0, y0, w, h, 4);
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = '#1b1b1b';
-  ctx.font = 'bold 13px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(facilityIcon(f.kind), x0 + w / 2, y0 + h / 2 + 1);
+  // 施設の絵（施設のマスいっぱい。横を向いたときは回した絵）。絵がなければ四角と字
+  const img = facilityCanvas(f.kind, f.dir);
+  if (img) {
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(img, x0 - 4, y0 - 4, w + 8, h + 8);
+  } else {
+    ctx.fillStyle = FACILITY_COLOR[def.type];
+    ctx.strokeStyle = '#1b1b1b';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(x0, y0, w, h, 4);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#1b1b1b';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(facilityIcon(f.kind), x0 + w / 2, y0 + h / 2 + 1);
+  }
   ctx.globalAlpha = ctx.globalAlpha / (stopped ? 0.5 : 1);
   // 向きに意味のある施設（範囲や作業場所がある）だけ向きの印を出す
   if (def.shape.length > 1) facing(ctx, x0 + w / 2, y0 + h / 2, f.dir, ['left', 'right'].includes(f.dir) ? w / 2 : h / 2);
