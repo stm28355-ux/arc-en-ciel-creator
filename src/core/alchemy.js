@@ -127,3 +127,23 @@ export function levelUpPayment(elements, monsterElement, level) {
   }
   return null;
 }
+
+/**
+ * まとめてレベルアップ（2026-11-14 企画者の注文：1つずつ上げるのが面倒）。
+ * level から最大 steps レベル、上限 cap まで、払える分だけ1レベルずつ上げたときの結果。
+ * 1レベルごとに levelUpPayment と同じ決まりで払う（31から先は第2地方のエレメント、のように段が変わっても同じ）。
+ * 戻り値：{ to: 上がったあとのレベル, payment: 払う合計 { id: n } }（1つも上げられなければ to === level）
+ */
+export function levelUpPlan(elements, monsterElement, level, steps, cap) {
+  let left = { ...elements };
+  const payment = {};
+  let to = level;
+  while (to < cap && to - level < steps) {
+    const p = levelUpPayment(left, monsterElement, to);
+    if (!p) break;
+    left = pay(left, p);
+    for (const [id, n] of Object.entries(p)) payment[id] = (payment[id] ?? 0) + n;
+    to += 1;
+  }
+  return { to, payment };
+}

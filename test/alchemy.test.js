@@ -134,3 +134,23 @@ test('図鑑のフレーバー：どのモンスターにも1つずつあり、�
   for (const kind of Object.keys(MONSTERS)) assert.ok(FLAVOR[kind] && FLAVOR[kind].length >= 10, `${kind} のフレーバーがない`);
   for (const kind of Object.keys(FLAVOR)) assert.ok(MONSTERS[kind], `${kind} はモンスターにいない`);
 });
+
+test('まとめてレベルアップ：払える分だけ、最大10レベルまたは上限まで。1レベルずつ上げたのと同じだけ払う', async () => {
+  const { levelUpPlan, levelUpPayment, levelUpCost, pay } = await import('../src/core/alchemy.js');
+  const plan = levelUpPlan({ none: 1000 }, 'none', 1, 10, 15);
+  assert.equal(plan.to, 11);
+  let total = 0;
+  for (let l = 1; l < 11; l++) total += levelUpCost(l);
+  assert.equal(plan.payment.none, total);
+  // 1つずつ上げたときと同じ
+  let el = { none: 1000, wind: 5 };
+  for (let l = 1; l < 11; l++) el = pay(el, levelUpPayment(el, 'none', l));
+  const p2 = levelUpPlan({ none: 1000, wind: 5 }, 'none', 1, 10, 15);
+  assert.equal(1000 - (p2.payment.none ?? 0), el.none);
+  assert.equal(levelUpPlan({ none: 1000 }, 'none', 10, 10, 15).to, 15, '上限で止まる');
+  assert.equal(levelUpPlan({ none: 10 }, 'none', 1, 10, 15).to, 3, '足りなければ払える分だけ（3+4=7、次は5）');
+  assert.equal(levelUpPlan({ none: 0 }, 'none', 1, 10, 15).to, 1);
+  // 30から先は第2地方のエレメント。第1地方しかなければ30で止まる
+  assert.equal(levelUpPlan({ none: 99999 }, 'none', 25, 10, 40).to, 30);
+  assert.equal(levelUpPlan({ none: 99999, water: 99999 }, 'none', 25, 10, 40).to, 35);
+});

@@ -13,6 +13,7 @@ import { loadSave, writeSave, clearSave, regionSave, newSave } from './core/save
 import { draw, CELL, facilityIcon, FACILITY_COLOR } from './ui/render.js';
 import { renderMonsterScreen, onMonsterAction } from './ui/monsterScreen.js';
 import { spriteImg, facilityImg } from './ui/spriteImage.js';
+import { applyBackground } from './ui/background.js';
 import { recordBattle, skillsOf } from './core/breeding.js';
 import { researchEffects, researchedLevel } from './core/research.js';
 import { RESEARCH, MIX_UNLOCK } from './data/research.js';
@@ -20,7 +21,7 @@ import { regionOpen as isRegionOpen, opensAfter } from './core/progress.js';
 import { renderResearchScreen, onResearchAction } from './ui/researchScreen.js';
 import { renderFacilityScreen, facilityCostText } from './ui/facilityScreen.js';
 
-const VERSION = 'v0.8.5';
+const VERSION = 'v0.8.6';
 // 地域マップの canvas は、1マス32を2倍の細かさで描く（画面の大きさは今までと同じ）
 const DRAW_SCALE = 2;
 const STEP = 1 / 60;
@@ -131,6 +132,8 @@ function renderGuide() {
   const step = guideStep();
   guideEl.innerHTML = step ? `<div class="guide"><b>はじめに</b> ${step}</div>` : '';
   const cur = ['monsters', 'research', 'facilities'].includes(screen.name) ? screen.name : 'regions';
+  // ポップの見た目にした画面（今はモンスター画面だけ）は、暗い板を敷かずに背景を見せる
+  app.classList.toggle('pop-screen', screen.name === 'monsters');
   for (const b of navEl.querySelectorAll('[data-nav]')) b.classList.toggle('on', b.dataset.nav === cur);
 }
 
@@ -932,5 +935,6 @@ function renderSide(s) {
   side.innerHTML = tabs + body + mat + waves + help;
 }
 
+applyBackground();
 renderBank();
 goHome();
