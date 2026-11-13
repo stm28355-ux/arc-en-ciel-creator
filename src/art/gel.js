@@ -253,4 +253,60 @@ const arcenciel = () => {
   return c.shadow(16, 29.5, 13).finish();
 };
 
-export const GEL = { slime, hinoko, lumen, dango, zapslime, waterslime, twinslime, snowman, lightslime, darkslime, stoneslime, bigslime, prism, auroragel, twinking, arcenciel };
+// ===== 名簿を200種にしたとき =====
+
+// 毒そのものが意思をもったモンスター（紫の体に緑の毒のまだら、泡）
+const evolpoison = () => {
+  const c = makeCanvas();
+  const P = ['#e6c8ff', '#9b5fd6', '#7440ac', '#4f2a80'];
+  const G = '#9be86a';
+  dropBody(c, P, { top: 9, bottom: 27 });
+  for (const [x, y, r] of [[10, 17, 1.6], [21, 14, 1.3], [18, 25, 1.5], [24, 21, 1.2]]) c.ellipse(x, y, r, r, G);
+  c.rect(8, 26, 2, 3, P[3]).rect(22, 26, 2, 2, P[3]).px(8, 29, G);
+  c.ellipse(26, 8, 1.8, 1.8, G).ellipse(5, 12, 1.3, 1.3, G).ellipse(23, 4, 1, 1, G);
+  c.eyes(11, 19, 7, 'angry', '#1c1430').mouth(15, 23, 'cat', '#1c1430');
+  return c.outline().shadow(16, 29.5, 9.5).finish();
+};
+
+// 流れ星のかけらを集めたゲル（夜空の体に星）
+const stardustgel = () => {
+  const c = makeCanvas();
+  const P = ['#c8d4ff', '#4f5fb0', '#3a4892', '#2a3470'];
+  blobBody(c, P, { cy: 19.5, rx: 11, ry: 9 });
+  for (const [x, y] of [[10, 14], [21, 13], [24, 20], [8, 22], [16, 25], [13, 11]]) c.px(x, y, '#fff6a8');
+  sparkle(c, 19, 22, '#fff6a8');
+  c.eyes(12, 17, 6, 'dot', '#fff6a8').mouth(15, 21, 'smile', '#fff6a8');
+  c.outline();
+  c.line(26, 3, 21, 8, '#fff6a8');
+  sparkle(c, 27, 2, WHITE);
+  return c.shadow(16, 29, 10).finish();
+};
+
+// 雷雲がぎゅっと固まったゲル（下に稲妻）
+const thundercloudgel = () => {
+  const c = makeCanvas();
+  const P = ['#f4f6fa', '#c3cbd8', '#98a3b8', '#6f7a90'];
+  for (const [x, y, rx, ry] of [[10, 15, 6, 5.5], [17, 11, 7, 6.5], [23, 15, 6, 5.5], [16, 18, 11, 5]]) c.ellipse(x, y, rx, ry, P[1]);
+  c.recolor(P[1], P[2], (x, y) => y >= 19);
+  c.ellipse(13, 9, 2.5, 1.5, P[0]);
+  const Y = PAL.thunder[1];
+  c.line(9, 23, 7, 26, Y).line(7, 26, 10, 26, Y).line(10, 26, 8, 29, Y);
+  c.line(22, 23, 20, 26, Y).line(20, 26, 23, 26, Y).line(23, 26, 21, 29, Y);
+  c.eyes(12, 13, 8, 'angry').mouth(17, 17, 'fang');
+  return c.outline().finish();
+};
+
+// 潮だまりにすむ大きなゲル（中を小魚やヒトデが泳ぐ）
+const tidepoolgel = () => {
+  const c = makeCanvas();
+  const P = ['#e6f8ff', '#9fdcf4', '#6cbede', '#4a9cc4'];
+  blobBody(c, P, { cy: 18.5, rx: 14, ry: 10.5, bottom: 28.5 });
+  c.ellipse(8, 22, 2, 1.2, '#ff9a52').px(10, 22, '#ff9a52').px(6, 21, INK);
+  c.ellipse(22, 14, 1.8, 1.1, '#ffd84d').px(24, 14, '#ffd84d');
+  c.dots([[19, 24], [18, 25], [20, 25], [19, 26], [17, 24], [21, 24]], '#ff8aa0');
+  c.line(12, 27, 13, 23, C.leaf[2]).line(25, 27, 26, 23, C.leaf[2]);
+  c.eyes(11, 15, 9, 'dot').mouth(16, 19, 'smile');
+  return c.outline().shadow(16, 29.5, 13).finish();
+};
+
+export const GEL = { slime, hinoko, lumen, dango, zapslime, waterslime, twinslime, snowman, lightslime, darkslime, stoneslime, bigslime, prism, auroragel, twinking, arcenciel, evolpoison, stardustgel, thundercloudgel, tidepoolgel };

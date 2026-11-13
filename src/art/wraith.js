@@ -1,6 +1,6 @@
 // レイス系の絵（おばけ・霊・炎）
 import { makeCanvas, PAL, C, WHITE, INK } from './kit.js';
-import { head, twinkle } from './parts.js';
+import { head, twinkle, fan } from './parts.js';
 
 // 布をかぶったようなおばけ（下がゆらゆら。浮いている）
 function ghost(c, P, { cx = 16, cy = 12, rx = 8, top = 3, bottom = 25, arms = true } = {}) {
@@ -152,4 +152,184 @@ const borderking = () => {
   return c.shadow(16, 29.5, 9, 1.4).finish();
 };
 
-export const WRAITH = { steamghost, yukionna, candle, wisp, winterghost, shade, reaper, hellfire, borderking };
+// ===== 名簿を200種にしたとき =====
+
+// 霧の体をもつヘビ（こりかたまった水の牙）
+const mistsnake = () => {
+  const c = makeCanvas();
+  const P = ['#ffffff', '#d8eef8', '#a8d0e6', '#7ab0d0'];
+  for (let i = 0; i <= 40; i++) {
+    const t = i / 40;
+    const a = t * Math.PI * 2.6;
+    c.ellipse(16 + Math.cos(a) * (9 - t * 5) + 0.5, 22 + Math.sin(a) * (4 - t * 2) - t * 6 + 0.5, 2.6, 2.6, i % 5 < 2 ? P[2] : P[1]);
+  }
+  c.ellipse(14, 9, 5, 4, P[1]);
+  c.poly([[10, 9], [6, 10], [10, 12]], P[1]);
+  c.px(8, 12, '#4ea8e6').px(10, 12, '#4ea8e6');
+  c.eye(12, 7, 'angryL', '#2b69b1');
+  c.outline();
+  c.each((x, y) => {
+    if (c.get(x, y) === null && ((x * 5 + y * 3) % 7 === 0) && Math.hypot(x - 16, y - 18) < 13) c.px(x, y, 'rgba(216,238,248,0.7)');
+  });
+  return c.shadow(16, 29.5, 9).finish();
+};
+
+// 輪のようにつらなった目が浮いている
+const floweyes = () => {
+  const c = makeCanvas();
+  c.each((x, y) => {
+    const d = Math.hypot(x + 0.5 - 16, y + 0.5 - 15);
+    if (d > 8.5 && d < 10) c.px(x, y, '#d8d2ec');
+  });
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    const x = 16 + Math.cos(a) * 9.2;
+    const y = 15 + Math.sin(a) * 9.2;
+    c.ellipse(x, y, 2.6, 2.6, WHITE);
+    c.rect(Math.floor(x - 0.5), Math.floor(y - 0.5), 1, 2, '#6a4aa9');
+  }
+  c.ellipse(16, 15, 2.5, 2.5, '#efe8ff').ellipse(16, 15, 1.2, 1.2, '#6a4aa9');
+  return c.outline().shadow(16, 29.5, 7, 1.2).finish();
+};
+
+// 霧の体でできた、うずまき状の竜
+const mistdragoon = () => {
+  const c = makeCanvas();
+  const P = ['#ffffff', '#d0eaf8', '#9ccbe6', '#6aa8d0'];
+  for (let i = 0; i <= 60; i++) {
+    const t = i / 60;
+    const a = t * Math.PI * 3.2;
+    const r = 12 - t * 10;
+    c.ellipse(16 + Math.cos(a) * r + 0.5, 17 + Math.sin(a) * r * 0.8 + 0.5, 2.8 - t, 2.8 - t, i % 6 < 3 ? P[1] : P[2]);
+  }
+  c.ellipse(7, 6, 4.5, 4, P[1]);
+  c.poly([[4, 6], [0, 7], [4, 9]], P[1]);
+  c.line(8, 3, 11, 0, PAL.water[2]).line(10, 4, 14, 2, PAL.water[2]);
+  c.eye(5, 5, 'angryL', '#2b69b1');
+  c.outline();
+  c.dots([[27, 4], [29, 8], [3, 25], [28, 27]], P[2]);
+  return c.shadow(16, 29.5, 10).finish();
+};
+
+// いつもウインクをしている雷の霊（顔と動きがうるさい）
+const plasma = () => {
+  const c = makeCanvas();
+  const P = ['#fffbd2', '#ffe45a', '#f0b52a', '#bf8618'];
+  ghost(c, P, { cy: 13, rx: 8.5, top: 4, bottom: 25 });
+  c.poly([[8, 6], [5, 1], [11, 5]], '#7ff0ff').poly([[24, 6], [27, 1], [21, 5]], '#7ff0ff');
+  c.eye(11, 11, 'tall').dots([[19, 13], [20, 12], [21, 12], [22, 13]], INK);
+  c.mouth(16, 17, 'open');
+  c.cheeks(9, 15, 13, '#ff9eb8');
+  c.outline();
+  for (const [x, y] of [[28, 10], [3, 18]]) c.dots([[x, y], [x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]], '#7ff0ff');
+  c.px(27, 22, P[1]).px(28, 23, P[1]).px(4, 7, P[1]);
+  return c.shadow(16, 29.5, 7, 1.2).finish();
+};
+
+// 冷ややかな空気そのもの（冷笑の顔）
+const reishow = () => {
+  const c = makeCanvas();
+  const P = ['#ffffff', '#e2f6fc', '#b4dcec', '#86bcd6'];
+  ghost(c, P, { cy: 13, rx: 8, top: 4, bottom: 25, arms: false });
+  c.recolor([P[1], P[2]], '#cbe9f6', (x, y) => y >= 21);
+  c.dots([[10, 11], [11, 12], [12, 12], [13, 12]], '#2b4a6b').dots([[18, 12], [19, 12], [20, 12], [21, 11]], '#2b4a6b');
+  c.dots([[13, 17], [14, 17], [15, 17], [16, 16], [17, 16]], '#2b4a6b');
+  c.outline();
+  c.dots([[3, 6], [4, 5], [28, 8], [27, 9], [2, 22], [29, 20]], WHITE);
+  return c.shadow(16, 29.5, 7, 1.2).finish();
+};
+
+// 寝ぼけて夜中にさまよう白いおばけ（ナイトキャップ）
+const sleepyghost = () => {
+  const c = makeCanvas();
+  const P = ['#ffffff', '#f6f4fb', '#d8d2ec', '#b0a8d0'];
+  ghost(c, P, { cy: 14, rx: 8, top: 6, bottom: 26 });
+  c.poly([[9, 8], [23, 8], [27, 2], [18, 3]], '#6f9fd6');
+  c.ellipse(27.5, 2.5, 1.8, 1.8, WHITE);
+  c.rect(9, 7, 14, 2, WHITE);
+  c.eyes(12, 13, 7, 'line').mouth(16, 17, 'o');
+  c.outline();
+  c.dots([[2, 6], [3, 6], [4, 6], [4, 7], [3, 8], [2, 9], [3, 9], [4, 9]], '#9fb4d8');
+  return c.shadow(16, 29.5, 7, 1.2).finish();
+};
+
+// 光が集まって生まれた精霊（軽やかに舞う）
+const lightspirit = () => {
+  const c = makeCanvas();
+  const P = PAL.light;
+  fan(c, 13, 14, 9, 3.2, 4.3, '#fffbe8');
+  fan(c, 19, 14, 9, -1.15, -0.05, '#fffbe8');
+  ghost(c, [WHITE, '#fffbe0', P[1], P[2]], { cx: 16, cy: 13, rx: 6, top: 6, bottom: 24, arms: false });
+  c.ellipse(16, 4, 4, 1.4, P[2]).ellipse(16, 4, 2.4, 0.5, null);
+  c.eyes(13, 12, 5, 'happy').mouth(16, 15, 'smile');
+  c.outline();
+  twinkle(c, 3, 22, P[1]);
+  twinkle(c, 28, 24, P[1]);
+  twinkle(c, 26, 3, WHITE);
+  return c.shadow(16, 29.5, 6, 1.2).finish();
+};
+
+// 主をなくした鎧に宿った、まぼろしの騎士
+const phantomknight = () => {
+  const c = makeCanvas();
+  const M = ['#a8a0c0', '#6a6488', '#4e4868', '#36304e'];
+  c.line(25, 4, 25, 22, '#c8c0e0', 2).rect(22, 21, 7, 2, M[3]).rect(24, 23, 2, 3, M[2]);
+  c.poly([[10, 15], [22, 15], [24, 26], [20, 23], [16, 27], [12, 23], [8, 26]], M[1]);
+  c.recolor(M[1], M[2], (x) => x >= 19);
+  c.ellipse(16, 10, 6.5, 6.5, M[1]);
+  c.recolor(M[1], M[2], (x, y) => x >= 19 && y < 15);
+  c.rect(11, 9, 10, 3, '#1c1430');
+  c.rect(12, 10, 2, 1, '#c79bff').rect(18, 10, 2, 1, '#c79bff');
+  c.poly([[14, 3], [16, -1], [18, 3]], '#9a5ad6');
+  c.outline();
+  c.dots([[5, 8], [4, 12], [27, 27], [6, 26]], '#c79bff');
+  return c.shadow(16, 29.5, 9).finish();
+};
+
+// 夏の業火が形になった亡霊（ふゆのぼうれいと、にらみ合う）
+const infernoghost = () => {
+  const c = makeCanvas();
+  const P = ['#ffe1a6', '#ff9b52', '#ec5b32', '#b53425'];
+  c.poly([[3, 14], [29, 14], [27, 28], [23, 24], [20, 29], [16, 24], [12, 29], [9, 24], [5, 28]], P[2]);
+  c.recolor(P[2], P[3], (x) => x >= 22);
+  ghost(c, P, { cy: 12, rx: 8, top: 5, bottom: 22, arms: false });
+  for (const [x, h] of [[10, 5], [13, 8], [16, 9], [19, 8], [22, 5]]) c.poly([[x - 1.8, 7], [x + 1.8, 7], [x, 7 - h]], C.lava[1]);
+  c.rect(11, 10, 10, 5, '#3a1418');
+  c.rect(12, 11, 2, 2, '#fff1a0').rect(18, 11, 2, 2, '#fff1a0');
+  c.outline();
+  c.dots([[2, 6], [29, 5], [1, 22], [30, 24]], C.lava[0]);
+  return c.shadow(16, 29.5, 11).finish();
+};
+
+// ゆきだるまに吹雪の霊が宿った姿
+const blizzardspirit = () => {
+  const c = makeCanvas();
+  const S = C.snow;
+  const P = PAL.ice;
+  c.poly([[10, 20], [22, 20], [21, 26], [18, 24], [16, 28], [14, 24], [11, 26]], P[1]);
+  c.ellipse(16, 18, 7.5, 5.5, S[1]);
+  c.ellipse(16, 9, 6, 5.5, S[1]);
+  c.recolor(S[1], P[2], (x, y) => x >= 19 && (y >= 14 || y >= 6));
+  c.rect(10, 2, 12, 2, C.blue[2]).rect(12, 0, 8, 2, C.blue[1]);
+  c.eyes(13, 8, 5, 'angry', '#2b4a6b').mouth(16, 12, 'o', '#2b4a6b');
+  c.outline();
+  for (let i = 0; i < 18; i++) c.px(16 + Math.cos(i * 0.7) * (9 + i * 0.3), 15 + Math.sin(i * 0.7) * (6 + i * 0.2), WHITE);
+  return c.shadow(16, 29.5, 8).finish();
+};
+
+// やけどの敵を追いかけまわしたひのこだまの、青い炎の姿
+const onibi = () => {
+  const c = makeCanvas();
+  const P = ['#e8f6ff', '#8ab8ff', '#5a86e0', '#3a5ab8'];
+  c.poly([[9, 18], [9, 9], [12, 13], [14, 5], [17, 11], [20, 4], [22, 12], [23, 18]], P[2]);
+  c.poly([[11, 17], [12, 12], [15, 10], [18, 9], [20, 13], [21, 17]], P[1]);
+  c.ellipse(16, 19, 7, 6.5, P[1]);
+  c.recolor(P[1], P[2], (x, y) => x >= 19 && y >= 17);
+  c.ellipse(14.5, 18, 3.5, 3, P[0]);
+  c.eyes(12, 17, 6, 'dot', '#2a3a7a').mouth(15, 21, 'smile', '#2a3a7a');
+  c.outline();
+  c.dots([[4, 10], [27, 14], [26, 6]], P[1]);
+  return c.shadow(16, 29.5, 6, 1.2).finish();
+};
+
+export const WRAITH = { mistsnake, floweyes, mistdragoon, plasma, reishow, sleepyghost, lightspirit, phantomknight, infernoghost, blizzardspirit, onibi, steamghost, yukionna, candle, wisp, winterghost, shade, reaper, hellfire, borderking };

@@ -236,4 +236,81 @@ const nightjar = () => {
   return c.outline().shadow(16, 29.5, 8).finish();
 };
 
-export const BIRD = { hawk, swallow, eagle, falcon, cloudbird, thunderbird, gull, penguin, firebird, snowowl, thunderpenguin, dove, phoenix, raven, nightjar };
+// ===== 名簿を200種にしたとき =====
+
+// どこにでもいる、ふくら雀
+const sparrow = () => {
+  const c = makeCanvas();
+  const P = ['#f6e8d6', '#c8946a', '#9a6a46', '#6e4a30'];
+  sideBird(c, P, { cy: 19, rx: 8.5, ry: 7.5, belly: '#fbf3e8', wing: P[2], beak: '#4a3a30' });
+  c.recolor(P[1], '#8a5a3a', (x, y) => y < 14);
+  c.ellipse(9, 18, 2, 1.4, WHITE).px(8, 20, INK).px(9, 20, INK);
+  c.dots([[18, 18], [20, 19], [17, 21]], P[3]);
+  return c.outline().shadow(16, 29.5, 8).finish();
+};
+
+// 大きなくちばしに水をためる鳥
+const pelican = () => {
+  const c = makeCanvas();
+  const P = [WHITE, '#f6f8fb', '#cfd8e2', '#a8b4c4'];
+  sideBird(c, P, { cx: 18, cy: 19, rx: 8, ry: 7.5, belly: WHITE, wing: '#cfd8e2', beak: '#ffb43c', feet: true });
+  c.poly([[11, 13], [1, 15], [1, 17], [11, 17]], '#ffb43c');
+  c.ellipse(6, 19, 5, 3, '#ffd88a');
+  c.ellipse(6, 19.5, 3, 1.5, PAL.water[1]);
+  c.eye(13, 13, 'dot');
+  return c.outline().shadow(17, 29.5, 9).finish();
+};
+
+// 羽を広げると稲妻のもようが光るクジャク
+const thunderpeacock = () => {
+  const c = makeCanvas();
+  const Y = PAL.thunder;
+  fan(c, 16, 21, 15, -Math.PI + 0.15, -0.15, Y[1], 16);
+  fan(c, 16, 21, 11, -Math.PI + 0.25, -0.25, Y[2], 16);
+  for (let i = 0; i < 7; i++) {
+    const a = -Math.PI + 0.35 + (i / 6) * (Math.PI - 0.7);
+    c.ellipse(16 + Math.cos(a) * 12.5, 21 + Math.sin(a) * 12.5, 1.4, 1.4, '#3a7fd6').px(Math.round(16 + Math.cos(a) * 12.5), Math.round(21 + Math.sin(a) * 12.5), '#7ff0ff');
+  }
+  c.ellipse(16, 21, 4.5, 5.5, '#2f8f9a');
+  c.ellipse(16, 13.5, 3.2, 3.2, '#2f8f9a');
+  c.dots([[15, 9], [16, 8], [17, 9], [16, 7]], Y[1]);
+  c.poly([[15, 14.5], [17, 14.5], [16, 16.5]], C.gold[2]);
+  c.eyes(14, 12, 3, 'pip', WHITE);
+  c.rect(14, 26, 1, 2, FOOT).rect(17, 26, 1, 2, FOOT);
+  return c.outline().shadow(16, 29.5, 8).finish();
+};
+
+// 片足で立ち、炎のダンスをおどるフラミンゴ
+const flameflamingo = () => {
+  const c = makeCanvas();
+  const P = ['#ffd6c8', '#ff8a7a', '#e85a52', '#b8383a'];
+  c.line(17, 21, 17, 29, '#e85a52').line(17, 25, 21, 23, '#e85a52');
+  c.poly([[22, 13], [30, 9], [27, 15], [31, 18], [23, 18]], C.lava[1]);
+  c.ellipse(19, 15, 7, 5, P[1]);
+  c.recolor(P[1], P[2], (x, y) => y >= 17);
+  c.line(13, 13, 10, 8, P[1], 2).line(10, 8, 11, 4, P[1], 2);
+  c.ellipse(12, 3.5, 3, 2.5, P[1]);
+  c.poly([[9, 3], [5, 5], [7, 7], [9, 5]], WHITE).px(5, 6, INK).px(6, 7, INK);
+  c.eye(12, 2, 'pip');
+  c.outline();
+  c.dots([[26, 4], [28, 7], [4, 14]], C.lava[0]);
+  return c.shadow(17, 29.5, 6).finish();
+};
+
+// 雪山で育った、ちびペンギンの大人の姿
+const emperorpenguin = () => {
+  const c = makeCanvas();
+  const back = '#3a5a80';
+  c.ellipse(16, 17, 9.5, 11.5, back, (x, y) => y < 28);
+  c.ellipse(16, 19.5, 6.5, 8.5, WHITE, (x, y) => y < 28);
+  c.recolor(WHITE, PAL.ice[1], (x, y) => x >= 18 && y >= 21);
+  c.ellipse(6.5, 18, 2, 5, back).ellipse(25.5, 18, 2, 5, back);
+  c.ellipse(11, 11, 2, 1.6, '#ffc23c').ellipse(21, 11, 2, 1.6, '#ffc23c');
+  c.ellipse(16, 13, 5, 2, '#fff1c8');
+  c.poly([[14.5, 10], [17.5, 10], [16, 12.5]], '#ff9a3c');
+  c.eyes(12, 7, 6, 'dot');
+  c.rect(11, 27, 3, 2, '#ffb43c').rect(18, 27, 3, 2, '#ffb43c');
+  return c.outline().shadow(16, 29.5, 9).finish();
+};
+
+export const BIRD = { hawk, swallow, eagle, falcon, cloudbird, thunderbird, gull, penguin, firebird, snowowl, thunderpenguin, dove, phoenix, raven, nightjar, sparrow, pelican, thunderpeacock, flameflamingo, emperorpenguin };

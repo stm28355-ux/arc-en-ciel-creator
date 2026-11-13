@@ -316,4 +316,59 @@ const maou = () => {
   return c.outline().shadow(16, 29.5, 12).finish();
 };
 
-export const FIEND = { scarecrow, sandscarecrow, piper, singer, raijin, stovesprite, snowkid, kappa, flamelord, icewitch, cherub, fallen, lightningmage, torchbearer, archangel, demon, maou };
+// ===== 名簿を200種にしたとき =====
+
+// 体が大きくなりすぎて、バーベルが小さく見えるマッスレア
+const mastor = () => {
+  const c = makeCanvas();
+  const S = ['#ffe6d0', '#f2c49c', '#d8a07a', '#b07a56'];
+  c.rect(1, 3, 30, 2, C.metal[3]).rect(0, 1, 2, 6, C.black[1]).rect(30, 1, 2, 6, C.black[1]);
+  c.line(7, 15, 4, 6, S[1], 3).line(25, 15, 28, 6, S[2], 3);
+  c.rect(11, 23, 4, 6, '#3a5a9a').rect(17, 23, 4, 6, '#3a5a9a');
+  c.ellipse(16, 18, 10, 7.5, S[1]);
+  c.recolor(S[1], S[2], (x, y) => x >= 20 || y >= 22);
+  c.line(16, 13, 16, 22, S[3]).line(12, 16, 15, 16, S[3]).line(17, 16, 20, 16, S[3]);
+  c.rect(8, 22, 16, 3, '#3a5a9a');
+  head(c, { cy: 9, rx: 4.5, ry: 4.5, skin: S });
+  c.rect(11, 6, 10, 2, '#e04a4a');
+  c.eyes(14, 8, 3, 'small').mouth(16, 11, 'grin');
+  return c.outline().shadow(16, 29.5, 11).finish();
+};
+
+// いつも手をつないでいる人形の双子
+const twins = () => {
+  const c = makeCanvas();
+  const A = ['#d8c8f4', '#7a5ab8', '#5a3e94', '#3e2a6e'];
+  const B = ['#f4d8e8', '#b85a8a', '#94406c', '#6e2a4e'];
+  for (const [cx, P, hair] of [[9.5, A, '#2a2238'], [22.5, B, '#f2e6c8']]) {
+    c.rect(cx - 2, 25, 1, 3, '#2a2238').rect(cx + 1, 25, 1, 3, '#2a2238');
+    c.poly([[cx - 2.5, 16], [cx + 2.5, 16], [cx + 5, 26], [cx - 5, 26]], P[1]);
+    c.recolor(P[1], P[2], (x, y) => y >= 24);
+    c.ellipse(cx, 11, 5, 5, '#fff2ea');
+    c.ellipse(cx, 8, 5.5, 3, hair, (x, y) => y < 9);
+    c.rect(cx - 5.5, 8, 1.5, 7, hair).rect(cx + 4, 8, 1.5, 7, hair);
+    c.rect(Math.round(cx) - 2, 11, 1, 1, '#2a2238').rect(Math.round(cx) + 1, 11, 1, 1, '#2a2238');
+    c.px(Math.round(cx), 13, '#c86a8a');
+  }
+  c.line(13, 19, 19, 19, '#fff2ea');
+  return c.outline().shadow(16, 29.5, 13).finish();
+};
+
+// 聖なる剣と盾をもつ騎士
+const paladin = () => {
+  const c = makeCanvas();
+  const M = C.metal;
+  c.line(25, 5, 25, 20, '#f2f4f8', 2).rect(22, 19, 7, 2, C.gold[1]).rect(24, 21, 2, 3, C.wood[2]);
+  body(c, M, { top: 17, bottom: 26, wBottom: 6.5, legCol: M[3] });
+  c.rect(10, 20, 12, 1, M[3]);
+  c.ellipse(16, 11, 6.5, 6.5, M[1]);
+  c.recolor(M[1], M[2], (x) => x >= 19);
+  c.rect(11, 10, 10, 2, '#2a2238').px(13, 10, '#9fd8ff').px(18, 10, '#9fd8ff');
+  c.line(16, 4, 16, 1, C.gold[2]).px(15, 1, C.gold[1]).px(17, 1, C.gold[1]);
+  c.poly([[3, 15], [11, 15], [11, 22], [7, 26], [3, 22]], WHITE);
+  c.recolor(WHITE, '#e8ecf2', (x, y) => y >= 22);
+  c.ellipse(7, 19.5, 2.6, 2.6, PAL.light[2]).ellipse(7, 19.5, 1.3, 1.3, PAL.light[1]);
+  return c.outline().shadow(16, 29.5, 10).finish();
+};
+
+export const FIEND = { mastor, twins, paladin, scarecrow, sandscarecrow, piper, singer, raijin, stovesprite, snowkid, kappa, flamelord, icewitch, cherub, fallen, lightningmage, torchbearer, archangel, demon, maou };

@@ -274,4 +274,63 @@ const sanctuaryguard = () => {
   return c.shadow(16, 29.5, 11).finish();
 };
 
-export const ROCK = { turtle: turtle1, golem: golem1, crab, rockturtle, irongolem, mossgolem, earthgiant, skyshell, magnetrock, lavaturtle, icerock, magmagolem, crystalgolem, gravegolem, amberturtle, sanctuaryguard };
+// ===== 名簿を200種にしたとき =====
+
+// 海の中で育つさんごの岩（小魚がかくれている）
+const coralrock = () => {
+  const c = makeCanvas();
+  const S = ['#d8e4ee', '#9fb4c8', '#7890aa', '#566e88'];
+  const K = ['#ffd6c8', '#ff8a7a', '#e85a5a'];
+  for (const [x0, x1, y1] of [[9, 6, 5], [13, 12, 3], [19, 20, 4], [23, 27, 6]]) {
+    c.line(x0, 16, x1, y1, K[1], 2);
+    c.ellipse(x1 + 0.5, y1 + 0.5, 1.6, 1.6, K[0]);
+  }
+  c.line(12, 10, 9, 8, K[1]).line(20, 9, 23, 8, K[1]);
+  c.ellipse(16, 21.5, 11, 6.5, S[1], (x, y) => y < 28);
+  c.recolor(S[1], S[2], (x, y) => y >= 25 || x >= 23);
+  c.ellipse(24, 13, 1.8, 1.1, '#ffd84d').px(26, 13, '#ffd84d').px(23, 12, INK);
+  c.eyes(12, 20, 6, 'dot').mouth(15, 24, 'smile');
+  return c.outline().shadow(16, 29.5, 12).finish();
+};
+
+// 闇を吸いこんで黒くなった水晶のゴーレム
+const darkcrystal = () => {
+  const c = makeCanvas();
+  const P = ['#b8a0e0', '#4a3a72', '#36285a', '#241a40'];
+  const g = golem(c, P, { bodyW: 16, armW: 5 });
+  for (const [x, y, h] of [[9, 11, 7], [23, 11, 8], [16, 4, 4], [5, 13, 5], [27, 13, 5]]) c.poly([[x - 2, y], [x, y - h], [x + 2, y]], '#6a4aa9');
+  c.line(10, 14, 13, 21, '#8a6ac8').line(20, 13, 22, 19, '#8a6ac8');
+  c.rect(g.cx - 4, g.eyeY, 3, 2, '#d8b0ff').rect(g.cx + 1, g.eyeY, 3, 2, '#d8b0ff');
+  return c.outline().shadow(16, 29.5, 11).finish();
+};
+
+// 雷を受けつづけた岩の塔（てっぺんに雷がたまる）
+const thundertower = () => {
+  const c = makeCanvas();
+  const S = C.stone;
+  c.poly([[9, 28], [11, 9], [21, 9], [23, 28]], S[1]);
+  c.recolor(S[1], S[2], (x) => x >= 19);
+  c.rect(10, 7, 12, 3, S[2]);
+  c.line(16, 6, 16, 2, C.metal[2]);
+  c.ellipse(16, 2, 2, 2, PAL.thunder[1]);
+  c.rect(13, 13, 2, 3, '#2a2238').rect(18, 13, 2, 3, '#2a2238').px(13, 13, PAL.thunder[1]).px(18, 13, PAL.thunder[1]);
+  c.line(12, 19, 14, 21, S[3]).line(18, 22, 21, 25, S[3]);
+  c.mouth(16, 18, 'smile2');
+  c.outline();
+  c.line(23, 3, 26, 6).line(26, 6, 24, 7, PAL.thunder[1]).line(24, 7, 27, 10, PAL.thunder[1]);
+  c.line(9, 3, 6, 6, PAL.thunder[1]).line(6, 6, 8, 7, PAL.thunder[1]).line(8, 7, 5, 10, PAL.thunder[1]);
+  return c.shadow(16, 29.5, 9).finish();
+};
+
+// どろダンゴが人の形になった姿（泥のつぶを持つ）
+const muddoll = () => {
+  const c = makeCanvas();
+  const P = ['#c8a07a', '#9a7048', '#7a5432', '#5a3a22'];
+  const g = golem(c, P, { headW: 10, headH: 7, bodyW: 14, armW: 4 });
+  c.dots([[10, 25], [21, 26], [8, 18], [24, 20]], P[3]);
+  c.ellipse(27, 24, 2.5, 2.5, P[2]);
+  c.eyes(g.cx - 3, g.eyeY, 5, 'dot').mouth(g.cx, g.eyeY + 3, 'smile');
+  return c.outline().shadow(16, 29.5, 11).finish();
+};
+
+export const ROCK = { coralrock, darkcrystal, thundertower, muddoll, turtle: turtle1, golem: golem1, crab, rockturtle, irongolem, mossgolem, earthgiant, skyshell, magnetrock, lavaturtle, icerock, magmagolem, crystalgolem, gravegolem, amberturtle, sanctuaryguard };

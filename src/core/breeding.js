@@ -1,6 +1,7 @@
 // 融合・技の継承・進化。画面なしで動く。
 import { MONSTERS } from '../data/monsters.js';
 import { EVOLUTIONS } from '../data/evolutions.js';
+import { ENEMIES } from '../data/enemies.js';
 import { FAMILY_TABLE, FUSION_RANK_UP, RARE_FUSIONS, pairKey } from '../data/families.js';
 
 export const MAX_SKILLS = 3;
@@ -126,9 +127,10 @@ export function evolve(save, uid) {
 
 /**
  * 戦闘で倒した記録（battle.kills）と、攻略したかどうかから、モンスターごとの stats を足す。
- * kills: [{ owner, enemy, sword, flag, elite, boss }]
+ * kills: [{ owner, enemy, sword, flag, elite, boss, burn, chill, slow, expose }]
+ * 攻略したときは、配置されていたモンスター（placed：[{ uid, x, y }]）に、地域・資源地・拠点の耐久・技の数の記録を足す。
  */
-export function recordBattle(save, kills, { won = false, workers = [] } = {}) {
+export function recordBattle(save, kills, { won = false, workers = [], placed = [], regionId = null, nodes = [], perfect = false } = {}) {
   const add = (uid, key, n = 1) => {
     const m = save.roster.find((r) => r.uid === uid);
     if (!m) return;
@@ -145,8 +147,23 @@ export function recordBattle(save, kills, { won = false, workers = [] } = {}) {
       add(k.owner, 'bossKills');
       add(k.owner, `bossKills:${k.enemy}`); // どのボスか（進化の条件に使う）
     }
+    const element = ENEMIES[k.enemy]?.element;
+    if (element) add(k.owner, `elementKills:${element}`);
+    if (k.burn) add(k.owner, 'burnKills');
+    if (k.chill) add(k.owner, 'chillKills');
+    if (k.slow) add(k.owner, 'slowKills');
+    if (k.expose) add(k.owner, 'exposeKills');
   }
-  if (won) for (const uid of workers) add(uid, 'workerClears');
+  if (!won) return;
+  for (const uid of workers) add(uid, 'workerClears');
+  for (const p of placed) {
+    if (regionId) add(p.uid, `clears:${regionId}`);
+    if (perfect) add(p.uid, 'perfectClears');
+    const m = save.roster.find((r) => r.uid === p.uid);
+    if (m && skillsOf(m).length >= 3) add(p.uid, 'skill3Clears');
+    const near = new Set(nodes.filter((n) => Math.max(Math.abs(n.x - p.x), Math.abs(n.y - p.y)) <= 1).map((n) => n.element));
+    for (const el of near) add(p.uid, `nodeClears:${el}`);
+  }
 }
 
 export function skillName(kind) {

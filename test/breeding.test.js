@@ -58,7 +58,9 @@ test('融合のルール：子の系統は表で、位階は親の平均＋1で�
   // 位階3×位階4 → 平均3.5を切り捨てて3、＋1で4 → 位階5のオーロラゲル
   assert.deepEqual(fusionRule('stoneslime', 'prism'), { family: 'gel', rank: 4, kind: 'auroragel' });
   // 一番上より高くなるときは、一番上のもの
-  assert.equal(fusionRule('cloudbird', 'cloudbird').kind, 'cloudbird');
+  assert.equal(fusionRule('flameflamingo', 'flameflamingo').kind, 'flameflamingo');
+  // 位階5どうし → 位階6のいなずまクジャク（名簿を200種にしてバード系の融合が増えた）
+  assert.equal(fusionRule('cloudbird', 'cloudbird').kind, 'thunderpeacock');
   // いわ×植物 → いわ系
   assert.equal(fusionRule('golem', 'sprite').kind, 'mossgolem');
 });
@@ -148,4 +150,29 @@ test('ボスごとの記録：まおうにとどめを刺すと、まじんが �
   assert.equal(m.stats.bossKills, 2);
   assert.equal(evolutionProgress(m).ok, true);
   assert.equal(evolve(s, m.uid).kind, 'maou');
+});
+
+
+test('進化の条件の記録：属性・やけど・地域・資源地のとなり・拠点の耐久・技の数', () => {
+  const s = newSave();
+  const m = addMonster(s, 'metalspider');
+  const k = addMonster(s, 'toadstool');
+  recordBattle(s, [
+    { owner: k.uid, enemy: 'imp', burn: true },
+    { owner: k.uid, enemy: 'lich', chill: true, slow: true, expose: true },
+  ]);
+  assert.equal(k.stats['elementKills:dark'], 2);
+  assert.equal(k.stats.burnKills, 1);
+  assert.equal(k.stats.chillKills, 1);
+  assert.equal(k.stats.slowKills, 1);
+  assert.equal(k.stats.exposeKills, 1);
+  const nodes = [{ x: 5, y: 5, element: 'dark' }];
+  recordBattle(s, [], { won: false, placed: [{ uid: m.uid, x: 5, y: 6 }], regionId: 'castle', nodes, perfect: true });
+  assert.equal(m.stats?.['clears:castle'], undefined, '負けたときは数えない');
+  recordBattle(s, [], { won: true, placed: [{ uid: m.uid, x: 6, y: 6 }], regionId: 'castle', nodes, perfect: true });
+  assert.equal(m.stats['clears:castle'], 1);
+  assert.equal(m.stats['nodeClears:dark'], 1);
+  assert.equal(m.stats.perfectClears, 1);
+  assert.equal(evolutionProgress(m).ok, true, 'メタルスパイダー：闇の資源地のとなりで攻略');
+  assert.equal(evolve(s, m.uid).kind, 'deathmetalspider');
 });

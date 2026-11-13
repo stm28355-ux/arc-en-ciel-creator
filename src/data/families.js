@@ -87,4 +87,10 @@ export const RARE_FUSIONS = [
   { kind: 'sandscarecrow', parents: ['scarecrow', 'lizard'] },
   { kind: 'windrabbit', parents: ['bat', 'sprite'] },
   { kind: 'mole', parents: ['hedgehog', 'dango'] },
+  { kind: 'tornadoflower', parents: ['sprite', 'stormbat'] },
+  { kind: 'mistdragoon', parents: ['mistsnake', 'riverdragon'] },
+  { kind: 'twins', parents: ['shade', 'windup'] },
+  { kind: 'lotus', parents: ['frog', 'sprite'] },
+  { kind: 'glowmoss', parents: ['mossgolem', 'lumen'] },
+  { kind: 'starfish', parents: ['lumen', 'jelly'] },
 ];

@@ -19,7 +19,7 @@ import { RESEARCH, MIX_UNLOCK } from './data/research.js';
 import { regionOpen as isRegionOpen, opensAfter } from './core/progress.js';
 import { renderResearchScreen, onResearchAction } from './ui/researchScreen.js';
 
-const VERSION = 'v0.8.2';
+const VERSION = 'v0.8.3';
 // 地域マップの canvas は、1マス32を2倍の細かさで描く（画面の大きさは今までと同じ）
 const DRAW_SCALE = 2;
 const STEP = 1 / 60;
@@ -509,7 +509,16 @@ function rotateSelection(s) {
 function recordRun(s) {
   if (s.recorded) return;
   s.recorded = true;
-  recordBattle(save, s.battle.kills, { won: s.battle.phase === 'won', workers: [...s.resolved.working] });
+  // 資源地：地域のものと、研究で持ち込んだもの（動いているものだけ）
+  const carried = s.layout.facilities.filter((f) => f.kind === 'carry' && s.resolved.status.get(f.id) === 'active');
+  recordBattle(save, s.battle.kills, {
+    won: s.battle.phase === 'won',
+    workers: [...s.resolved.working],
+    placed: s.layout.monsters.map(({ uid, x, y }) => ({ uid, x, y })),
+    regionId: s.regionId,
+    nodes: [...s.map.nodes, ...carried.map((f) => ({ x: f.x, y: f.y, element: f.element }))],
+    perfect: s.battle.baseHp >= s.battle.baseMax,
+  });
   writeSave(save);
 }
 

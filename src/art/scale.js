@@ -226,4 +226,139 @@ const volcanoking = () => {
   return c.outline().shadow(18, 29.5, 12).finish();
 };
 
-export const SCALE = { lizard, wyvern, frog, flyfish, eel, croc, icefish, anglerfish, frostwyrm, shark, catfish, riverdragon, volcanoking };
+// ===== 名簿を200種にしたとき =====
+
+// 体をくねらせる長い竜・ヘビ（共通）。P は体の色。t=0 がしっぽ、t=1 が頭のそば
+function serpent(c, P, { x0 = 17, amp = 8, y0 = 27, rise = 17, r0 = 3.2, r1 = 2.6, stripe = true } = {}) {
+  for (let i = 0; i <= 48; i++) {
+    const t = i / 48;
+    const x = x0 + Math.sin(t * Math.PI * 2.4) * amp - t * 9;
+    const y = y0 - t * rise;
+    c.ellipse(x + 0.5, y + 0.5, r0 - t * (r0 - r1), r0 - t * (r0 - r1), stripe && i % 6 >= 3 && t < 0.85 ? P[2] : P[1]);
+  }
+  return c;
+}
+
+// 天の上にすむ、光のうろこの竜（ほえると光が差す）
+const havenroar = () => {
+  const c = makeCanvas();
+  const P = ['#ffffff', '#fff4c8', '#f0d688', '#d6b25a'];
+  fan(c, 18, 13, 13, -2.4, -0.9, WHITE);
+  fan(c, 18, 13, 9, -2.2, -1.0, P[1]);
+  c.line(24, 23, 30, 19, P[2], 3);
+  c.rect(14, 24, 4, 4, P[3]).rect(21, 24, 4, 4, P[3]);
+  c.ellipse(19, 20, 8, 6.5, P[1]);
+  c.ellipse(18, 22, 5, 3.5, WHITE);
+  c.ellipse(10, 12, 6.5, 6, P[1]);
+  c.poly([[8, 8], [6, 1], [11, 6]], C.gold[1]).poly([[12, 7], [15, 0], [15, 8]], C.gold[1]);
+  c.eye(7, 10, 'angryL');
+  c.rect(3, 14, 6, 3, '#c86a6a').px(4, 14, WHITE).px(7, 14, WHITE);
+  c.outline();
+  for (let i = 0; i < 3; i++) c.line(0, 9 + i * 4, 2, 10 + i * 4, PAL.light[1]);
+  twinkle(c, 28, 4, PAL.light[1]);
+  return c.shadow(18, 29.5, 12).finish();
+};
+
+// 夜の海を泳ぐ黒いウミヘビ
+const nightserpent = () => {
+  const c = makeCanvas();
+  const P = ['#8a86c4', '#3a3a6a', '#2a2a52', '#1c1c3a'];
+  c.ellipse(25, 6, 3.5, 3.5, '#fff1a8').ellipse(26.5, 4.8, 3, 3, null);
+  serpent(c, P, { amp: 7, r0: 3, r1: 2.6 });
+  c.ellipse(8, 9, 4.5, 3.8, P[1]);
+  c.poly([[4, 9], [0, 10], [4, 12]], P[1]);
+  c.eye(6, 7, 'angryL', '#ffd84d');
+  c.outline();
+  c.dots([[3, 26], [8, 27], [24, 28], [28, 26]], PAL.water[1]);
+  return c.shadow(16, 29.5, 10).finish();
+};
+
+// 雷雲の中を泳ぐ竜
+const thunderdragon = () => {
+  const c = makeCanvas();
+  const P = PAL.thunder;
+  for (const [x, y] of [[23, 24], [27, 22], [20, 27]]) c.ellipse(x, y, 4, 2.5, '#c3cbd8');
+  serpent(c, P, { amp: 8, r0: 3.3, r1: 2.8 });
+  c.ellipse(8, 8, 5, 4.5, P[1]);
+  c.poly([[4, 8], [0, 9], [0, 12], [5, 11]], P[0]);
+  c.line(9, 4, 12, 0, '#ffffff').line(11, 5, 15, 2, '#ffffff');
+  c.line(3, 11, 0, 15, P[2]).line(5, 11, 3, 16, P[2]);
+  c.eye(6, 6, 'angryL');
+  c.outline();
+  c.line(26, 4, 28, 7, P[1]).line(28, 7, 26, 8, P[1]).line(26, 8, 29, 12, P[1]);
+  return c.shadow(16, 29.5, 10).finish();
+};
+
+// 色も属性も失った、とても古い竜（長いひげ、眠そうな目）
+const elderdragon = () => {
+  const c = makeCanvas();
+  const P = ['#ffffff', '#e2e0e8', '#bab6c6', '#8f8aa0'];
+  fan(c, 19, 14, 12, -2.3, -1.0, P[2]);
+  c.line(24, 23, 30, 18, P[2], 3);
+  c.rect(14, 24, 4, 4, P[3]).rect(21, 24, 4, 4, P[3]);
+  c.ellipse(19, 20, 8.5, 6.5, P[1]);
+  c.recolor(P[1], P[2], (x, y) => y >= 23);
+  c.dots([[17, 16], [21, 17], [24, 20]], C.moss[1]);
+  c.ellipse(10, 13, 6.5, 5.5, P[1]);
+  c.poly([[8, 9], [5, 3], [10, 7]], P[3]).poly([[12, 8], [14, 2], [15, 9]], P[3]);
+  c.poly([[5, 16], [12, 16], [9, 25], [7, 25]], WHITE);
+  c.eye(7, 11, 'line');
+  return c.outline().shadow(18, 29.5, 12).finish();
+};
+
+// 砂嵐をまとって飛ぶ、すなあらしトカゲの成長した姿
+const sanddrake = () => {
+  const c = makeCanvas();
+  const P = ['#fff0c8', '#e8c47a', '#c49a4c', '#9a7432'];
+  const W = PAL.wind;
+  for (let i = 0; i < 22; i++) {
+    const a = i * 0.5;
+    const r = 4 + i * 0.4;
+    c.px(21 + Math.cos(a) * r, 9 + Math.sin(a) * r * 0.6, i % 2 ? W[1] : P[1]);
+  }
+  lizardBody(c, P, { cy: 21, h: 4.5, head: 5 });
+  c.poly([[14, 17], [20, 9], [25, 13], [20, 16]], W[2]);
+  c.dots([[13, 19], [17, 18], [21, 19]], P[3]);
+  c.eye(5, 17, 'angryL').px(2, 20, INK);
+  return c.outline().shadow(16, 29.5, 12).finish();
+};
+
+// 鳴き声のあとに雨が降るカエル（頭の上に雨雲）
+const rainfrog = () => {
+  const c = makeCanvas();
+  const P = ['#d0e8ff', '#5a8ad8', '#3a64b0', '#2a4a88'];
+  c.ellipse(16, 22, 10, 6.5, P[1], (x, y) => y < 28);
+  c.recolor(P[1], P[2], (x, y) => y >= 26 || x >= 23);
+  c.ellipse(16, 24, 6, 3, P[0]);
+  c.ellipse(10, 15, 3.2, 3.2, P[1]).ellipse(22, 15, 3.2, 3.2, P[1]);
+  c.ellipse(10, 15, 1.8, 1.8, WHITE).ellipse(22, 15, 1.8, 1.8, WHITE);
+  c.rect(10, 14, 1, 2, INK).rect(22, 14, 1, 2, INK);
+  c.mouth(16, 20, 'open');
+  c.ellipse(16, 5, 8, 3, '#c3cbd8').ellipse(12, 4, 4, 3, '#c3cbd8').ellipse(20, 3.5, 4, 3, '#c3cbd8');
+  c.rect(6, 26, 4, 2, P[2]).rect(22, 26, 4, 2, P[2]);
+  c.outline();
+  c.dots([[9, 9], [14, 10], [19, 9], [24, 10], [7, 12]], PAL.water[1]);
+  return c.shadow(16, 29.5, 11).finish();
+};
+
+// 氷の海の深くにすむ、長い長い魚
+const oarfish = () => {
+  const c = makeCanvas();
+  const P = ['#ffffff', '#dceef8', '#a8cce0', '#7aa8c4'];
+  for (let i = 0; i <= 40; i++) {
+    const t = i / 40;
+    const x = 4 + t * 25;
+    const y = 15 + Math.sin(t * Math.PI * 1.6) * 4;
+    c.ellipse(x + 0.5, y + 0.5, 3 - t * 1.6, 3 - t * 1.6, P[1]);
+    if (i % 3 === 0) c.line(x, y - 3, x - 1, y - 5, PAL.ice[2]);
+  }
+  c.recolor(P[1], P[2], (x, y) => c.get(x, y - 2) === P[1] && c.get(x, y - 3) !== null && y > 15 + Math.sin(((x - 4) / 25) * Math.PI * 1.6) * 4 + 1);
+  c.line(2, 13, 0, 8, PAL.ice[2]).line(4, 12, 4, 7, PAL.ice[2]);
+  c.eye(4, 14, 'dot');
+  c.outline();
+  twinkle(c, 27, 4, WHITE);
+  twinkle(c, 10, 26, WHITE);
+  return c.shadow(16, 29.5, 11).finish();
+};
+
+export const SCALE = { havenroar, nightserpent, thunderdragon, elderdragon, sanddrake, rainfrog, oarfish, lizard, wyvern, frog, flyfish, eel, croc, icefish, anglerfish, frostwyrm, shark, catfish, riverdragon, volcanoking };

@@ -44,7 +44,7 @@ export const ENEMIES = {
   // --- 雷雨（雷＞水・土） ---
   sparkbug: { monster: 'drone', element: 'thunder', hp: 220, speed: 1.6, drop: 2, damage: 1, size: 0.25 },
   raincloud: { monster: 'waterslime', element: 'water', hp: 360, speed: 0.9, drop: 2, damage: 1, size: 0.32 },
-  mudman: { monster: 'golem', element: 'earth', hp: 500, speed: 0.7, drop: 2, damage: 1, size: 0.34 },
+  mudman: { monster: 'muddoll', element: 'earth', hp: 500, speed: 0.7, drop: 2, damage: 1, size: 0.34 },
   thunderbear: { monster: 'magnetgolem', element: 'thunder', hp: 590, speed: 0.8, drop: 3, damage: 1, size: 0.36 },
   thunderwolf: { monster: 'thunderweasel', element: 'thunder', hp: 2340, speed: 0.9, drop: 12, damage: 2, size: 0.42, elite: true },
   raijinboss: { monster: 'raijin', element: 'thunder', hp: 5940, speed: 0.4, drop: 50, damage: 0, size: 0.5, boss: true },
@@ -82,8 +82,8 @@ export const ENEMIES = {
   chimera: { monster: 'chimera', element: 'fire', hp: 3840, speed: 0.6, drop: 20, damage: 2, size: 0.44, elite: true },
   twinking: { monster: 'twinking', element: 'ice', hp: 10800, speed: 0.4, drop: 60, damage: 0, size: 0.5, boss: true },
   // --- 聖域（光2・炎1） ---
-  wisplight: { monster: 'lumen', element: 'light', hp: 880, speed: 1.4, drop: 3, damage: 1, size: 0.26 },
-  holyknight: { monster: 'crystalgolem', element: 'light', hp: 2450, speed: 0.7, drop: 4, damage: 1, size: 0.34 },
+  wisplight: { monster: 'lightspirit', element: 'light', hp: 880, speed: 1.4, drop: 3, damage: 1, size: 0.26 },
+  holyknight: { monster: 'paladin', element: 'light', hp: 2450, speed: 0.7, drop: 4, damage: 1, size: 0.34 },
   flamespirit: { monster: 'torchbearer', element: 'fire', hp: 1230, speed: 1.2, drop: 5, damage: 1, size: 0.3 },
   seraph: { monster: 'archangel', element: 'light', hp: 10500, speed: 0.6, drop: 20, damage: 2, size: 0.44, elite: true },
   sanctuaryguard: { monster: 'sanctuaryguard', element: 'light', hp: 28000, speed: 0.4, drop: 80, damage: 0, size: 0.5, boss: true },

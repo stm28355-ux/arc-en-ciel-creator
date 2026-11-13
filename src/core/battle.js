@@ -138,7 +138,13 @@ export function step(b, dt, ctx) {
     const def = ENEMIES[e.kind];
     b.gained[def.element] += def.drop;
     const u = e.killedBy;
-    b.kills.push({ owner: u?.owner ?? null, enemy: e.kind, sword: !!u?.buffed.sword, flag: !!u?.buffed.flag, elite: !!def.elite, boss: !!def.boss });
+    // 倒したときの敵のようす（進化の条件に使う）：やけど・凍えた・霧で遅くなった・光の祭壇の範囲
+    const p = posOf(e);
+    const cell = `${Math.floor(p.x)},${Math.floor(p.y)}`;
+    b.kills.push({
+      owner: u?.owner ?? null, enemy: e.kind, sword: !!u?.buffed.sword, flag: !!u?.buffed.flag, elite: !!def.elite, boss: !!def.boss,
+      burn: !!(e.burn && e.burn.until > b.time), chill: !!(e.chill && e.chill.until > b.time), slow: !!ctx.slow?.get(cell), expose: !!ctx.expose?.get(cell),
+    });
   }
   if (dead.length) b.enemies = b.enemies.filter((e) => e.hp > 0);
 

@@ -153,4 +153,215 @@ const forestlord = () => {
   return c.shadow(16, 29.5, 13).finish();
 };
 
-export const PLANT = { sprite, forestsprite, vine, ancienttree, twilight, toadstool, frostflower, forestlord };
+// ===== 名簿を200種にしたとき =====
+
+// 宙に浮かぶ何かの種。穴の中は見えない（のぞくと心をみだされる）
+const voidseed = () => {
+  const c = makeCanvas();
+  const P = ['#ffffff', '#e8e4f0', '#c4bdd6', '#9a92b4'];
+  c.poly([[16, 2], [25, 12], [24, 20], [16, 25], [8, 20], [7, 12]], P[1]);
+  c.recolor(P[1], P[2], (x, y) => x >= 20 || y >= 21);
+  c.line(16, 3, 16, 7, P[3]);
+  c.ellipse(16, 15, 4.5, 4.5, '#1a1428');
+  for (let i = 0; i < 14; i++) c.px(16 + Math.cos(i * 0.9) * (0.5 + i * 0.25), 15 + Math.sin(i * 0.9) * (0.5 + i * 0.25), '#6a4aa9');
+  c.ellipse(11, 9, 1.5, 2, P[0]);
+  c.outline();
+  c.dots([[5, 26], [27, 24], [3, 8], [28, 6]], C.purple[1]);
+  return c.shadow(16, 29.5, 6, 1.2).finish();
+};
+
+// 「無」をつかさどる、宙に浮く樹（幹に穴、根がたれる）
+const voidtree = () => {
+  const c = makeCanvas();
+  const W = ['#f4f2f8', '#d8d2e4', '#ada4c0', '#847aa0'];
+  c.line(12, 22, 9, 27, W[2]).line(16, 22, 16, 28, W[2]).line(20, 22, 23, 27, W[2]);
+  c.poly([[12, 12], [20, 12], [21, 23], [11, 23]], W[1]);
+  c.recolor(W[1], W[2], (x) => x >= 18);
+  c.ellipse(16, 17, 2.5, 3, '#1a1428');
+  c.ellipse(16, 8, 13, 6.5, '#ffffff');
+  c.ellipse(10, 6, 5, 3.5, '#f4f2f8').ellipse(22, 7, 5, 3.5, '#f4f2f8');
+  c.recolor(['#ffffff', '#f4f2f8'], W[1], (x, y) => y >= 11);
+  c.eyes(12, 8, 7, 'line', '#6a4aa9');
+  c.outline();
+  c.dots([[4, 18], [28, 20], [6, 22]], C.purple[1]);
+  return c.shadow(16, 30, 8, 1.2).finish();
+};
+
+// 花びらが扇風機のように回る花
+const tornadoflower = () => {
+  const c = makeCanvas();
+  const P = PAL.wind;
+  c.line(16, 18, 16, 28, C.leaf[2], 2);
+  leaf(c, 12, 24, 3.2, -0.5, C.leaf[1]);
+  leaf(c, 20, 25, 3.2, -2.6, C.leaf[1]);
+  for (let i = 0; i < 4; i++) {
+    const a = (i / 4) * Math.PI * 2 + 0.4;
+    c.poly([[16, 11], [16 + Math.cos(a) * 11, 11 + Math.sin(a) * 9], [16 + Math.cos(a + 0.6) * 8, 11 + Math.sin(a + 0.6) * 7]], i % 2 ? P[1] : '#ffe3ee');
+  }
+  c.ellipse(16, 11, 3.5, 3.5, C.gold[1]);
+  c.eyes(14, 10, 3, 'pip').mouth(16, 12, 'smile2');
+  c.outline();
+  c.dots([[3, 4], [4, 3], [28, 18], [29, 17], [2, 17]], P[0]);
+  return c.shadow(16, 29.5, 6).finish();
+};
+
+// 竜の形にからみあったツタ（先に爪の形の硬い実）
+const dragvine = () => {
+  const c = makeCanvas();
+  const L = C.leaf;
+  const W = PAL.wind;
+  for (let i = 0; i <= 30; i++) {
+    const t = i / 30;
+    c.ellipse(26 - t * 13 + Math.sin(t * 6) * 2 + 0.5, 27 - t * 16 + 0.5, 2.6, 2.6, i % 4 < 2 ? L[2] : L[3]);
+  }
+  c.ellipse(10, 9, 6, 4.5, W[1]);
+  c.poly([[5, 9], [0, 11], [5, 13]], W[1]);
+  c.poly([[10, 5], [13, 1], [14, 6]], L[1]).poly([[13, 6], [17, 3], [16, 8]], L[1]);
+  c.eye(7, 7, 'angryL');
+  for (const [x, y] of [[20, 18], [23, 24]]) c.poly([[x, y], [x + 4, y - 2], [x + 2, y + 2]], '#e8c47a');
+  c.outline();
+  leaf(c, 28, 14, 2, -0.5, L[0]);
+  return c.shadow(18, 29.5, 9).finish();
+};
+
+// 葉っぱの筒から、からい種を飛ばす
+const peppercannon = () => {
+  const c = makeCanvas();
+  const L = C.leaf;
+  c.ellipse(16, 25, 7, 3.5, C.wood[2]);
+  c.poly([[11, 24], [8, 9], [14, 6], [20, 10], [21, 24]], L[1]);
+  c.recolor(L[1], L[2], (x) => x >= 17);
+  c.ellipse(11, 7.5, 3.5, 2.5, L[3]).ellipse(11, 7.5, 2, 1.4, '#3a2a20');
+  c.eyes(12, 15, 5, 'angry').mouth(15, 19, 'flat');
+  c.outline();
+  for (const [x, y] of [[5, 3], [2, 6]]) c.ellipse(x, y, 1.6, 1.2, PAL.fire[2]);
+  c.dots([[7, 1], [3, 2]], C.lava[1]);
+  return c.shadow(16, 29.5, 8).finish();
+};
+
+// 雷の性質をもつ4本の草（四方を向く）
+const denraishisou = () => {
+  const c = makeCanvas();
+  const Y = PAL.thunder;
+  c.ellipse(16, 24, 8, 4, C.wood[1], (x, y) => y >= 22);
+  c.rect(8, 21, 16, 2, C.wood[2]);
+  for (const [x0, x1, y1] of [[11, 5, 9], [14, 12, 4], [18, 20, 4], [21, 27, 9]]) {
+    c.line(x0, 21, x1, y1, C.leaf[2], 2);
+    c.poly([[x1 - 1.5, y1 + 1], [x1 + 1.5, y1 - 2], [x1 + 0.5, y1 + 1], [x1 + 2, y1 + 1]], Y[1]);
+  }
+  c.eyes(13, 24, 5, 'dot').mouth(16, 26, 'smile2');
+  c.outline();
+  c.dots([[3, 4], [29, 3], [16, 0]], Y[0]);
+  return c.shadow(16, 29.5, 9).finish();
+};
+
+// たんぽぽの綿毛に宿った小さな精
+const dandelion = () => {
+  const c = makeCanvas();
+  c.line(16, 16, 16, 27, C.leaf[2]);
+  for (let i = 0; i < 14; i++) {
+    const a = (i / 14) * Math.PI * 2;
+    c.ellipse(16 + Math.cos(a) * 8, 11 + Math.sin(a) * 7.5, 2.2, 2.2, '#ffffff');
+  }
+  c.ellipse(16, 11, 8, 7.5, '#ffffff');
+  c.each((x, y) => { if (c.get(x, y) === '#ffffff' && (x * 7 + y * 3) % 5 === 0) c.px(x, y, '#e6eef8'); });
+  c.ellipse(16, 11, 4.5, 4, '#fff6d6');
+  leaf(c, 13, 25, 3, -0.4, C.leaf[1]);
+  c.eyes(14, 10, 3, 'dot').mouth(16, 13, 'smile2');
+  c.outline();
+  c.dots([[28, 24], [27, 26], [4, 26]], '#ffffff');
+  return c.shadow(16, 29.5, 5).finish();
+};
+
+// たそがれの精が、夜明けの光を浴びた姿
+const dawnsprite = () => {
+  const c = makeCanvas();
+  const P = PAL.light;
+  c.line(16, 18, 16, 27, C.leaf[2], 2);
+  leaf(c, 12, 23, 3.5, -0.5, C.leaf[1]);
+  leaf(c, 20.5, 24, 3.5, -2.6, C.leaf[1]);
+  for (let i = 0; i < 10; i++) {
+    const a = (i / 10) * Math.PI * 2 - Math.PI / 2;
+    c.ellipse(16 + Math.cos(a) * 7.5, 11 + Math.sin(a) * 7, 3, 3, i % 2 ? '#ffb4a0' : P[1]);
+  }
+  c.ellipse(16, 11, 5.5, 5, '#fff8e0');
+  c.eyes(13, 10, 5, 'happy').mouth(16, 13, 'smile');
+  c.outline();
+  for (let i = 0; i < 5; i++) {
+    const a = -Math.PI / 2 + (i - 2) * 0.5;
+    c.px(16 + Math.cos(a) * 14, 11 + Math.sin(a) * 12, P[0]);
+  }
+  return c.shadow(16, 29.5, 7).finish();
+};
+
+// どくキノコが闇を吸って育った姿（うずまきのもよう）
+const illusionshroom = () => {
+  const c = makeCanvas();
+  const K = ['#d8c4f2', '#5a3a96', '#432a78', '#2e1c56'];
+  c.ellipse(16, 22, 5, 6, '#e8e0f4', (x, y) => y < 28);
+  c.recolor('#e8e0f4', '#c4b8dc', (x) => x >= 19);
+  c.ellipse(16, 12, 13, 8.5, K[1], (x, y) => y < 16);
+  c.recolor(K[1], K[2], (x, y) => y >= 13 || x >= 25);
+  for (const [cx, cy] of [[10, 10], [21, 9]]) for (let i = 0; i < 10; i++) c.px(cx + Math.cos(i * 1.1) * (0.4 + i * 0.25), cy + Math.sin(i * 1.1) * (0.4 + i * 0.25), '#c79bff');
+  c.rect(4, 15, 24, 1, '#c4b8dc');
+  c.eyes(13, 20, 5, 'closed', '#4a2a78').mouth(16, 24, 'smile2', '#4a2a78');
+  c.outline();
+  c.dots([[4, 5], [27, 4], [29, 20], [3, 21]], '#c79bff');
+  return c.shadow(16, 29.5, 8).finish();
+};
+
+// 氷の満開をむかえた精（雪の結晶の花びら）
+const icebloom = () => {
+  const c = makeCanvas();
+  const P = PAL.ice;
+  dress(c, P, { top: 18, bottom: 27, wTop: 3, wBottom: 8 });
+  c.rect(10, 19, 2, 2, C.skin[1]).rect(21, 19, 2, 2, C.skin[2]);
+  for (let i = 0; i < 9; i++) {
+    const a = Math.PI + (i / 8) * Math.PI;
+    const x = 16 + Math.cos(a) * 8.5;
+    const y = 12 + Math.sin(a) * 8;
+    c.line(16 + Math.cos(a) * 5, 12 + Math.sin(a) * 5, x, y, WHITE);
+    c.dots([[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]], P[1]);
+  }
+  head(c, { cy: 12, rx: 6.5, ry: 6, skin: ['#ffffff', '#f2fbff', '#d6ecf5', '#b7d4e2'] });
+  c.ellipse(16, 8, 7, 3, P[2], (x, y) => y < 9);
+  flower(c, 21, 7, 1.6, WHITE, P[1], 6);
+  c.eyes(13, 12, 5, 'dot', '#2b4a6b').mouth(15, 15, 'smile2', '#2b4a6b');
+  c.outline();
+  twinkle(c, 4, 22, WHITE);
+  return c.shadow(16, 29.5, 8).finish();
+};
+
+// 水の上にうかぶ、はすの花の精
+const lotus = () => {
+  const c = makeCanvas();
+  const P = ['#ffffff', '#ffd6e6', '#f2a6c4', '#d47aa0'];
+  c.ellipse(16, 25, 13, 3.5, C.leaf[2]);
+  c.ellipse(16, 24.5, 12, 2.5, C.leaf[1]);
+  c.poly([[16, 24], [28, 22], [28, 26]], C.leaf[3]);
+  for (const [x, y, w] of [[9, 18, 4], [23, 18, 4], [12, 15, 4], [20, 15, 4], [16, 12, 4.5]]) c.ellipse(x, y, w * 0.7, w + 1, P[1]);
+  c.recolor(P[1], P[2], (x, y) => y >= 20);
+  c.ellipse(16, 19, 5, 3.5, '#fff1a8');
+  c.eyes(13, 18, 5, 'dot').mouth(16, 21, 'smile2');
+  c.outline();
+  c.dots([[4, 27], [28, 28]], PAL.water[1]);
+  return c.finish();
+};
+
+// 暗い場所で光るこけのかたまり
+const glowmoss = () => {
+  const c = makeCanvas();
+  const M = ['#f2ffc8', '#c8ee7a', '#94c84e', '#6a9c34'];
+  c.ellipse(16, 20, 11, 8, M[2], (x, y) => y < 28);
+  for (const [x, y, r] of [[10, 16, 4], [16, 13, 4.5], [22, 16, 4], [12, 21, 3.5], [20, 21, 3.5]]) c.ellipse(x, y, r, r, M[1]);
+  c.recolor(M[1], M[2], (x, y) => y >= 23);
+  c.dots([[11, 14], [17, 11], [23, 15], [14, 18]], '#fffbd2');
+  c.eyes(12, 17, 7, 'happy').mouth(16, 20, 'smile');
+  c.outline();
+  twinkle(c, 4, 9, '#fffbd2');
+  twinkle(c, 28, 7, '#fffbd2');
+  twinkle(c, 26, 25, PAL.light[1]);
+  return c.shadow(16, 29.5, 11).finish();
+};
+
+export const PLANT = { sprite, forestsprite, vine, ancienttree, twilight, toadstool, frostflower, forestlord, voidseed, voidtree, tornadoflower, dragvine, peppercannon, denraishisou, dandelion, dawnsprite, illusionshroom, icebloom, lotus, glowmoss };

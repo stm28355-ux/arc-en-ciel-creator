@@ -1,6 +1,6 @@
 // テンタクル系の絵（クラゲ・タコ・イカ・貝）
 import { makeCanvas, PAL, C, WHITE, INK } from './kit.js';
-import { twinkle } from './parts.js';
+import { twinkle, leaf, head } from './parts.js';
 
 // クラゲ：かさ（P）と、ゆれる触手
 function jellyfish(c, P, { cy = 12, rx = 9, ry = 8, tent = P[2], tentN = 5, tentLen = 12, point = false } = {}) {
@@ -161,4 +161,181 @@ const inkling = () => {
   return c.outline().shadow(15, 29.5, 8).finish();
 };
 
-export const MOLLUSK = { jelly, shockjelly, aurorajelly, prismjelly, mudoctopus, squid, kraken, pearlclam, inkling };
+// ===== 名簿を200種にしたとき =====
+
+// 木から吊るされた硬い実と、それを振り回すツタ（本体はツタ）
+const fruitwhip = () => {
+  const c = makeCanvas();
+  const L = C.leaf;
+  c.rect(14, 0, 18, 3, C.wood[2]);
+  for (let i = 0; i <= 26; i++) {
+    const t = i / 26;
+    c.ellipse(24 - Math.sin(t * Math.PI) * 9 - t * 6 + 0.5, 3 + t * 15 + 0.5, 1.8, 1.8, i % 5 < 3 ? L[2] : L[3]);
+  }
+  leaf(c, 27, 6, 2.5, 0.6, L[1]);
+  c.eyes(22, 6, 4, 'angry');
+  c.ellipse(10, 22, 6.5, 6, '#d6862a');
+  c.recolor('#d6862a', '#a85e1e', (x, y) => y >= 24 || x >= 13);
+  c.dots([[7, 19], [10, 18], [13, 20], [8, 23], [11, 25]], '#f2c06a');
+  return c.outline().shadow(11, 29.5, 7).finish();
+};
+
+// 鎧に寄生する触手（中にだれもいない鎧）
+const mailparasite = () => {
+  const c = makeCanvas();
+  const M = C.metal;
+  for (const [x0, y0, x1, y1] of [[10, 18, 3, 24], [22, 18, 29, 23], [13, 24, 10, 29], [19, 24, 23, 29], [11, 10, 5, 6]]) c.line(x0, y0, x1, y1, '#9a6ab8', 2);
+  c.rect(10, 14, 12, 11, M[1]);
+  c.recolor(M[1], M[2], (x) => x >= 19);
+  c.rect(15, 15, 2, 9, M[3]);
+  c.ellipse(16, 9, 6, 5.5, M[1]);
+  c.recolor(M[1], M[2], (x, y) => y < 14 && x >= 19);
+  c.rect(11, 8, 10, 2, '#1c1430');
+  c.px(13, 8, '#c79bff').px(18, 8, '#c79bff');
+  c.line(16, 3, 16, 1, '#c84a4a');
+  return c.outline().shadow(16, 29.5, 10).finish();
+};
+
+// 岩にくっついてゆれる触手の花
+const anemone = () => {
+  const c = makeCanvas();
+  const P = ['#ffe0ec', '#ff9ec0', '#e86a9a', '#c04a7a'];
+  c.ellipse(16, 26, 11, 3.5, C.stone[2]);
+  c.rect(11, 15, 10, 10, P[2]);
+  c.recolor(P[2], P[3], (x) => x >= 18);
+  for (let i = 0; i < 7; i++) {
+    const x = 9 + i * 2.4;
+    for (let k = 0; k < 8; k++) c.px(x + Math.round(Math.sin((k + i) / 1.6)), 15 - k, k > 5 ? '#fff1a8' : P[1]);
+  }
+  c.eyes(13, 18, 5, 'dot').mouth(16, 22, 'smile');
+  return c.outline().shadow(16, 30, 12, 1.2).finish();
+};
+
+// あざやかな紫色のウミウシ（きれいな色は毒のしるし）
+const seaslug = () => {
+  const c = makeCanvas();
+  const P = ['#e8c8ff', '#9a5ad6', '#7440ac', '#4f2a80'];
+  c.ellipse(16, 21, 12.5, 5.5, P[1]);
+  c.recolor(P[1], P[2], (x, y) => y >= 24);
+  c.rect(4, 22, 25, 1, '#ffd84d');
+  for (const x of [17, 20, 23]) c.poly([[x - 2, 17], [x, 11], [x + 2, 17]], '#ff9a52');
+  c.line(7, 16, 5, 11, P[2]).line(10, 16, 10, 11, P[2]).px(5, 10, '#ffd84d').px(10, 10, '#ffd84d');
+  c.eyes(6, 19, 5, 'dot').mouth(9, 22, 'smile2');
+  return c.outline().shadow(16, 29.5, 13).finish();
+};
+
+// 光のとどかない深い海のイカ（マントのような腕、青い目）
+const deepsquid = () => {
+  const c = makeCanvas();
+  const P = ['#c88aa8', '#7a2a4e', '#5a1e3a', '#3e1428'];
+  c.poly([[16, 13], [2, 26], [8, 24], [11, 29], [16, 25], [21, 29], [24, 24], [30, 26]], P[2]);
+  c.poly([[16, 1], [24, 9], [23, 19], [9, 19], [8, 9]], P[1]);
+  c.recolor(P[1], P[2], (x) => x >= 20);
+  c.poly([[8, 7], [4, 4], [8, 11]], P[2]).poly([[24, 7], [28, 4], [24, 11]], P[2]);
+  c.eyes(11, 12, 8, 'dot', '#3a8aff');
+  c.px(11, 12, '#c8f2ff').px(19, 12, '#c8f2ff');
+  return c.outline().shadow(16, 29.5, 13).finish();
+};
+
+// 影から影へうつりすむ大ダコ（足がうすい影になっている）
+const shadowoctopus = () => {
+  const c = makeCanvas();
+  const P = ['#8a72c0', '#3a2c5c', '#2a2046', '#1c1430'];
+  for (let i = 0; i < 8; i++) {
+    const a = Math.PI * 0.02 + (i / 7) * Math.PI * 0.96;
+    c.line(16, 18, 16 - Math.cos(a) * 14, 21 + Math.sin(a) * 7, i % 2 ? P[2] : P[1], 2);
+  }
+  c.ellipse(16, 12, 9, 9, P[1]);
+  c.recolor(P[1], P[2], (x, y) => x >= 20 && y >= 10);
+  c.dots([[11, 7], [12, 6]], P[0]);
+  c.eyes(11, 11, 8, 'dot', '#ff5a7a').mouth(16, 16, 'smile2', '#ff5a7a');
+  c.outline();
+  c.ellipse(16, 28, 14, 2, 'rgba(42,34,56,0.4)', (x, y) => c.get(x, y) === null);
+  return c.finish();
+};
+
+// シャボンのかさのクラゲ（泡にふれるとはじける）
+const bubblejelly = () => {
+  const c = makeCanvas();
+  const P = ['#ffffff', '#eef4ff', '#d4def4', '#b4c2e2'];
+  jellyfish(c, P, { cy: 12, rx: 9, ry: 8, tent: '#c8d8f0', tentLen: 13 });
+  c.ellipse(12, 7, 2, 2.5, '#ffe3ee').px(19, 6, '#c8f2ff').px(20, 7, '#c8f2ff');
+  c.eyes(13, 10, 5, 'dot').mouth(16, 13, 'smile');
+  c.outline();
+  for (const [x, y, r] of [[4, 6, 1.6], [27, 9, 2], [26, 22, 1.4], [5, 21, 1.2]]) {
+    c.each((px, py) => {
+      const d = Math.hypot(px + 0.5 - x, py + 0.5 - y);
+      if (d <= r && d > r - 1 && c.get(px, py) === null) c.px(px, py, '#9fc8f0');
+    });
+  }
+  return c.shadow(16, 29.5, 6, 1.2).finish();
+};
+
+// 古いタコつぼにすむ主
+const potoctopus = () => {
+  const c = makeCanvas();
+  const P = ['#ffd8c8', '#e88a6a', '#c86a4e', '#a04e36'];
+  const T = ['#e8c49a', '#b8845a', '#8f6038', '#6a4426'];
+  c.line(8, 13, 3, 9, P[1], 2).line(24, 13, 29, 10, P[1], 2).line(6, 15, 2, 17, P[2], 2);
+  c.ellipse(16, 21, 9.5, 7.5, T[1], (x, y) => y < 28);
+  c.recolor(T[1], T[2], (x, y) => x >= 21 || y >= 25);
+  c.rect(10, 18, 12, 1, T[3]);
+  c.ellipse(16, 12, 7, 3, T[2]);
+  c.ellipse(16, 10, 6, 5, P[1], (x, y) => y < 13);
+  c.ellipse(16, 12, 5.5, 1.8, '#3a2a20');
+  c.eyes(12, 9, 6, 'dot');
+  return c.outline().shadow(16, 29.5, 10).finish();
+};
+
+// 雷の敵の力を吸いつづけたクラゲ（稲妻のかんむり）
+const boltjelly = () => {
+  const c = makeCanvas();
+  const P = PAL.thunder;
+  jellyfish(c, ['#ffffff', '#ffe45a', '#f0b52a', '#bf8618'], { cy: 12, rx: 10, ry: 8.5, tent: P[3], tentN: 6, tentLen: 14 });
+  c.poly([[10, 5], [12, 0], [13, 4], [16, -1], [19, 4], [20, 0], [22, 5]], WHITE);
+  c.eyes(12, 9, 7, 'angry').mouth(16, 13, 'grin');
+  c.outline();
+  for (const x of [3, 28]) c.line(x, 14, x + 2, 17, P[1]).line(x + 2, 17, x, 18, P[1]).line(x, 18, x + 2, 21, P[1]);
+  return c.shadow(16, 29.5, 7, 1.2).finish();
+};
+
+// 真珠から生まれた貝の姫
+const pearlprincess = () => {
+  const c = makeCanvas();
+  const S = ['#f4f0ff', '#c8c0e8', '#a69cd0', '#7d72ae'];
+  c.ellipse(16, 23, 13, 5.5, S[1], (x, y) => y >= 20);
+  c.recolor(S[1], S[2], (x, y) => y >= 26);
+  c.ellipse(16, 10, 13, 9, S[1], (x, y) => y < 11);
+  for (let x = 6; x <= 26; x += 4) c.line(16, 3, x, 10, S[2]);
+  c.poly([[12, 13], [20, 13], [22, 21], [10, 21]], '#ffd6e6');
+  head(c, { cy: 13, rx: 4.5, ry: 4, skin: C.skin });
+  c.ellipse(16, 10.5, 5, 2.2, '#ffe9a0', (x, y) => y < 12);
+  c.dots([[14, 9], [16, 8], [18, 9]], C.gold[1]);
+  c.eyes(14, 13, 3, 'small').px(16, 15, '#ff8aa0');
+  c.ellipse(23, 19, 2, 2, WHITE).px(22, 18, '#fff6a8');
+  c.outline();
+  twinkle(c, 28, 4, PAL.light[1]);
+  return c.shadow(16, 29.5, 12).finish();
+};
+
+// 光の玉とクラゲから生まれた、星の形のヒトデ
+const starfish = () => {
+  const c = makeCanvas();
+  const P = PAL.light;
+  const pts = [];
+  for (let i = 0; i < 10; i++) {
+    const a = -Math.PI / 2 + (i / 10) * Math.PI * 2;
+    const r = i % 2 ? 5 : 12;
+    pts.push([16 + Math.cos(a) * r, 16 + Math.sin(a) * r]);
+  }
+  c.poly(pts, P[1]);
+  c.recolor(P[1], P[2], (x, y) => x >= 19 && y >= 16);
+  c.dots([[16, 7], [10, 13], [22, 13], [12, 21], [20, 21]], P[0]);
+  c.eyes(13, 14, 5, 'dot').mouth(16, 18, 'smile');
+  c.outline();
+  twinkle(c, 4, 4, WHITE);
+  twinkle(c, 27, 26, P[0]);
+  return c.shadow(16, 29.5, 8).finish();
+};
+
+export const MOLLUSK = { fruitwhip, mailparasite, anemone, seaslug, deepsquid, shadowoctopus, bubblejelly, potoctopus, boltjelly, pearlprincess, starfish, jelly, shockjelly, aurorajelly, prismjelly, mudoctopus, squid, kraken, pearlclam, inkling };
