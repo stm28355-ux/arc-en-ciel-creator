@@ -9,6 +9,7 @@
 //   ・属性はある程度固める
 // 地図は道の折れ目（点の並び）から描き、置けないマス・資源地は決まった乱数で置く（何度作っても同じ）。
 // 敵の体力はあとで tools/tune-regions.mjs で合わせる（ここでは比だけ決める）。
+// 注意：作り直すと src/data/hard.js の敵の体力が比に戻る。作り直したら tools/tune-regions.mjs hard1 … hard10 でもう一度合わせる。
 import fs from 'node:fs';
 import { MONSTERS } from '../src/data/monsters.js';
 import { parseMap } from '../src/core/map.js';
