@@ -510,3 +510,13 @@ test('1×1マスより大きい施設を5つ足した（大いしゆみ・大風
   for (const k of ['ballista', 'whirlpool', 'cauldron']) assert.ok(FACILITIES[k].splash && FACILITIES[k].atk > 0, k);
   assert.ok(FACILITIES.cauldron.burn && FACILITIES.whirlpool.chill);
 });
+
+test('地方・地域の名前（2026-11-14 企画者の決定）。高難易度はツーイス未踏区域', async () => {
+  const { PROVINCES, HARD_AREA } = await import('../src/data/regions.js');
+  assert.deepEqual(PROVINCES.map((p) => p.name), ['ミルト王国', 'べジブ共和国', 'フツルー山脈', 'フィラッシュ混沌地']);
+  assert.deepEqual(
+    PROVINCES.flatMap((p) => p.regions).map((id) => REGIONS[id].name),
+    ['チキル平原', 'ポーカ森林', 'ビリフ砂漠', 'キロット川', 'パリカ雷雨荒野', 'ガーリク海', 'レオジン火山', 'モンレ雪山', 'ルアップ混山', 'マグパロ聖域', 'ハチマチ境界', 'サーモルン魔王城'],
+  );
+  assert.equal(HARD_AREA.name, 'ツーイス未踏区域');
+});

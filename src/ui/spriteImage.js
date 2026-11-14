@@ -3,6 +3,7 @@
 // 敵は大きさを変えずに、縁取りの色（palette[1]）とオーラで見分ける（2026-11-12 決定。見本は docs/art/enemy-look.png）。
 import { drawSprite } from '../art/sprites.js';
 import { drawFacilitySprite } from '../art/facility.js';
+import { drawNodeSprite } from '../art/node.js';
 
 const LOOKS = {
   ally: { outline: null, aura: null },
@@ -134,4 +135,29 @@ export function facilityImg(kind, { scale = 1, cls = 'facility-sprite' } = {}) {
   const url = facilityUrls.get(kind);
   const s = drawFacilitySprite(kind);
   return url ? `<img class="${cls}" src="${url}" width="${s.w * scale}" height="${s.h * scale}" alt="">` : null;
+}
+
+// ---------- 資源地の絵 ----------
+const nodeCanvases = new Map();
+/** 資源地の絵の canvas（32×32）。属性がなければ null */
+export function nodeCanvas(element) {
+  if (!nodeCanvases.has(element)) {
+    const s = drawNodeSprite(element);
+    let cv = null;
+    if (s) {
+      cv = document.createElement('canvas');
+      cv.width = s.w;
+      cv.height = s.h;
+      const data = new Uint8ClampedArray(s.w * s.h * 4);
+      s.grid.forEach((v, i) => data.set(parse(s.palette[v]), i * 4));
+      cv.getContext('2d').putImageData(new ImageData(data, s.w, s.h), 0, 0);
+    }
+    nodeCanvases.set(element, cv);
+  }
+  return nodeCanvases.get(element);
+}
+/** 一覧で使う資源地の絵（img） */
+export function nodeImg(element, size = 32) {
+  const cv = nodeCanvas(element);
+  return cv ? `<img class="sprite" src="${cv.toDataURL()}" width="${size}" height="${size}" alt="">` : '';
 }

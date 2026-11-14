@@ -3,7 +3,8 @@ import { ELEMENTS, ELEMENT, bagTotal, addBag } from './data/elements.js';
 import { MONSTERS } from './data/monsters.js';
 import { FACILITIES, FACILITY_ORDER, FACILITY_TYPE_NAME } from './data/facilities.js';
 import { ENEMIES } from './data/enemies.js';
-import { REGIONS, PROVINCES } from './data/regions.js';
+import { REGIONS, PROVINCES, HARD_AREA } from './data/regions.js';
+import { worldMapSvg } from './ui/worldMap.js';
 import { parseMap } from './core/map.js';
 import { canAfford } from './core/materials.js';
 import { resolveLayout, canPlace, occupancy } from './core/layout.js';
@@ -12,16 +13,17 @@ import { createBattle, startBattle, step, pace, paceBag, waveSummary, rechargeUn
 import { loadSave, writeSave, clearSave, regionSave, newSave } from './core/save.js';
 import { draw, CELL, facilityIcon, FACILITY_COLOR } from './ui/render.js';
 import { renderMonsterScreen, onMonsterAction } from './ui/monsterScreen.js';
-import { spriteImg, facilityImg } from './ui/spriteImage.js';
+import { spriteImg, facilityImg, nodeImg } from './ui/spriteImage.js';
 import { applyBackground } from './ui/background.js';
 import { recordBattle, skillsOf } from './core/breeding.js';
 import { researchEffects, researchedLevel } from './core/research.js';
 import { RESEARCH, MIX_UNLOCK } from './data/research.js';
 import { regionOpen as isRegionOpen, opensAfter } from './core/progress.js';
 import { renderResearchScreen, onResearchAction } from './ui/researchScreen.js';
-import { renderFacilityScreen, facilityCostText } from './ui/facilityScreen.js';
+import { renderFacilityScreen, onFacilityAction, facilityCostText, facilityPic } from './ui/facilityScreen.js';
+import { palette, keepScroll } from './ui/palette.js';
 
-const VERSION = 'v0.8.6';
+const VERSION = 'v0.8.7';
 // 地域マップの canvas は、1マス32を2倍の細かさで描く（画面の大きさは今までと同じ）
 const DRAW_SCALE = 2;
 const STEP = 1 / 60;
@@ -118,8 +120,8 @@ function shapePreview(rows, size = 7) {
 // ---------- チュートリアルの案内 ----------
 function guideStep() {
   if (save.roster.length === 0) return '最初の仲間を作りましょう。「モンスター」→「錬成」で、無のエレメントを10入れて「錬成する」を押します。';
-  if (!save.ranOnce && save.roster.length < 3) return `仲間が1〜2体では草原のウェーブ1を越えられません。残りの無のエレメントで、あと${3 - save.roster.length}体作りましょう。`;
-  if (!save.ranOnce) return '「地域」→「第1地方」→「草原」で仲間をマスに置き、「戦闘開始」を押しましょう。負けても、手に入れたエレメントは持ち帰れます。';
+  if (!save.ranOnce && save.roster.length < 3) return `仲間が1〜2体ではチキル平原のウェーブ1を越えられません。残りの無のエレメントで、あと${3 - save.roster.length}体作りましょう。`;
+  if (!save.ranOnce) return '「地域」の地図で「チキル平原」を選び、仲間をマスに置いて「戦闘開始」を押しましょう。負けても、手に入れたエレメントは持ち帰れます。';
   // 調合で使えないエレメントが研究できるだけたまったら、研究を案内する
   for (const [el, id] of Object.entries(MIX_UNLOCK)) {
     if (researchedLevel(save, id) || (save.elements[el] ?? 0) < RESEARCH[id].costs[0][el]) continue;
@@ -132,8 +134,6 @@ function renderGuide() {
   const step = guideStep();
   guideEl.innerHTML = step ? `<div class="guide"><b>はじめに</b> ${step}</div>` : '';
   const cur = ['monsters', 'research', 'facilities'].includes(screen.name) ? screen.name : 'regions';
-  // ポップの見た目にした画面（今はモンスター画面だけ）は、暗い板を敷かずに背景を見せる
-  app.classList.toggle('pop-screen', screen.name === 'monsters');
   for (const b of navEl.querySelectorAll('[data-nav]')) b.classList.toggle('on', b.dataset.nav === cur);
 }
 
@@ -195,62 +195,64 @@ function goFacilities() {
   screen = { name: 'facilities' };
   renderBank();
   window.scrollTo(0, 0);
-  renderFacilityScreen(app, { costText, shapePreview });
+  renderFacilityScreen(app, facilityApi);
 }
 
 // ---------- ホーム：地方選択 → 地域選択 ----------
 const regionOpen = (id) => isRegionOpen(save, id);
 
-/** 地方選択 */
-function goHome() {
+const REGION_ORDER = PROVINCES.flatMap((p) => p.regions);
+let homeSel = null; // 地図で選んでいる地域
+
+/** 地方・地域の選択：地図（2026-11-14）。ピンを押すと右に地域のくわしい情報、「この地域へ」で地域マップへ */
+function goHome(selectId) {
   if (screen.name === 'map') leaveMap(screen);
   screen = { name: 'home' };
   renderBank();
-  window.scrollTo(0, 0);
-  const cards = PROVINCES.map((p) => {
-    const els = p.elements.map((e) => chip(e, ELEMENT[e].name)).join(' ');
-    if (!p.regions.length)
-      return `<button class="region-card" disabled><span class="name">${p.name}</span><span>${els}</span><span class="badge locked">まだ作っていない</span><span class="meta">${p.note}</span></button>`;
-    const cleared = p.regions.filter((id) => save.regions[id]?.cleared).length;
-    return `<button class="region-card" data-province="${p.id}">
-        <span class="name">${p.name}</span>
-        <span>${els}</span>
-        <span class="badge ${cleared ? '' : 'locked'}">攻略 ${cleared} / ${p.regions.length}</span>
-        <span class="meta">${p.regions.map((id) => REGIONS[id].name).join('・')}</span>
-      </button>`;
-  }).join('');
-  app.innerHTML = `<section class="province"><h2>地方を選ぶ</h2><div class="regions">${cards}</div></section>`;
+  if (selectId) homeSel = selectId;
+  // はじめは、まだ攻略していない一番先の地域
+  if (!homeSel || !REGIONS[homeSel]) homeSel = REGION_ORDER.find((id) => regionOpen(id) && !save.regions[id]?.cleared) ?? [...REGION_ORDER].reverse().find((id) => regionOpen(id));
+  renderHome();
 }
 
-/** 地域選択（地方の中の地域） */
-function goProvince(provinceId) {
-  if (screen.name === 'map') leaveMap(screen);
-  screen = { name: 'province', id: provinceId };
-  renderBank();
-  window.scrollTo(0, 0);
-  const p = PROVINCES.find((x) => x.id === provinceId);
+function renderHome() {
+  const svg = worldMapSvg({ isOpen: regionOpen, isCleared: (id) => !!save.regions[id]?.cleared, selected: homeSel });
+  app.innerHTML = `<div class="home-layout"><div class="map-frame">${svg}</div><section class="detail">${homePanel(homeSel)}</section></div>`;
+}
+
+function homePanel(id) {
+  const r = REGIONS[id];
+  const rs = save.regions[id];
+  const p = PROVINCES.find((x) => x.id === r.province);
+  const open = regionOpen(id);
   const bonus = researchEffects(save).baseHpAdd;
-  const regions = p.regions
-    .map((id) => {
-      const r = REGIONS[id];
-      const rs = save.regions[id];
-      const open = regionOpen(id);
-      const els = r.elements.map((e) => chip(e, ELEMENT[e].name)).join(' ');
-      const status = !open
-        ? `<span class="badge locked">${REGIONS[r.requires].name}を攻略すると開く</span>`
-        : rs?.cleared
-          ? `<span class="badge">攻略済み · 獲得ペース ${rs.bestPace.toFixed(2)}/秒</span>`
-          : '<span class="badge locked">未攻略</span>';
-      return `<button class="region-card" data-region="${id}" ${open ? '' : 'disabled'}>
-          <span class="name">${r.name}</span>
-          <span>${els}</span>
-          ${status}
-          <span class="meta">ウェーブ ${r.waves.length} · 拠点の耐久 ${r.baseHp + bonus}</span>
-        </button>`;
-    })
-    .join('');
-  app.innerHTML = `<div class="row" style="margin-bottom:10px"><button data-to="home">← 地方選択</button></div>
-    <section class="province"><h2>${p.name}</h2><p class="hint">地域を攻略すると、次の地域が開きます。地域ごとに手に入るエレメントの割合が違います（多い順に表示）。</p><div class="regions">${regions}</div></section>`;
+  const enemies = [...new Set(r.waves.flat().map((g) => g.enemy))].map((e) => ENEMIES[e]);
+  const boss = enemies.find((e) => e.boss);
+  const status = !open
+    ? `<span class="badge locked">${REGIONS[r.requires].name}を攻略すると開く</span>`
+    : rs?.cleared
+      ? `<span class="badge">攻略済み · 獲得ペース ${rs.bestPace.toFixed(2)}/秒</span>`
+      : '<span class="badge locked">未攻略</span>';
+  const provinces = PROVINCES.map((q) => {
+    const cleared = q.regions.filter((x) => save.regions[x]?.cleared).length;
+    return `<div class="prov-row"><b>${q.name}</b> <small>第${q.no}地方</small> ${q.elements.map((e) => chip(e, ELEMENT[e].name)).join(' ')} <span class="badge ${cleared ? '' : 'locked'}">攻略 ${cleared} / ${q.regions.length}</span></div>`;
+  }).join('');
+  return `<p class="hint">${p.name}（第${p.no}地方）</p>
+    <h2>${r.name}</h2>
+    <p>${status}</p>
+    <h4 class="dsec">手に入るエレメント <small>多い順</small></h4>
+    <div class="row">${r.elements.map((e) => chip(e, ELEMENT[e].name)).join(' ')}</div>
+    <h4 class="dsec">敵</h4>
+    <p>ウェーブ ${r.waves.length} · 拠点の耐久 ${r.baseHp + bonus}${boss && open ? ` · ボス：${boss.name}` : ''}</p>
+    <div class="row" style="margin-top:12px"><button class="primary big" data-region="${id}" ${open ? '' : 'disabled'}>この地域へ</button></div>
+    <h4 class="dsec">地方</h4>${provinces}
+    <p class="hint">地図のピンを押すと、地域を選べます。★は攻略した地域。まん中の霧の島（${HARD_AREA.name}）は、まだ入れません。</p>`;
+}
+
+/** 前の版の「地域選択」から来たとき：その地方の地域を選んだ地図にする */
+function goProvince(provinceId) {
+  const p = PROVINCES.find((x) => x.id === provinceId);
+  goHome(p.regions.find((id) => regionOpen(id) && !save.regions[id]?.cleared) ?? p.regions[0]);
 }
 
 // ---------- 地域マップ ----------
@@ -316,12 +318,21 @@ function leaveMap(s) {
   bankRun(s);
 }
 
+const facilityApi = { costText, shapePreview, chip };
+
 app.addEventListener('click', (ev) => {
-  const prov = ev.target.closest('[data-province]');
-  if (prov && screen.name === 'home') return goProvince(prov.dataset.province);
-  if (ev.target.closest('[data-to="home"]') && screen.name === 'province') return goHome();
+  const fa = ev.target.closest('[data-fact]');
+  if (fa && screen.name === 'facilities') {
+    if (onFacilityAction(fa.dataset.fact, fa.dataset)) renderFacilityScreen(app, facilityApi);
+    return;
+  }
+const pin = ev.target.closest('[data-pick]');
+  if (pin && screen.name === 'home') {
+    homeSel = pin.dataset.pick;
+    return renderHome();
+  }
   const region = ev.target.closest('[data-region]');
-  if (region && screen.name === 'province' && regionOpen(region.dataset.region)) return openRegion(region.dataset.region);
+  if (region && screen.name === 'home' && regionOpen(region.dataset.region)) return openRegion(region.dataset.region);
   const m = ev.target.closest('[data-mact]');
   if (m && screen.name === 'monsters') {
     if (onMonsterAction(monsterApi, monsterState, m.dataset.mact, m.dataset)) renderMonsterScreen(app, monsterApi, monsterState);
@@ -592,7 +603,7 @@ function onAction(s, act, data, el) {
       else if (s.result) scheduleAutoRetry(s);
       break;
     case 'home':
-      goProvince(s.region.province);
+      goHome(s.regionId);
       return;
     case 'tab':
       s.tab = data.v;
@@ -601,9 +612,13 @@ function onAction(s, act, data, el) {
     case 'pick-monster':
       s.sel = s.sel?.uid === data.uid ? null : { type: 'monster', uid: data.uid };
       break;
-    case 'pick-build':
-      s.sel = s.sel?.kind === data.kind ? null : { type: 'build', kind: data.kind };
+    case 'pick-build': {
+      // 今は建てられない施設（資材が足りない・作業施設が動いていない）は、くわしい情報を見るだけ
+      const def = FACILITIES[data.kind];
+      const ok = canAfford(s.resolved.alloc.remaining, def.cost, def.costAny) && requirementMet(s, data.kind);
+      s.sel = s.sel?.kind === data.kind ? null : { type: ok ? 'build' : 'info', kind: data.kind };
       break;
+    }
     case 'pick-carry': {
       const same = s.sel?.type === 'build' && s.sel.kind === 'carry' && s.sel.element === data.element;
       s.sel = same ? null : { type: 'build', kind: 'carry', element: data.element };
@@ -815,24 +830,35 @@ function renderSide(s) {
 
   let body = '';
   const placed = selectedPlaced(s);
-  if (s.sel && !placed) body += `<div class="card">${rotateRow(s, `置く向き：${DIR_NAME[s.placeDir]}。マスを押すと置きます。右クリック／Esc で取り消し`)}</div>`;
+  if (s.sel && s.sel.type !== 'info' && !placed) body += `<div class="card">${rotateRow(s, `置く向き：${DIR_NAME[s.placeDir]}。マスを押すと置きます。右クリック／Esc で取り消し`)}</div>`;
 
   if (s.tab === 'monster') {
     if (!save.roster.length) body += '<div class="card"><p>手持ちのモンスターがいません。「モンスター」→「錬成」で作りましょう。</p></div>';
-    else body += `<div class="card"><h3>手持ちのモンスター <small>押してからマスを選ぶ</small></h3><div class="list">${save.roster
-      .map((r) => {
+    else {
+      const cells = save.roster.map((r) => {
         const def = MONSTERS[r.kind];
         const p = placedMonster(s, r.uid);
-        const sel = s.sel?.type === 'monster' && s.sel.uid === r.uid;
-        const state = !p ? ['待機', ''] : working.has(r.uid) ? ['作業中', 'placed'] : ['配置中', 'placed'];
-        return `<button class="item ${sel ? 'sel' : ''}" data-act="pick-monster" data-uid="${r.uid}">
-          ${spriteImg(r.kind, { cls: 'icon sprite' }) ?? `<span class="icon" style="background:${ELEMENT[def.element].color}">${def.name[0]}</span>`}
-          <span>${def.name} Lv${r.level}${skillsOf(r).length > 1 ? ` <small>技${skillsOf(r).length}</small>` : ''}</span>
-          <span class="state ${state[1]}">${state[0]}</span>
-          <span class="sub">${shapePreview(def.shape)}<span>${ELEMENT[def.element].name} · 技「${skillsOf(r).map((k) => MONSTERS[k].skill).join('・')}」</span></span>
-        </button>`;
-      })
-      .join('')}</div></div>`;
+        const sel = (s.sel?.type === 'monster' && s.sel.uid === r.uid) || placed?.uid === r.uid;
+        return {
+          pic: spriteImg(r.kind, { size: 64, cls: 'sprite' }) ?? `<span class="icon" style="background:${ELEMENT[def.element].color}">${def.name[0]}</span>`,
+          act: 'pick-monster',
+          data: { uid: r.uid },
+          sel,
+          lv: `Lv${r.level}`,
+          mark: !p ? '' : working.has(r.uid) ? '作業' : '配置',
+          dot: ELEMENT[def.element].color,
+          title: `${def.name} Lv${r.level}`,
+        };
+      });
+      body += palette({ title: '手持ちのモンスター <small>押してからマスを選ぶ</small>', cells, key: 'side-monsters', attr: 'act', rows: 4 });
+      const pick = s.sel?.type === 'monster' && !placed ? save.roster.find((r) => r.uid === s.sel.uid) : null;
+      if (pick) {
+        const def = MONSTERS[pick.kind];
+        body += `<div class="card info"><h3>${def.name} <small>Lv${pick.level} · ${ELEMENT[def.element].name}</small></h3>
+          ${skillsOf(pick).map((k) => `<div class="detail-shape">${shapePreview(MONSTERS[k].shape, 8)}<span>「${MONSTERS[k].skill}」<br><small>攻撃 ${MONSTERS[k].atk} · 間隔 ${MONSTERS[k].interval}秒（Lv1のとき）</small></span></div>`).join('')}
+          <p class="hint">草地のマスを押すと置きます</p></div>`;
+      }
+    }
     if (placed?.uid) {
       const i = s.layout.monsters.findIndex((m) => m.uid === placed.uid);
       const us = s.resolved.units.filter((u) => u.owner === placed.uid);
@@ -852,25 +878,38 @@ function renderSide(s) {
       const btns = els
         .map((id) => {
           const on = s.sel?.type === 'build' && s.sel.kind === 'carry' && s.sel.element === id;
-          return `<button class="${on ? 'on' : ''}" data-act="pick-carry" data-element="${id}" ${nCarry < slots || on ? '' : 'disabled'}>${chip(id, `${ELEMENT[id].name}の資源地`)}</button>`;
+          return `<button class="${on ? 'on' : ''}" data-act="pick-carry" data-element="${id}" ${nCarry < slots || on ? '' : 'disabled'}>${nodeImg(id, 24)} ${ELEMENT[id].name}の資源地</button>`;
         })
         .join('');
       body += `<div class="card"><h3>資源地を持ち込む <small>${nCarry} / ${slots} 置いている</small></h3>
         ${els.length ? `<div class="row">${btns}</div>` : '<p class="hint">地域を攻略すると、その地域の資源地を持ち込めます</p>'}
         <p class="hint">研究「資源地の持ち込み」で置けます。資材は使いません。地域の資源地と同じく、まわり8マスや攻撃範囲に入れたモンスターから資材が入ります。</p></div>`;
     }
-    body += `<div class="card"><h3>施設を建てる <small>資材を使う</small></h3><div class="list">${FACILITY_ORDER.map((kind) => {
+    const cells = FACILITY_ORDER.map((kind) => {
       const def = FACILITIES[kind];
       const sel = s.sel?.type === 'build' && s.sel.kind === kind;
       const ok = canAfford(alloc.remaining, def.cost, def.costAny) && requirementMet(s, kind);
       const count = L.facilities.filter((f) => f.kind === kind).length;
-      return `<button class="item ${sel ? 'sel' : ''}" data-act="pick-build" data-kind="${kind}" ${ok || sel ? '' : 'disabled'}>
-        ${facilityImg(kind, { cls: 'icon facility-sprite' }) ?? `<span class="icon sq" style="background:${FACILITY_COLOR[def.type]}">${facilityIcon(kind)}</span>`}
-        <span>${def.name}${count ? ` ×${count}` : ''}</span>
-        <span class="state">${FACILITY_TYPE_NAME[def.type]}</span>
-        <span class="sub">${def.shape.length > 1 ? shapePreview(def.shape) : ''}<span>${facilityCostText({ costText }, def)}<br>${def.desc}</span></span>
-      </button>`;
-    }).join('')}</div></div>`;
+      return {
+        pic: facilityPic(kind),
+        act: 'pick-build',
+        data: { kind },
+        sel: sel || (s.sel?.type === 'info' && s.sel.kind === kind),
+        dim: !ok && !sel,
+        mark: count ? `×${count}` : '',
+        dot: def.element ? ELEMENT[def.element].color : null,
+        title: `${def.name}（${ok ? '建てられる' : '資材が足りない、または作業施設が動いていない'}）`,
+      };
+    });
+    body += palette({ title: '施設を建てる <small>押してからマスを選ぶ。うすいものは今は建てられない</small>', cells, key: 'side-build', attr: 'act', rows: 3 });
+    if ((s.sel?.type === 'build' || s.sel?.type === 'info') && s.sel.kind !== 'carry') {
+      const def = FACILITIES[s.sel.kind];
+      const why = s.sel.type === 'info' ? (def.requires && !requirementMet(s, s.sel.kind) ? `${FACILITIES[def.requires].name}が動いていないので、今は建てられません` : '資材が足りないので、今は建てられません') : 'マスを押すと建てます';
+      body += `<div class="card info"><h3>${def.name} <small>${FACILITY_TYPE_NAME[def.type]}</small></h3>
+        <div class="detail-shape">${shapePreview(def.shape, 8)}<span>${def.desc}</span></div>
+        <div class="row">${facilityCostText({ costText }, def)}</div>
+        <p class="hint ${s.sel.type === 'info' ? 'neg' : ''}">${why}</p></div>`;
+    }
     if (L.facilities.length) {
       body += `<div class="card"><h3>建てた施設 <small>建てた順。押すと選べる</small></h3><div class="list">${L.facilities
         .map((f) => {
@@ -922,7 +961,7 @@ function renderSide(s) {
   const help = `<div class="card"><details class="help"><summary>遊び方</summary><ul>
     <li>モンスターを押してから、草地のマスを押すと置けます。R キーか「回転」で向きを変えます。攻撃は向いている方の、塗られたマスに届きます。</li>
     <li>置いたモンスターや施設を押すと選べます。別のマスを押すと移動、その場で回転もできます。戦闘中でも動かせますが、攻撃は溜め直しになります。</li>
-    <li>資源地（◆）のまわり8マスに置くと資材 +2、攻撃範囲のマスに入れると +1。モンスターと同じ属性なら +1。</li>
+    <li>資源地（結晶）のまわり8マスに置くと資材 +2、攻撃範囲のマスに入れると +1。モンスターと同じ属性なら +1。</li>
     <li>資材で施設を建てます。資材が減ると、足りない施設のうち最後に建てたものが止まります。</li>
     <li>鍛冶場（製造施設）は、前の2マス（点線）に、攻撃範囲が鍛冶場に重なる向きでモンスターを置くと動きます。動いている間だけ剣の台座が建てられ、効果が出ます。作業中のモンスターも攻撃と生産をします。</li>
     <li>研究「資源地の持ち込み」をすると、建設タブから、攻略した地域の資源地を置けます。資材は使いません。</li>
@@ -932,7 +971,9 @@ function renderSide(s) {
   </ul></details>
   <div class="row" style="margin-top:8px"><button data-act="clear-all">配置を全部外す</button></div></div>`;
 
-  side.innerHTML = tabs + body + mat + waves + help;
+  keepScroll(side, () => {
+    side.innerHTML = tabs + body + mat + waves + help;
+  });
 }
 
 applyBackground();

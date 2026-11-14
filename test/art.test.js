@@ -36,3 +36,15 @@ test('施設の絵：どの施設にも絵があり、大きさは施設のマ�
     assert.ok(s.grid.filter((v) => v === 1).length > 20, `${kind} は縁取りがある`);
   }
 });
+
+test('資源地の絵：9属性すべてに32×32の絵があり、縁取りは palette[1]', async () => {
+  const { drawNodeSprite } = await import('../src/art/node.js');
+  const { ELEMENT_IDS } = await import('../src/data/elements.js');
+  for (const el of ELEMENT_IDS) {
+    const s = drawNodeSprite(el);
+    assert.ok(s, el);
+    assert.equal(s.w, 32);
+    assert.equal(s.h, 32);
+    assert.equal(s.palette[1], OUTLINE);
+  }
+});

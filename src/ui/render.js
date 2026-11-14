@@ -6,7 +6,7 @@ import { ENEMIES } from '../data/enemies.js';
 import { pointOnPath } from '../core/map.js';
 import { footprintOf, targetsOf } from '../core/layout.js';
 import { cellsOf, rotate } from '../core/shape.js';
-import { spriteCanvas, facilityCanvas } from './spriteImage.js';
+import { spriteCanvas, facilityCanvas, nodeCanvas } from './spriteImage.js';
 
 export const CELL = 32;
 
@@ -178,24 +178,15 @@ function drawNodes(ctx, nodes, perNode) {
       ctx.strokeRect(n.x * CELL + 1.5, n.y * CELL + 1.5, CELL - 3, CELL - 3);
       ctx.setLineDash([]);
     }
-    ctx.fillStyle = 'rgba(0,0,0,0.25)';
-    ctx.fillRect(n.x * CELL, n.y * CELL, CELL, CELL);
-    ctx.fillStyle = ELEMENT[n.element].color;
-    ctx.beginPath();
-    ctx.moveTo(cx, cy - 12);
-    ctx.lineTo(cx + 12, cy);
-    ctx.lineTo(cx, cy + 12);
-    ctx.lineTo(cx - 12, cy);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = '#222';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    ctx.fillStyle = '#222';
-    ctx.font = 'bold 12px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(ELEMENT[n.element].name, cx, cy + 1);
+    // 資源地の絵（属性の色の結晶。2026-11-14 に漢字の◆から変えた）
+    const img = nodeCanvas(n.element);
+    if (img) {
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(img, n.x * CELL, n.y * CELL, CELL, CELL);
+    } else {
+      ctx.fillStyle = ELEMENT[n.element].color;
+      ctx.fillRect(n.x * CELL + 6, n.y * CELL + 6, CELL - 12, CELL - 12);
+    }
     ctx.globalAlpha = alpha;
     if (n.off) label(ctx, 'OFF', cx, cy + 12);
     const y = perNode.get(`${n.x},${n.y}`);

@@ -5,6 +5,7 @@ import { ELEMENT, ELEMENTS } from '../data/elements.js';
 import { MONSTERS } from '../data/monsters.js';
 import { FLAVOR } from '../data/flavor.js';
 import { spriteImg } from './spriteImage.js';
+import { palette, keepScroll } from './palette.js';
 import { RECIPES, HINTS, MIX_MIN_TOTAL, MIX_MAX_TOTAL, MIX_ELEMENTS } from '../data/recipes.js';
 import { FAMILY_ORDER, RARE_FUSIONS, familyName } from '../data/families.js';
 import { REGIONS } from '../data/regions.js';
@@ -40,7 +41,9 @@ export function renderMonsterScreen(root, api, state) {
   else if (state.tab === 'mix') body = mixView(api, state);
   else if (state.tab === 'fuse') body = fuseView(api, state);
   else body = codexView(api, state);
-  root.innerHTML = `<div class="pop"><div class="pop-tabs">${tabs}</div>${body}</div>`;
+  keepScroll(root, () => {
+    root.innerHTML = `<div class="pop-tabs">${tabs}</div>${body}`;
+  });
 }
 
 /** モンスター画面のボタン操作。戻り値 true で描き直す。 */
@@ -202,33 +205,6 @@ function whereIs(save, uid) {
 
 const skillNames = (m) => skillsOf(m).map((k) => MONSTERS[k].skill).join('・');
 
-/**
- * パレット（左のマス目）。cells = [{ kind, look?, act, data: {name: value}, sel?, mark?, lv?, title }]
- * tabs = [{ v, label, on, act }]（上の絞りこみ）、foot = 下の一言
- */
-function palette({ title, tabs = '', cells, foot = '' }) {
-  const body = cells
-    .map((c) => {
-      const attrs = Object.entries(c.data ?? {})
-        .map(([k, v]) => `data-${k}="${v}"`)
-        .join(' ');
-      return `<button class="pcell ${c.sel ? 'sel' : ''} ${c.dim ? 'dim' : ''}" data-mact="${c.act}" ${attrs} title="${c.title ?? ''}">
-        ${pic(c.kind, 64, c.look ?? 'ally')}
-        ${c.lv ? `<span class="plv">Lv${c.lv}</span>` : ''}
-        ${c.mark ? `<span class="pmark">${c.mark}</span>` : ''}
-        ${c.dot ? `<i class="pdot" style="background:${c.dot}"></i>` : ''}
-      </button>`;
-    })
-    .join('');
-  const empty = cells.length ? '' : '<p class="hint pempty">ここに出せるモンスターがいません</p>';
-  return `<section class="palette">
-    <h3 class="ptitle">${title}</h3>
-    ${tabs ? `<div class="ptabs">${tabs}</div>` : ''}
-    <div class="pgrid">${body}</div>${empty}
-    ${foot ? `<p class="pfoot">${foot}</p>` : ''}
-  </section>`;
-}
-
 /** 属性で絞りこむタブ（手持ち・融合） */
 function elementTabs(state) {
   const all = `<button data-mact="filter" data-v="all" class="${state.filter === 'all' ? 'on' : ''}">すべて</button>`;
@@ -249,11 +225,11 @@ function rosterCells(save, state, act, selOf) {
       const evo = evolutionProgress(m)?.ok;
       const sel = selOf(m);
       return {
-        kind: m.kind,
+        pic: pic(m.kind, 64),
         act,
         data: { uid: m.uid },
         sel: !!sel,
-        lv: m.level,
+        lv: `Lv${m.level}`,
         mark: typeof sel === 'string' ? sel : evo ? '進化' : where ? '配置' : '',
         dot: ELEMENT[MONSTERS[m.kind].element].color,
         title: `${MONSTERS[m.kind].name} Lv${m.level}${where ? `（${where}に配置中）` : ''}`,
@@ -271,7 +247,7 @@ function rosterView(api, state) {
   if (!save.roster.length) return `<div class="detail"><p>まだ仲間がいません。「錬成」で最初の仲間を作りましょう。</p></div>`;
   if (!save.roster.some((m) => m.uid === state.selected)) state.selected = save.roster[0].uid;
   const cells = rosterCells(save, state, 'select', (m) => m.uid === state.selected);
-  const left = palette({ title: '手持ち', tabs: elementTabs(state), cells, foot: `${cells.length} / ${save.roster.length} 体` });
+  const left = palette({ title: '手持ち', tabs: elementTabs(state), cells, foot: `${cells.length} / ${save.roster.length} 体`, key: 'roster' });
   const sel = save.roster.find((m) => m.uid === state.selected);
   return `<div class="palette-layout">${left}<section class="detail">${bornBanner(state, 'が生まれました！')}${rosterDetail(api, sel)}</section></div>`;
 }
@@ -404,7 +380,7 @@ function fuseView(api, state) {
   const f = state.fuse;
   if (save.roster.length < 2) return `<section class="detail">${bornBanner(state, 'が生まれました！')}<p>融合には手持ちが2体以上いります。</p></section>`;
   const cells = rosterCells(save, state, 'fuse-pick', (m) => (f.a === m.uid ? '親1' : f.b === m.uid ? '親2' : false));
-  const left = palette({ title: '手持ち <small>親を2体選ぶ</small>', tabs: elementTabs(state), cells, foot: '選んだモンスターをもう一度押すと外します' });
+  const left = palette({ title: '手持ち <small>親を2体選ぶ</small>', tabs: elementTabs(state), cells, foot: '選んだモンスターをもう一度押すと外します', key: 'fuse' });
   const a = save.roster.find((m) => m.uid === f.a);
   const b = save.roster.find((m) => m.uid === f.b);
   const slot = (m, label) =>
@@ -524,8 +500,7 @@ function codexView(api, state) {
     }).join('');
   const shown = order.filter((k) => state.family === 'all' || MONSTERS[k].family === state.family);
   const cells = shown.map((k) => ({
-    kind: k,
-    look: save.codex[k] ? 'ally' : 'silhouette',
+    pic: pic(k, 64, save.codex[k] ? 'ally' : 'silhouette'),
     act: 'codex-select',
     data: { kind: k },
     sel: state.codexSel === k,
@@ -533,7 +508,7 @@ function codexView(api, state) {
     title: `No.${no.get(k)} ${save.codex[k] ? MONSTERS[k].name : '？？？'}`,
   }));
   const got = Object.keys(save.codex).length;
-  const left = palette({ title: '図鑑', tabs: famTabs, cells, foot: `見つけたモンスター ${got} / ${order.length}` });
+  const left = palette({ title: '図鑑', tabs: famTabs, cells, foot: `見つけたモンスター ${got} / ${order.length}`, key: `codex-${state.family}` });
   return `<div class="palette-layout">${left}<section class="detail">${bornBanner(state, 'を図鑑錬成しました。手持ちに加わりました。')}${codexDetail(api, state.codexSel, no.get(state.codexSel))}</section></div>`;
 }
 

@@ -13,7 +13,7 @@
 // finale：はじめて攻略すると表のクリア
 export const REGIONS = {
   grassland: {
-    name: '草原',
+    name: 'チキル平原',
     province: 'p1',
     elements: ['none', 'wind'], // 無＞風。土は出ない（土は森から）
     ground: 'grass',
@@ -64,7 +64,7 @@ export const REGIONS = {
     ],
   },
   forest: {
-    name: '森',
+    name: 'ポーカ森林',
     province: 'p1',
     elements: ['wind', 'earth', 'none'], // 風＞土・無
     requires: 'grassland',
@@ -120,7 +120,7 @@ export const REGIONS = {
     ],
   },
   desert: {
-    name: '砂漠',
+    name: 'ビリフ砂漠',
     province: 'p1',
     elements: ['earth', 'wind', 'none'], // 土＞風・無
     requires: 'forest',
@@ -178,7 +178,7 @@ export const REGIONS = {
   },
   // ===== 第2地方（水・雷） =====
   river: {
-    name: '川',
+    name: 'キロット川',
     province: 'p2',
     elements: ['water', 'none', 'earth'], // 水＞無・土
     requires: 'desert',
@@ -234,7 +234,7 @@ export const REGIONS = {
     ],
   },
   storm: {
-    name: '雷雨',
+    name: 'パリカ雷雨荒野',
     province: 'p2',
     elements: ['thunder', 'water', 'earth'], // 雷＞水・土
     requires: 'river',
@@ -290,7 +290,7 @@ export const REGIONS = {
     ],
   },
   sea: {
-    name: '海',
+    name: 'ガーリク海',
     province: 'p2',
     elements: ['water', 'thunder', 'wind'], // 水＞雷・風
     requires: 'storm',
@@ -347,7 +347,7 @@ export const REGIONS = {
   },
   // ===== 第3地方（炎・氷）。道の形が地域ごとに違う =====
   volcano: {
-    name: '火山',
+    name: 'レオジン火山',
     province: 'p3',
     elements: ['fire', 'earth', 'thunder'], // 炎＞土・雷
     requires: 'sea',
@@ -403,7 +403,7 @@ export const REGIONS = {
     ],
   },
   snow: {
-    name: '雪山',
+    name: 'モンレ雪山',
     province: 'p3',
     elements: ['ice', 'water', 'wind'], // 氷＞水・風
     requires: 'volcano',
@@ -459,7 +459,7 @@ export const REGIONS = {
     ],
   },
   mixed: {
-    name: '混成',
+    name: 'ルアップ混山',
     province: 'p3',
     elements: ['fire', 'ice', 'none'], // 炎・氷＞無
     requires: 'snow',
@@ -518,7 +518,7 @@ export const REGIONS = {
   },
   // ===== 第4地方（光・闇）。資材が少なめ（資源地の数：聖域 光2・炎1、境界 光1・闇1、魔王城 闇1） =====
   sanctuary: {
-    name: '聖域',
+    name: 'マグパロ聖域',
     province: 'p4',
     elements: ['light', 'fire'], // 光2・炎1
     requires: 'mixed',
@@ -574,7 +574,7 @@ export const REGIONS = {
     ],
   },
   boundary: {
-    name: '境界',
+    name: 'ハチマチ境界',
     province: 'p4',
     elements: ['light', 'dark'], // 光1・闇1
     requires: 'sanctuary',
@@ -635,7 +635,7 @@ export const REGIONS = {
     ],
   },
   castle: {
-    name: '魔王城',
+    name: 'サーモルン魔王城',
     province: 'p4',
     elements: ['dark'], // 闇1
     requires: 'boundary',
@@ -693,12 +693,16 @@ export const REGIONS = {
   },
 };
 
+// 地方の名前（2026-11-14 企画者の決定）。no は何番目の地方か（研究などの説明では「第1地方」と書く）
 export const PROVINCES = [
-  { id: 'p1', name: '第1地方（名前は未定）', elements: ['none', 'wind', 'earth'], regions: ['grassland', 'forest', 'desert'] },
-  { id: 'p2', name: '第2地方（名前は未定）', elements: ['water', 'thunder'], regions: ['river', 'storm', 'sea'] },
+  { id: 'p1', no: 1, name: 'ミルト王国', elements: ['none', 'wind', 'earth'], regions: ['grassland', 'forest', 'desert'] },
+  { id: 'p2', no: 2, name: 'べジブ共和国', elements: ['water', 'thunder'], regions: ['river', 'storm', 'sea'] },
   // 第3・第4地方の手に入るエレメント（企画者の案。作るときにこの割合にする）
   //   火山：炎＞土・雷 / 雪山：氷＞水・風 / 混成：炎・氷＞無
   //   第4地方は資材が少なめで、資源地の数で決める。聖域：光2・炎1 / 境界：光1・闇1 / 魔王城：闇1
-  { id: 'p3', name: '第3地方（名前は未定）', elements: ['fire', 'ice'], regions: ['volcano', 'snow', 'mixed'] },
-  { id: 'p4', name: '第4地方（名前は未定）', elements: ['light', 'dark'], regions: ['sanctuary', 'boundary', 'castle'] },
+  { id: 'p3', no: 3, name: 'フツルー山脈', elements: ['fire', 'ice'], regions: ['volcano', 'snow', 'mixed'] },
+  { id: 'p4', no: 4, name: 'フィラッシュ混沌地', elements: ['light', 'dark'], regions: ['sanctuary', 'boundary', 'castle'] },
 ];
+
+// 高難易度（フェーズ9で作る）の場所。地図にだけ出す（2026-11-14 企画者の決定）
+export const HARD_AREA = { name: 'ツーイス未踏区域' };
