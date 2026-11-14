@@ -29,3 +29,31 @@ export function addBag(a, b, scale = 1) {
 export function bagTotal(bag) {
   return ELEMENT_IDS.reduce((s, id) => s + (bag[id] ?? 0), 0);
 }
+
+// 属性の相性（2026-11-10 のメモ、2026-11-14 に入れた。Issue #24）。入れたときに強さの調整はしない（企画者の決定）。
+//   技の属性：その技を持っていたモンスターの属性（引き継いだ技は、元のモンスターの属性のまま）。攻撃する施設は施設の属性
+//   モンスターの属性と技の属性が同じなら、ダメージ ×1.2
+//   技の属性が相手の属性に強いなら、ダメージ ×1.2（弱いときに下がることはない）
+export const STRONG_AGAINST = {
+  none: ['light', 'dark'],
+  wind: ['none', 'earth'],
+  earth: ['none', 'thunder'],
+  water: ['earth', 'fire'],
+  thunder: ['wind', 'water'],
+  fire: ['thunder', 'ice'],
+  ice: ['wind', 'water'],
+  light: ['ice', 'dark'],
+  dark: ['fire', 'light'],
+};
+export const SAME_ELEMENT_MUL = 1.2;
+export const AFFINITY_MUL = 1.2;
+
+/** 攻撃の属性 attack が、相手の属性 target に強ければ 1.2、そうでなければ 1 */
+export function affinity(attack, target) {
+  return STRONG_AGAINST[attack]?.includes(target) ? AFFINITY_MUL : 1;
+}
+
+/** 相手の属性 target に強い属性の一覧 */
+export function strongAgainst(target) {
+  return ELEMENT_IDS.filter((id) => STRONG_AGAINST[id].includes(target));
+}

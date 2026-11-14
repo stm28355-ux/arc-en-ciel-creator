@@ -1,5 +1,5 @@
 // Arc-en-ciel Creator：画面の組み立てと操作。
-import { ELEMENTS, ELEMENT, bagTotal, addBag } from './data/elements.js';
+import { ELEMENTS, ELEMENT, bagTotal, addBag, strongAgainst } from './data/elements.js';
 import { MONSTERS } from './data/monsters.js';
 import { FACILITIES, FACILITY_ORDER, FACILITY_TYPE_NAME } from './data/facilities.js';
 import { ENEMIES } from './data/enemies.js';
@@ -23,7 +23,7 @@ import { renderResearchScreen, onResearchAction } from './ui/researchScreen.js';
 import { renderFacilityScreen, onFacilityAction, facilityCostText, facilityPic } from './ui/facilityScreen.js';
 import { palette, keepScroll } from './ui/palette.js';
 
-const VERSION = 'v0.8.8';
+const VERSION = 'v0.8.9';
 // 地域マップの canvas は、1マス32を2倍の細かさで描く（画面の大きさは今までと同じ）
 const DRAW_SCALE = 2;
 const STEP = 1 / 60;
@@ -244,6 +244,8 @@ function homePanel(id) {
     <div class="row">${r.elements.map((e) => chip(e, ELEMENT[e].name)).join(' ')}</div>
     <h4 class="dsec">敵</h4>
     <p>ウェーブ ${r.waves.length} · 拠点の耐久 ${r.baseHp + bonus}${boss && open ? ` · ボス：${boss.name}` : ''}</p>
+    <h4 class="dsec">敵の属性と、それに強い技の属性 <small>強い技は ×1.2</small></h4>
+    ${[...new Set(enemies.map((e) => e.element))].map((el) => `<div class="prov-row">${chip(el, ELEMENT[el].name)} ← ${strongAgainst(el).map((x) => chip(x, ELEMENT[x].name)).join(' ')}</div>`).join('')}
     <div class="row" style="margin-top:12px"><button class="primary big" data-region="${id}" ${open ? '' : 'disabled'}>この地域へ</button></div>
     <h4 class="dsec">地方</h4>${provinces}
     <p class="hint">地図のピンを押すと、地域を選べます。★は攻略した地域。まん中の霧の島（${HARD_AREA.name}）は、まだ入れません。</p>`;
@@ -885,7 +887,7 @@ function renderSide(s) {
       const us = s.resolved.units.filter((u) => u.owner === placed.uid);
       const y = i >= 0 ? Object.entries(prod.perMonster[i]).filter(([, n]) => n) : [];
       body += `<div class="card info"><h3>${MONSTERS[placed.kind].name} <small>Lv${save.roster.find((r) => r.uid === placed.uid)?.level ?? 1} · ${DIR_NAME[placed.dir]}向き</small></h3>
-        ${us.map((u) => `<p>「${MONSTERS[u.skill].skill}」攻撃 ${u.atk.toFixed(1)} · 間隔 ${u.interval.toFixed(2)}秒（毎秒 ${(u.atk / u.interval).toFixed(1)}）</p>`).join('')}
+        ${us.map((u) => `<p>「${MONSTERS[u.skill].skill}」${ELEMENT[u.element].name}${u.same ? '（属性が同じ ×1.2）' : ''} 攻撃 ${u.atk.toFixed(1)} · 間隔 ${u.interval.toFixed(2)}秒（毎秒 ${(u.atk / u.interval).toFixed(1)}）</p>`).join('')}
         ${working.has(placed.uid) ? '<p>鍛冶場で作業中（攻撃と生産もそのまま）</p>' : ''}
         <p>資材：${y.length ? y.map(([id, n]) => `${ELEMENT[id].name}+${n}`).join(' ') : 'なし'}</p>
         ${rotateRow(s, '別のマスを押すと移動。動かすと攻撃は溜め直し')}
@@ -983,6 +985,7 @@ function renderSide(s) {
     <li>モンスターを押してから、草地のマスを押すと置けます。R キーか「回転」で向きを変えます。攻撃は向いている方の、塗られたマスに届きます。</li>
     <li>置いたモンスターや施設を押すと選べます。別のマスを押すと移動、その場で回転もできます。戦闘中でも動かせますが、攻撃は溜め直しになります。</li>
     <li>置いたモンスターや施設は、右クリックで外せます（置こうとしているときの右クリックは取り消し）。</li>
+    <li>技には属性があります（その技を持っていたモンスターの属性。攻撃する施設は施設の属性）。モンスターと同じ属性の技は ×1.2、敵の属性に強い技は ×1.2。相性：無→光・闇、風→無・土、土→無・雷、水→土・炎、雷→風・水、炎→雷・氷、氷→風・水、光→氷・闇、闇→炎・光。</li>
     <li>資源地（結晶）のまわり8マスに置くと資材 +2、攻撃範囲のマスに入れると +1。モンスターと同じ属性なら +1。</li>
     <li>資材で施設を建てます。資材が減ると、足りない施設のうち最後に建てたものが止まります。</li>
     <li>鍛冶場（製造施設）は、前の2マス（点線）に、攻撃範囲が鍛冶場に重なる向きでモンスターを置くと動きます。動いている間だけ剣の台座が建てられ、効果が出ます。作業中のモンスターも攻撃と生産をします。</li>

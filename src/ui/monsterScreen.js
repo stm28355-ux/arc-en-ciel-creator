@@ -1,7 +1,7 @@
 // モンスター画面：手持ち（レベルアップ・進化）・錬成（調合錬成）・融合（技の継承）・図鑑（図鑑錬成）。
 // 手持ち・融合・図鑑は「パレット」（左のマス目にアイコンを並べる）と、右のくわしい情報の2つに分ける
 // （2026-11-14 企画者の注文。参考はアトリエ系のコンテナ画面。モンスターが何体いても同じ形で選べる）。
-import { ELEMENT, ELEMENTS } from '../data/elements.js';
+import { ELEMENT, ELEMENTS, STRONG_AGAINST, SAME_ELEMENT_MUL } from '../data/elements.js';
 import { MONSTERS } from '../data/monsters.js';
 import { FLAVOR } from '../data/flavor.js';
 import { spriteImg } from './spriteImage.js';
@@ -314,13 +314,19 @@ function levelUpBlock(api, sel, cap) {
   return `<p class="hint">次のレベルまで ${levelUpCost(sel.level)}（${tier}。${order}）。1レベルで攻撃 +8%。まとめて上げるときは、払える分だけ上げます</p>${rows}`;
 }
 
+/** 「雷・氷に強い」 */
+const strongText = (el) => `${STRONG_AGAINST[el].map((id) => ELEMENT[id].name).join('・')}に強い`;
+
 function skillsBlock(api, m) {
-  return skillsOf(m)
+  const own = MONSTERS[m.kind].element;
+  const rows = skillsOf(m)
     .map((k, i) => {
       const d = MONSTERS[k];
-      return `<div class="detail-shape">${api.shapePreview(d.shape, 9)}<span>${i === 0 ? '自分の技' : '引き継いだ技'}「${d.skill}」<br><small>攻撃 ${atkAt(k, m.level).toFixed(1)} · 間隔 ${d.interval}秒</small></span></div>`;
+      const same = d.element === own;
+      return `<div class="detail-shape">${api.shapePreview(d.shape, 9)}<span>${i === 0 ? '自分の技' : '引き継いだ技'}「${d.skill}」 ${api.chip(d.element, ELEMENT[d.element].name)}${same ? ' <span class="tag">属性が同じ ×1.2</span>' : ''}<br><small>攻撃 ${(atkAt(k, m.level) * (same ? SAME_ELEMENT_MUL : 1)).toFixed(1)} · 間隔 ${d.interval}秒 · ${strongText(d.element)}</small></span></div>`;
     })
     .join('');
+  return `${rows}<p class="hint">技の属性は、その技を持っていたモンスターの属性。モンスターと同じ属性の技は ×1.2、敵の属性に強い技は ×1.2</p>`;
 }
 
 function evolutionBlock(m) {
@@ -412,7 +418,7 @@ function fuseView(api, state) {
             .map((k) => {
               const d = MONSTERS[k];
               const on = f.extra.includes(k);
-              return `<button class="item ${on ? 'sel' : ''}" data-mact="fuse-skill" data-skill="${k}">${api.shapePreview(d.shape)}<span>「${d.skill}」</span><span class="state">${on ? '引き継ぐ' : ''}</span><span class="sub">攻撃${d.atk} · 間隔${d.interval}秒（${d.name}の技）</span></button>`;
+              return `<button class="item ${on ? 'sel' : ''}" data-mact="fuse-skill" data-skill="${k}">${api.shapePreview(d.shape)}<span>「${d.skill}」 ${api.chip(d.element, ELEMENT[d.element].name)}</span><span class="state">${on ? '引き継ぐ' : ''}</span><span class="sub">攻撃${d.atk} · 間隔${d.interval}秒 · ${strongText(d.element)}（${d.name}の技）</span></button>`;
             })
             .join('')
         : '<p class="hint">引き継げる技はありません</p>';
@@ -533,7 +539,7 @@ function codexDetail(api, kind, n) {
   return `${head}
     <p class="flavor">${FLAVOR[kind]}</p>
     <h4 class="dsec">技</h4>
-    <div class="detail-shape">${api.shapePreview(def.shape, 9)}<span>「${def.skill}」<br><small>攻撃${def.atk} · 間隔${def.interval}秒（Lv1のとき）</small></span></div>
+    <div class="detail-shape">${api.shapePreview(def.shape, 9)}<span>「${def.skill}」 ${api.chip(def.element, ELEMENT[def.element].name)}<br><small>攻撃${def.atk} · 間隔${def.interval}秒（Lv1のとき。自分の属性の技なので、戦うときは ×1.2） · ${strongText(def.element)}</small></span></div>
     <h4 class="dsec">作り方</h4><p>${recipeText(kind)}</p>
     ${evoText}
     <h4 class="dsec">図鑑錬成</h4>

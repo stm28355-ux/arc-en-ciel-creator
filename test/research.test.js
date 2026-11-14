@@ -81,7 +81,7 @@ test('拠点の耐久と攻撃力の研究が、戦闘に効く', () => {
   assert.equal(b.baseHp, REGIONS.grassland.baseHp + 2);
   assert.equal(b.baseMax, REGIONS.grassland.baseHp + 2);
   const layout = { monsters: [{ uid: 'm1', kind: 'slime', x: 12, y: 9, dir: 'up', atkMul: 1.25 }], facilities: [] };
-  assert.equal(resolveLayout(map, layout).units[0].atk, 12.5);
+  assert.equal(resolveLayout(map, layout).units[0].atk, 15, '10 × 研究1.25 × 属性が同じ技1.2');
 });
 
 test('調合で使えるエレメント：無は最初から、風・土は研究で開放する', () => {

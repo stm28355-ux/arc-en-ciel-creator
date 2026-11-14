@@ -169,7 +169,7 @@ test('鍛冶場：作業場所にいて攻撃範囲が鍛冶場に重なるモ�
   assert.equal(r.status.get('f2'), 'active');
   const buffed = r.units.filter((u) => u.buffed.sword).map((u) => u.owner).sort();
   assert.deepEqual(buffed, ['m4']);
-  assert.ok(Math.abs(r.units.find((u) => u.owner === 'm4').atk - 16 * 1.56 * 1.5) < 1e-9, 'Lv8 のすなあらしトカゲ ×1.5');
+  assert.ok(Math.abs(r.units.find((u) => u.owner === 'm4').atk - 16 * 1.56 * 1.5 * 1.2) < 1e-9, 'Lv8 のすなあらしトカゲ ×1.5（自分の技は属性が同じなので ×1.2）');
 
   // 作業しているモンスターを作業場所から外すと、鍛冶場は止まり、剣も止まって資材を使わない
   const off = { ...sample, monsters: sample.monsters.map((m) => (m.uid === 'm7' ? { ...m, x: 25, y: 15 } : m)) };
@@ -263,8 +263,8 @@ test('動かしたユニットは、攻撃の間隔が溜まるまで攻撃し�
   assert.equal(b.cooldowns.m1, 2);
 });
 
-test('見本の配置：草原はモンスターだけでは負け、施設を建てると攻略できる', () => {
-  assert.equal(simulate('grassland', SAMPLES.grassland['モンスターだけ']).b.phase, 'lost');
+test('見本の配置：草原は施設を建てると攻略できる。属性の相性を入れてからは、5体そろえば施設なしでも攻略できる（2026-11-14、強さは調整しない）', () => {
+  assert.equal(simulate('grassland', SAMPLES.grassland['モンスターだけ']).b.phase, 'won');
   const { b } = simulate('grassland', SAMPLES.grassland['光線塔＋旗']);
   assert.equal(b.phase, 'won');
   assert.ok(pace(b) > 0);
@@ -456,18 +456,48 @@ test('極限研究所と秘伝書：前の1マスのモンスターに大きく�
   assert.equal(r.status.get('f1'), 'active');
   assert.equal(r.status.get('f2'), 'active');
   const u = r.units.find((x) => x.owner === 'm4');
-  assert.equal(u.atk, 20, 'プチスライム Lv1 の攻撃10が2倍');
+  assert.equal(u.atk, 24, 'プチスライム Lv1 の攻撃10が2倍（属性が同じ技なので、さらに ×1.2）');
   assert.deepEqual(u.buffed, { sword: false, flag: false, other: true });
 });
 
-test('調整の基準（v0.8.5）：どの地域も、基準の仲間は目標のレベルで攻略でき、2つ下では負ける。目標はその地域に行けるころの上限まで', () => {
+test('調整の基準（v0.8.5）：どの地域も、基準の仲間は目標のレベルで攻略できる。目標はその地域に行けるころの上限まで。属性の相性を入れてからは、目標より3〜8レベル低く攻略できる（強さは調整しない）', () => {
+  // 属性の相性を入れたあと（v0.8.9）の、基準の仲間が攻略できる一番低いレベル。数字を固定したので、変わったら気づけるようにしておく
+  const NOW = { forest: 5, desert: 7, river: 17, storm: 21, sea: 26, volcano: 30, snow: 35, mixed: 41, sanctuary: 42, boundary: 44, castle: 50 };
   for (const [id, st] of Object.entries(STAGES)) {
     assert.ok(st.target <= st.cap, `${id}：目標 Lv${st.target} は上限 ${st.cap} まで`);
     const { b } = simulate(id, stageLayout(id, st.target));
     assert.equal(b.phase, 'won', `${id} Lv${st.target}`);
     assert.ok(pace(b) > 0);
-    if (st.target > 2) assert.equal(simulate(id, stageLayout(id, st.target - 2)).b.phase, 'lost', `${id} Lv${st.target - 2}`);
+    if (!NOW[id]) continue;
+    assert.equal(simulate(id, stageLayout(id, NOW[id])).b.phase, 'won', `${id} Lv${NOW[id]}`);
+    assert.equal(simulate(id, stageLayout(id, NOW[id] - 1)).b.phase, 'lost', `${id} Lv${NOW[id] - 1}`);
   }
+});
+
+test('属性の相性：技の属性が相手に強いと ×1.2。モンスターと技の属性が同じなら ×1.2。引き継いだ技は元のモンスターの属性', async () => {
+  const { affinity, strongAgainst, STRONG_AGAINST } = await import('../src/data/elements.js');
+  assert.equal(affinity('water', 'fire'), 1.2);
+  assert.equal(affinity('fire', 'water'), 1, '弱いときに下がることはない');
+  assert.deepEqual(STRONG_AGAINST.none, ['light', 'dark']);
+  assert.deepEqual(strongAgainst('none'), ['wind', 'earth']);
+  for (const list of Object.values(STRONG_AGAINST)) assert.equal(list.length, 2);
+  // 風のそよかぜコウモリが、自分の技（風）と、引き継いだプチスライムの技（無）を持つ
+  const r = resolveLayout(map, { monsters: [{ uid: 'm1', kind: 'bat', x: 3, y: 2, dir: 'up', skills: ['bat', 'slime'] }], facilities: [] });
+  const own = r.units.find((u) => u.skill === 'bat');
+  const inh = r.units.find((u) => u.skill === 'slime');
+  assert.equal(own.element, 'wind');
+  assert.ok(own.same && Math.abs(own.atk - 5 * 1.2) < 1e-9);
+  assert.equal(inh.element, 'none');
+  assert.ok(!inh.same && inh.atk === 10);
+  // 戦闘：風の技は無の敵（スライム）に ×1.2
+  const b = createBattle(REGIONS.grassland, map);
+  startBattle(b, { groupSize: 1 });
+  b.enemies.push({ id: 99, kind: 'slime', hp: 100, maxHp: 100, dist: 0, wave: 0, route: 0 });
+  b.pending = [];
+  const at = pointOnPath(map.path, 0);
+  const unit = { ...own, id: 'u', targets: new Set([`${Math.floor(at.x)},${Math.floor(at.y)}`]), buffed: {} };
+  step(b, 0.001, { units: [unit], groupSize: 1 });
+  assert.ok(Math.abs(b.enemies[0].hp - (100 - own.atk * 1.2)) < 1e-6);
 });
 
 test('調整の基準：第1地方は融合なし（調合で作れるモンスターだけ）、第2地方からは融合で技を3つ持つ', () => {

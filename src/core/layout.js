@@ -5,6 +5,7 @@ import { FACILITIES } from '../data/facilities.js';
 import { production, allocate } from './materials.js';
 import { cellsOf, keyOf } from './shape.js';
 import { atkAt } from './alchemy.js';
+import { SAME_ELEMENT_MUL } from '../data/elements.js';
 
 /** 置き物（モンスターか施設）の定義。 */
 export function defOf(item) {
@@ -58,8 +59,9 @@ export function canPlace(map, layout, item, ignore) {
  *   prod:      production() の戻り値
  *   alloc:     allocate() の戻り値
  *   status:    Map<id, 'active'|'materials'|'no-worker'|'needs-producer'|'research-off'>（needs-producer：要る製造施設が動いていない）
- *   units:     戦闘で攻撃するもの [{ id, owner?, skill?, source, x, y, element, atk, interval, targets:Set, buffed }]
- *              モンスターは技1つにつき1ユニット（id = 'uid:技'、owner = uid）
+ *   units:     戦闘で攻撃するもの [{ id, owner?, skill?, source, x, y, element, atk, interval, targets:Set, buffed, same? }]
+ *              モンスターは技1つにつき1ユニット（id = 'uid:技'、owner = uid）。element は技の属性（技を持っていたモンスターの属性）、
+ *              モンスターと技の属性が同じなら atk は ×1.2（same = true）。相手との相性は戦闘で掛ける（core/battle.js）
  *   groupSize: 1度にまとめて出すウェーブの数（1 + 動いている角笛の数）
  *   carried:   資材が入る持ち込みの資源地 [{ x, y, element }]
  *   slow:      Map<'x,y', 0〜1> 敵を遅くするマスと割合（霧の噴水）
@@ -128,6 +130,8 @@ export function resolveLayout(map, layout) {
       from.add(b.kind);
     }
     for (const skill of skillList(m)) {
+      const element = MONSTERS[skill].element; // 技の属性
+      const same = element === def.element;
       units.push({
         id: `${m.uid}:${skill}`,
         owner: m.uid,
@@ -135,8 +139,9 @@ export function resolveLayout(map, layout) {
         source: 'monster',
         x: m.x,
         y: m.y,
-        element: def.element,
-        atk: atkAt(skill, m.level) * (1 + atkAdd) * (m.atkMul ?? 1),
+        element,
+        same,
+        atk: atkAt(skill, m.level) * (1 + atkAdd) * (m.atkMul ?? 1) * (same ? SAME_ELEMENT_MUL : 1),
         interval: MONSTERS[skill].interval / (1 + speedAdd),
         targets: new Set(skillTargets(m, skill).map(keyOf)),
         buffed: { sword: from.has('sword'), flag: from.has('flag'), other: atkAdd > 0 || speedAdd > 0 },

@@ -1,7 +1,7 @@
 // 戦闘：ウェーブ制で敵が道を進み、モンスターと戦闘施設が自動で攻撃する。
 // 乱数は使わない（同じ配置なら同じ結果になる）。
 import { ENEMIES } from '../data/enemies.js';
-import { emptyBag, bagTotal } from '../data/elements.js';
+import { emptyBag, bagTotal, affinity } from '../data/elements.js';
 import { pointOnPath, pathLength } from './map.js';
 
 /** opts.baseHpAdd：研究で増えた拠点の耐久 */
@@ -127,9 +127,11 @@ export function step(b, dt, ctx) {
       const def = ENEMIES[e.kind];
       const exposed = 1 + (ctx.expose?.get(`${Math.floor(p.x)},${Math.floor(p.y)}`) ?? 0);
       const vsBoss = u.bossMul && (def.elite || def.boss) ? u.bossMul : 1;
-      e.hp -= u.atk * exposed * vsBoss;
-      b.damage[u.source] += u.atk * exposed * vsBoss;
-      if (u.burn) e.burn = { dps: u.burn.dps, until: b.time + u.burn.dur, src: u };
+      // 属性の相性：攻撃の属性が相手の属性に強いなら ×1.2（やけども同じ）
+      const aff = affinity(u.element, def.element);
+      e.hp -= u.atk * exposed * vsBoss * aff;
+      b.damage[u.source] += u.atk * exposed * vsBoss * aff;
+      if (u.burn) e.burn = { dps: u.burn.dps * aff, until: b.time + u.burn.dur, src: u };
       if (u.chill) e.chill = { slow: u.chill.slow, until: b.time + u.chill.dur };
       if (e.hp <= 0 && !e.killedBy) e.killedBy = u;
       b.effects.push({ from: { x: u.x + 0.5, y: u.y + 0.5 }, to: p, element: u.element, life: 0.12 });
