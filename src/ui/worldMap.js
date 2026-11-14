@@ -97,6 +97,10 @@ function bridge(x1, y1, x2, y2) {
  * 地図の SVG。opts = { isOpen(id), isCleared(id), selected }
  */
 export function worldMapSvg({ isOpen, isCleared, selected }) {
+  const hardIds = HARD_AREA.regions;
+  const hardOpen = isOpen(hardIds[0]);
+  const hardCleared = hardIds.filter(isCleared).length;
+  const hardSel = hardIds.includes(selected);
   const islands = PROVINCES.map((p) => {
     const is = ISLAND[p.id];
     const [lx, ly] = is.label;
@@ -123,11 +127,14 @@ export function worldMapSvg({ isOpen, isCleared, selected }) {
       </g>`;
     })
     .join('');
-  const hard = `<g class="hard-island">
-      <path d="${smooth(HARD_PTS)}" fill="#d8d6e2" stroke="${INK}" stroke-width="4" stroke-dasharray="10 6"/>
+  // まん中の霧の島：ツーイス未踏区域（サーモルン魔王城を攻略すると開く。押すと10の区域を右に出す）
+  const hard = `<g class="pin hard-island ${hardOpen ? '' : 'locked'} ${hardSel ? 'sel' : ''}" data-pick="hard">
+      ${hardSel ? `<path d="${smooth(HARD_PTS)}" fill="none" stroke="#ff78a6" stroke-width="10" class="pin-ring"/>` : ''}
+      <path d="${smooth(HARD_PTS)}" fill="${hardOpen ? '#cfc2f0' : '#d8d6e2'}" stroke="${INK}" stroke-width="4" stroke-dasharray="${hardOpen ? '0' : '10 6'}"/>
       <ellipse cx="490" cy="345" rx="26" ry="10" fill="#fff" opacity="0.8"/><ellipse cx="512" cy="365" rx="20" ry="8" fill="#fff" opacity="0.7"/>
-      <text x="500" y="360" text-anchor="middle" font-size="30" font-weight="bold" fill="#8a7ea0">？</text>
-      <text x="500" y="410" text-anchor="middle" font-size="12" font-weight="bold" fill="#6b5f80">${HARD_AREA.name}</text>
+      <text x="500" y="362" text-anchor="middle" font-size="${hardOpen ? 18 : 30}" font-weight="bold" fill="${hardOpen ? INK : '#8a7ea0'}">${hardOpen ? `${hardCleared}/${hardIds.length}` : '？'}</text>
+      <rect x="436" y="396" width="128" height="22" rx="11" fill="#fff" stroke="${INK}" stroke-width="2"/>
+      <text x="500" y="411" text-anchor="middle" font-size="12" font-weight="bold" fill="#6b5f80">${HARD_AREA.name}</text>
     </g>`;
   const waves = [];
   for (const [x, y] of [[40, 340], [150, 350], [880, 345], [960, 360], [460, 610], [520, 40], [40, 620], [960, 20]]) waves.push(`<path d="M${x - 14},${y} q7,-7 14,0 q7,7 14,0" fill="none" stroke="#e4f6ff" stroke-width="3" stroke-linecap="round"/>`);

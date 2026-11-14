@@ -23,7 +23,7 @@ import { renderResearchScreen, onResearchAction } from './ui/researchScreen.js';
 import { renderFacilityScreen, onFacilityAction, facilityCostText, facilityPic } from './ui/facilityScreen.js';
 import { palette, keepScroll } from './ui/palette.js';
 
-const VERSION = 'v0.8.9';
+const VERSION = 'v0.9.0';
 // 地域マップの canvas は、1マス32を2倍の細かさで描く（画面の大きさは今までと同じ）
 const DRAW_SCALE = 2;
 const STEP = 1 / 60;
@@ -223,7 +223,7 @@ function renderHome() {
 function homePanel(id) {
   const r = REGIONS[id];
   const rs = save.regions[id];
-  const p = PROVINCES.find((x) => x.id === r.province);
+  const p = PROVINCES.find((x) => x.id === r.province) ?? { name: HARD_AREA.name, no: '' };
   const open = regionOpen(id);
   const bonus = researchEffects(save).baseHpAdd;
   const enemies = [...new Set(r.waves.flat().map((g) => g.enemy))].map((e) => ENEMIES[e]);
@@ -237,9 +237,17 @@ function homePanel(id) {
     const cleared = q.regions.filter((x) => save.regions[x]?.cleared).length;
     return `<div class="prov-row"><b>${q.name}</b> <small>第${q.no}地方</small> ${q.elements.map((e) => chip(e, ELEMENT[e].name)).join(' ')} <span class="badge ${cleared ? '' : 'locked'}">攻略 ${cleared} / ${q.regions.length}</span></div>`;
   }).join('');
-  return `<p class="hint">${p.name}（第${p.no}地方）</p>
+  const hardInfo = r.hard
+    ? `<h4 class="dsec">高難易度 <small>研究は全部最大が前提</small></h4>
+      <p>想定のレベル <b>${r.hard.level}</b> · 置けるモンスター <b>${r.hard.limit}体まで</b></p>
+      <p>道：${r.hard.shape} · 資源地：${r.hard.nodes}</p>
+      <div class="hard-list">${HARD_AREA.regions
+        .map((h) => `<button class="${h === id ? 'on' : ''}" data-pick="${h}" ${regionOpen(h) ? '' : 'disabled'}>${REGIONS[h].name.replace('ツーイス', '')}${save.regions[h]?.cleared ? ' ★' : ''}<small>Lv${REGIONS[h].hard.level} · ${REGIONS[h].hard.limit}体</small></button>`)
+        .join('')}</div>`
+    : '';
+  return `<p class="hint">${r.hard ? p.name : `${p.name}（第${p.no}地方）`}</p>
     <h2>${r.name}</h2>
-    <p>${status}</p>
+    <p>${status}</p>${hardInfo}
     <h4 class="dsec">手に入るエレメント <small>多い順</small></h4>
     <div class="row">${r.elements.map((e) => chip(e, ELEMENT[e].name)).join(' ')}</div>
     <h4 class="dsec">敵</h4>
@@ -333,7 +341,8 @@ app.addEventListener('click', (ev) => {
   }
 const pin = ev.target.closest('[data-pick]');
   if (pin && screen.name === 'home') {
-    homeSel = pin.dataset.pick;
+    const ids = HARD_AREA.regions;
+    homeSel = pin.dataset.pick === 'hard' ? (ids.find((id) => regionOpen(id) && !save.regions[id]?.cleared) ?? ids.find((id) => !regionOpen(id)) ?? ids.at(-1)) : pin.dataset.pick;
     return renderHome();
   }
   const region = ev.target.closest('[data-region]');
@@ -458,6 +467,9 @@ function requirementMet(s, kind) {
   return s.layout.facilities.some((f) => f.kind === req && s.resolved.status.get(f.id) === 'active');
 }
 
+/** 高難易度で、置けるモンスターの数まで置いているか */
+const overLimit = (s) => !!s.region.hard && s.layout.monsters.length >= s.region.hard.limit;
+
 /** マウスの位置に置こうとしているもの（ゴースト）。 */
 function ghostAt(s, c) {
   if (!c || !s.sel) return null;
@@ -466,7 +478,7 @@ function ghostAt(s, c) {
     const placed = placedMonster(s, sel.uid);
     const kind = placed?.kind ?? save.roster.find((m) => m.uid === sel.uid).kind;
     const item = withRoster({ uid: sel.uid, kind, x: c.x, y: c.y, dir: placed?.dir ?? s.placeDir });
-    return { item, ignore: placed, ok: canPlace(s.map, s.layout, item, placed) };
+    return { item, ignore: placed, ok: canPlace(s.map, s.layout, item, placed) && (placed || !overLimit(s)) };
   }
   if (sel.type === 'build') {
     const def = FACILITIES[sel.kind];
@@ -489,6 +501,7 @@ function onCellClick(s, c) {
   const clickedOwn = g?.ignore && g.ignore.x === c.x && g.ignore.y === c.y;
   if (g && !clickedOwn) {
     if (!g.ok) {
+      if (s.sel.type === 'monster' && !g.ignore && overLimit(s)) return hint(s, `この地域に置けるモンスターは${s.region.hard.limit}体までです（右クリックで外せます）`);
       if (s.sel.type === 'build') {
         const def = FACILITIES[s.sel.kind];
         if (!canAfford(s.resolved.alloc.remaining, def.cost, def.costAny)) return hint(s, '資材が足りません');
@@ -800,6 +813,7 @@ function renderHud(s) {
     .join('');
   const stats = `
     <span class="stat">${s.region.name}</span>
+    ${s.region.hard ? `<span class="stat ${s.layout.monsters.length >= s.region.hard.limit ? 'hp-bad' : ''}">モンスター <b>${s.layout.monsters.length}</b>/${s.region.hard.limit}</span>` : ''}
     <span class="stat ${b.baseHp <= 1 ? 'hp-bad' : ''}">拠点 <b>${b.baseHp}</b>/${b.baseMax}</span>
     <span class="stat">ウェーブ <b>${b.wavesStarted}</b>/${b.waves.length}</span>
     <span class="stat">タイマー <b>${b.time.toFixed(1)}</b>秒${s.paused ? '（停止中）' : ''}</span>

@@ -40,13 +40,14 @@ test('どの地域も：S から B まで道がつながり、道のマスは全
     const used = new Set(m.routes.flatMap((r) => r.map((c) => `${c.x},${c.y}`)));
     assert.equal(used.size, pathCells, `${id}：使われない道のマスがない`);
     for (const route of m.routes) assert.ok(m.bases.some((b) => b.x === route.at(-1).x && b.y === route.at(-1).y), `${id}：道は拠点で終わる`);
-    assert.equal(r.waves.length, 5, id);
+    assert.equal(r.waves.length, r.hard ? 3 : 5, id); // 高難易度はウェーブ3つ（企画者の注文）
     assert.ok(r.waves.at(-1).some((g) => ENEMIES[g.enemy].boss), `${id} の最後のウェーブにボス`);
   }
 });
 
 test('地域で手に入るエレメント：敵の落とす量と資源地の数が、地域の属性の順になる（草原は無＞風で土なし、森は風が一番、砂漠は土が一番）', () => {
   for (const [id, r] of Object.entries(REGIONS)) {
+    if (r.hard) continue; // 高難易度は資源地を「なし・ほどほど・固める」で決めたので、別に見る
     const drops = {};
     for (const w of r.waves) for (const g of w) drops[ENEMIES[g.enemy].element] = (drops[ENEMIES[g.enemy].element] ?? 0) + g.count * ENEMIES[g.enemy].drop;
     const nodes = {};
@@ -62,6 +63,7 @@ test('地域で手に入るエレメント：敵の落とす量と資源地の�
   assert.ok(!REGIONS.grassland.elements.includes('earth'), '草原には土がない');
   for (const id of Object.keys(REGIONS)) {
     const r = REGIONS[id];
+    if (r.hard) continue;
     const drops = {};
     for (const w of r.waves) for (const g of w) drops[ENEMIES[g.enemy].element] = (drops[ENEMIES[g.enemy].element] ?? 0) + g.count * ENEMIES[g.enemy].drop;
     if (r.elements.length < 2) continue; // 魔王城は闇だけ
@@ -464,6 +466,7 @@ test('調整の基準（v0.8.5）：どの地域も、基準の仲間は目標�
   // 属性の相性を入れたあと（v0.8.9）の、基準の仲間が攻略できる一番低いレベル。数字を固定したので、変わったら気づけるようにしておく
   const NOW = { forest: 5, desert: 7, river: 17, storm: 21, sea: 26, volcano: 30, snow: 35, mixed: 41, sanctuary: 42, boundary: 44, castle: 50 };
   for (const [id, st] of Object.entries(STAGES)) {
+    if (REGIONS[id].hard) continue; // 高難易度は下のテスト
     assert.ok(st.target <= st.cap, `${id}：目標 Lv${st.target} は上限 ${st.cap} まで`);
     const { b } = simulate(id, stageLayout(id, st.target));
     assert.equal(b.phase, 'won', `${id} Lv${st.target}`);
@@ -549,4 +552,32 @@ test('地方・地域の名前（2026-11-14 企画者の決定）。高難易度
     ['チキル平原', 'ポーカ森林', 'ビリフ砂漠', 'キロット川', 'パリカ雷雨荒野', 'ガーリク海', 'レオジン火山', 'モンレ雪山', 'ルアップ混山', 'マグパロ聖域', 'ハチマチ境界', 'サーモルン魔王城'],
   );
   assert.equal(HARD_AREA.name, 'ツーイス未踏区域');
+});
+
+test('高難易度（ツーイス未踏区域）：10地域。Lv80が5つ・Lv99が5つ。上限は5・7・10。ウェーブ3つでボスはウェーブ3。資源地はなし・ほどほど・固めてある', async () => {
+  const { HARD_AREA } = await import('../src/data/regions.js');
+  const ids = HARD_AREA.regions;
+  assert.equal(ids.length, 10);
+  assert.equal(ids.filter((id) => REGIONS[id].hard.level === 80).length, 5);
+  assert.equal(ids.filter((id) => REGIONS[id].hard.level === 99).length, 5);
+  for (const id of ids) {
+    const r = REGIONS[id];
+    assert.ok([5, 7, 10].includes(r.hard.limit), id);
+    assert.equal(r.waves.length, 3);
+    assert.ok(r.waves[2].some((g) => ENEMIES[g.enemy].boss) && !r.waves[0].concat(r.waves[1]).some((g) => ENEMIES[g.enemy].boss), `${id}：ボスはウェーブ3だけ`);
+    const n = parseMap(r.map).nodes.length;
+    assert.ok(r.hard.nodes === 'なし' ? n === 0 : n >= 6, `${id}：資源地 ${r.hard.nodes}`);
+  }
+  assert.equal(REGIONS[ids[0]].requires, 'castle', '魔王城を攻略すると開く');
+  for (let i = 1; i < ids.length; i++) assert.equal(REGIONS[ids[i]].requires, ids[i - 1]);
+});
+
+test('高難易度の調整：研究は全部最大、敵に強い属性・強い範囲の仲間（置ける数まで）が、想定のレベル（80・99）でちょうど攻略できる', () => {
+  for (const [id, st] of Object.entries(STAGES)) {
+    if (!REGIONS[id].hard) continue;
+    const L = stageLayout(id, st.target);
+    assert.ok(L.monsters.length <= REGIONS[id].hard.limit, `${id}：置くのは ${REGIONS[id].hard.limit} 体まで`);
+    assert.equal(simulate(id, L).b.phase, 'won', `${id} Lv${st.target}`);
+    assert.equal(simulate(id, stageLayout(id, st.target - 1)).b.phase, 'lost', `${id} Lv${st.target - 1}`);
+  }
 });

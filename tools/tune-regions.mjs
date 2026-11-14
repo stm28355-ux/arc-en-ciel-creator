@@ -56,7 +56,7 @@ for (const [regionId, stage] of Object.entries(STAGES)) {
   // 目標のレベルで攻略できる一番大きい倍率（どれかの置き方で勝てれば OK）
   const ok = (m) => withHp(regionId, base, m, () => WEIGHTS.some((w) => won(regionId, stage.target, w)));
   let lo = 0.05;
-  let hi = 50;
+  let hi = 1e6; // 高難易度の敵は体力の比だけ決めてあるので、大きな倍率まで探す
   for (let i = 0; i < 16; i++) {
     const mid = Math.sqrt(lo * hi);
     if (ok(mid)) lo = mid;
@@ -69,16 +69,18 @@ for (const [regionId, stage] of Object.entries(STAGES)) {
 }
 
 if (write) {
-  let src = fs.readFileSync('src/data/enemies.js', 'utf8');
+  // 敵は src/data/enemies.js か、高難易度なら src/data/hard.js にある
+  const files = Object.fromEntries(['src/data/enemies.js', 'src/data/hard.js'].map((f) => [f, fs.readFileSync(f, 'utf8')]));
   for (const [regionId, { m }] of Object.entries(results)) {
     for (const e of enemiesOf(regionId)) {
       const hp = roundHp(ENEMIES[e].hp * m);
       const re = new RegExp(`(\\n  ${e}: \\{[^}]*?hp: )\\d+`);
-      if (!re.test(src)) throw new Error(`敵が見つからない：${e}`);
-      src = src.replace(re, `$1${hp}`);
+      const f = Object.keys(files).find((k) => re.test(files[k]));
+      if (!f) throw new Error(`敵が見つからない：${e}`);
+      files[f] = files[f].replace(re, `$1${hp}`);
     }
   }
-  fs.writeFileSync('src/data/enemies.js', src);
+  for (const [f, src] of Object.entries(files)) fs.writeFileSync(f, src);
   let sim = fs.readFileSync('tools/sim-region.mjs', 'utf8');
   for (const [regionId, { w }] of Object.entries(results)) {
     const re = new RegExp(`(\\n  ${regionId}: \\{ target: \\d+, cap: \\d+, w: )[\\d.]+`);

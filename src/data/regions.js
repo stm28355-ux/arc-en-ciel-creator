@@ -1,3 +1,4 @@
+import { HARD_REGIONS, HARD_ORDER } from './hard.js';
 // 地方と地域。第1〜第4地方の12地域。第4地方の魔王城を攻略すると表のクリア。地方の正式な名前は未決。
 //
 // マップの記号
@@ -704,5 +705,6 @@ export const PROVINCES = [
   { id: 'p4', no: 4, name: 'フィラッシュ混沌地', elements: ['light', 'dark'], regions: ['sanctuary', 'boundary', 'castle'] },
 ];
 
-// 高難易度（フェーズ9で作る）の場所。地図にだけ出す（2026-11-14 企画者の決定）
-export const HARD_AREA = { name: 'ツーイス未踏区域' };
+// 高難易度（フェーズ9、2026-11-14）：ツーイス未踏区域の10地域。中身は src/data/hard.js。地図のまん中の霧の島から入る
+Object.assign(REGIONS, HARD_REGIONS);
+export const HARD_AREA = { name: 'ツーイス未踏区域', regions: HARD_ORDER };

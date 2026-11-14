@@ -1167,3 +1167,23 @@ button.big {
 .placebar .hint {
   margin: 0;
 }
+
+/* ツーイス未踏区域の10区域の一覧（地図の右） */
+.hard-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 6px;
+}
+.hard-list button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  border-radius: 12px;
+  padding: 4px 10px;
+  font-size: 13px;
+}
+.hard-list small {
+  opacity: 0.75;
+  font-size: 11px;
+}

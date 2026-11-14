@@ -2,6 +2,7 @@
 // 敵はどれも名簿のモンスター（monster）。名前と見た目はモンスターのものを使い、敵としての強さはここで決める。
 // element はモンスターの属性と同じにする（テストで確かめる）。同じモンスターが、地域ごとに強さを変えて出てくることもある。
 import { MONSTERS } from './monsters.js';
+import { HARD_ENEMIES } from './hard.js';
 
 // 地域ごとに、手に入るエレメントの割合が地域の属性になるように敵を出す（草原：無＞風、森：風＞土・無、砂漠：土＞風・無、
 // 川：水＞無・土、雷雨：雷＞水・土、海：水＞雷・風、火山：炎＞土・雷、雪山：氷＞水・風、混成：炎・氷＞無、
@@ -104,6 +105,9 @@ export const ENEMIES = {
   demonlord: { monster: 'demon', element: 'dark', hp: 55200, speed: 0.6, drop: 30, damage: 2, size: 0.44, elite: true },
   maou: { monster: 'maou', element: 'dark', hp: 184000, speed: 0.35, drop: 150, damage: 0, size: 0.52, boss: true },
 };
+
+// 高難易度（ツーイス未踏区域）の敵は src/data/hard.js
+Object.assign(ENEMIES, HARD_ENEMIES);
 
 // 敵の名前は、名簿のモンスターの名前
 for (const e of Object.values(ENEMIES)) e.name = MONSTERS[e.monster].name;

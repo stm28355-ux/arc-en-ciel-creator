@@ -3,7 +3,7 @@
 //   node tools/sim-region.mjs forest     森だけ
 //   node tools/sim-region.mjs samples    手で置いた第1地方の見本（テストで使う）
 import { pathToFileURL } from 'node:url';
-import { REGIONS } from '../src/data/regions.js';
+import { REGIONS, HARD_AREA } from '../src/data/regions.js';
 import { parseMap } from '../src/core/map.js';
 import { resolveLayout, canPlace, targetsOf, footprintOf, skillList } from '../src/core/layout.js';
 import { yieldFrom } from '../src/core/materials.js';
@@ -13,7 +13,8 @@ import { ATTACK_PER_LEVEL, FACILITY_PER_LEVEL, facilityAtkMulAt } from '../src/d
 import { MONSTERS } from '../src/data/monsters.js';
 import { FACILITIES } from '../src/data/facilities.js';
 import { createBattle, startBattle, step, pace } from '../src/core/battle.js';
-import { bagTotal } from '../src/data/elements.js';
+import { bagTotal, strongAgainst } from '../src/data/elements.js';
+import { parseShape } from '../src/core/shape.js';
 
 const M = (uid, kind, x, y, dir, level = 1) => ({ uid, kind, x, y, dir, level });
 const F = (id, kind, x, y, dir) => ({ id, kind, x, y, dir });
@@ -218,6 +219,40 @@ export const STAGES = {
   boundary: { target: 50, cap: 50, w: 1, team: P4_TEAM, facilities: P4_FAC, research: RES(16, 16, 5, 3), carry: ['light', 'dark', 'fire', 'earth'] },
   castle: { target: 58, cap: 60, w: 0.5, team: P4_TEAM, facilities: P4_FAC, research: RES(18, 18, 5, 3), carry: ['light', 'dark', 'fire', 'earth', 'thunder'] },
 };
+
+// ---------- 高難易度（ツーイス未踏区域、フェーズ9） ----------
+// 企画者の注文：研究は全部最大。試す仲間は、敵の属性に強い属性で、強い範囲の攻撃を持つもの（全部のモンスターで攻略できる必要はない）。
+// 仲間：敵の属性（どれか）に強い属性のモンスターを、「1秒あたりのダメージ × 範囲のマス（12まで）」の大きい順に、置ける数だけ。
+//   技は3つ（自分の技と、仲間の次の2体の技）。製造施設を使う地域は、作業するモンスターも置ける数に入れる
+// 施設：効果を重ねる（旗を2つ・秘伝書を2つなど）。資源地を5つ持ち込む
+// 目標：想定のレベル（80 か 99）でちょうど攻略できるように、敵の体力を合わせる
+const MAX_RES = RES(20, 30, 5, 3);
+const HARD_FAC = ['darkclock', 'fog', 'altar', 'flag', 'flag', 'windmill', 'beam', 'mirror', 'cauldron', 'brazier', 'stonethrower', 'tower', 'lightningrod', 'frostcannon', 'darktower'];
+const HARD_FAC_BOOKS = ['extremelab', 'lightbook', 'lightbook', 'darkbook', ...HARD_FAC];
+const HARD_W = { hard1: 1.5, hard2: 1.5, hard3: 0.5, hard4: 2, hard5: 1, hard6: 0.5, hard7: 1.5, hard8: 0.5, hard9: 1, hard10: 0.5 };
+export function hardTeam(regionId, n) {
+  const r = REGIONS[regionId];
+  const strong = new Set(r.elements.flatMap((e) => strongAgainst(e)));
+  const main = new Set(strongAgainst(r.elements[0]));
+  const power = (k) => (MONSTERS[k].atk / MONSTERS[k].interval) * Math.min(12, parseShape(MONSTERS[k].shape).targets.length) * (main.has(MONSTERS[k].element) ? 1.2 : 1);
+  const pool = Object.keys(MONSTERS)
+    .filter((k) => strong.has(MONSTERS[k].element))
+    .sort((a, b) => power(b) - power(a) || a.localeCompare(b));
+  return fused(pool.slice(0, n));
+}
+for (const id of HARD_AREA.regions) {
+  const { level, limit } = REGIONS[id].hard;
+  const books = limit >= 7; // 置ける数が7体以上なら、極限研究所と秘伝書を使う（作業するモンスターが1体いる）
+  STAGES[id] = {
+    target: level,
+    cap: 99,
+    w: HARD_W[id],
+    team: hardTeam(id, books ? limit - 1 : limit),
+    facilities: books ? HARD_FAC_BOOKS : HARD_FAC,
+    research: MAX_RES,
+    carry: ['dark', 'light', 'wind', 'water', 'none'],
+  };
+}
 
 const layoutCache = new Map(); // stage → Map(w → 配置)
 /** 基準の配置（置き方はレベルで変わらないので、一度作ったら使い回す）。level を変えたものを返す */
