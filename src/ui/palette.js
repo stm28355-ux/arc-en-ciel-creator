@@ -7,7 +7,8 @@
  * key：スクロールの位置を覚えるための名前（描き直しても位置が戻らないように keepScroll で使う）
  * attr：押したときの操作を入れる data 属性の名前（'mact' なら data-mact）
  * rows：見える行の数
- * cells = [{ pic: 絵の HTML, act, data: {name: value}, sel?, dim?, disabled?, lv?, mark?, dot?: 色, title? }]
+ * cells = [{ pic: 絵の HTML, act, data: {name: value}, sel?, dim?, cls?, disabled?, lv?, mark?, dot?: 色, title? }]
+ *   cls：マスに足すクラス（'ng' = 今は使えない。斜線と×を出す）
  */
 export function palette({ title = '', tabs = '', cells, foot = '', key = 'palette', attr = 'mact', rows = 6, empty = 'ここに出せるものがありません' }) {
   const body = cells
@@ -15,7 +16,7 @@ export function palette({ title = '', tabs = '', cells, foot = '', key = 'palett
       const data = Object.entries(c.data ?? {})
         .map(([k, v]) => `data-${k}="${v}"`)
         .join(' ');
-      return `<button class="pcell ${c.sel ? 'sel' : ''} ${c.dim ? 'dim' : ''}" data-${attr}="${c.act}" ${data} title="${c.title ?? ''}" ${c.disabled ? 'disabled' : ''}>
+      return `<button class="pcell ${c.sel ? 'sel' : ''} ${c.dim ? 'dim' : ''} ${c.cls ?? ''}" data-${attr}="${c.act}" ${data} title="${c.title ?? ''}" ${c.disabled ? 'disabled' : ''}>
         ${c.pic}
         ${c.lv ? `<span class="plv">${c.lv}</span>` : ''}
         ${c.mark ? `<span class="pmark">${c.mark}</span>` : ''}

@@ -23,7 +23,7 @@ import { renderResearchScreen, onResearchAction } from './ui/researchScreen.js';
 import { renderFacilityScreen, onFacilityAction, facilityCostText, facilityPic } from './ui/facilityScreen.js';
 import { palette, keepScroll } from './ui/palette.js';
 
-const VERSION = 'v0.8.7';
+const VERSION = 'v0.8.8';
 // 地域マップの canvas は、1マス32を2倍の細かさで描く（画面の大きさは今までと同じ）
 const DRAW_SCALE = 2;
 const STEP = 1 / 60;
@@ -294,6 +294,7 @@ function openRegion(regionId) {
           <canvas id="cv" width="${map.w * CELL * DRAW_SCALE}" height="${map.h * CELL * DRAW_SCALE}"></canvas>
           <div id="overlay"></div>
         </div>
+        <div class="placebar" id="placebar"></div>
         <p class="hint" id="hint"></p>
       </div>
       <aside class="side" id="side"></aside>
@@ -304,9 +305,11 @@ function openRegion(regionId) {
   cv.addEventListener('mousemove', (ev) => (s.hover = cellAt(cv, ev, map)));
   cv.addEventListener('mouseleave', () => (s.hover = null));
   cv.addEventListener('click', (ev) => onCellClick(s, cellAt(cv, ev, map)));
+  // 右クリック：置こうとしているものがあれば取り消す。なければ、押したマスに置いてあるモンスター・施設を外す（2026-11-14）
   cv.addEventListener('contextmenu', (ev) => {
     ev.preventDefault();
-    cancel(s);
+    if (s.sel && s.sel.type !== 'info' && !selectedPlaced(s)) return cancel(s);
+    removeAt(s, cellAt(cv, ev, map));
   });
   renderHud(s);
   renderSide(s);
@@ -422,6 +425,18 @@ function hint(s, text) {
 function cancel(s) {
   s.sel = null;
   renderSide(s);
+}
+
+/** そのマスに置いてあるモンスター・施設（持ち込みの資源地も）を外す。何もなければ選んでいるものを取り消す */
+function removeAt(s, c) {
+  if (!c || s.result) return;
+  const item = occupancy(s.layout).get(`${c.x},${c.y}`);
+  if (!item) return cancel(s);
+  if (item.uid) s.layout.monsters = s.layout.monsters.filter((m) => m.uid !== item.uid);
+  else s.layout.facilities = s.layout.facilities.filter((f) => f.id !== item.id);
+  s.sel = null;
+  hint(s, `${item.uid ? MONSTERS[item.kind].name : facilityName(item)}を外しました`);
+  changed(s);
 }
 
 const placedMonster = (s, uid) => s.layout.monsters.find((m) => m.uid === uid);
@@ -830,7 +845,13 @@ function renderSide(s) {
 
   let body = '';
   const placed = selectedPlaced(s);
-  if (s.sel && s.sel.type !== 'info' && !placed) body += `<div class="card">${rotateRow(s, `置く向き：${DIR_NAME[s.placeDir]}。マスを押すと置きます。右クリック／Esc で取り消し`)}</div>`;
+  // 置くときの説明と回転は、地図の下に出す（パネルの上に出すと、パレットの位置がずれて押しにくい。2026-11-14）
+  const bar = document.getElementById('placebar');
+  if (bar)
+    bar.innerHTML =
+      s.sel && s.sel.type !== 'info' && !placed
+        ? rotateRow(s, `置く向き：${DIR_NAME[s.placeDir]}。マスを押すと置きます。右クリック／Esc で取り消し`)
+        : '<div class="row rotate-row"><span class="hint">モンスターや施設を選んでマスを押すと置けます。置いたものは右クリックで外せます。R で回転</span></div>';
 
   if (s.tab === 'monster') {
     if (!save.roster.length) body += '<div class="card"><p>手持ちのモンスターがいません。「モンスター」→「錬成」で作りましょう。</p></div>';
@@ -895,13 +916,13 @@ function renderSide(s) {
         act: 'pick-build',
         data: { kind },
         sel: sel || (s.sel?.type === 'info' && s.sel.kind === kind),
-        dim: !ok && !sel,
+        cls: !ok && !sel ? 'ng' : '',
         mark: count ? `×${count}` : '',
         dot: def.element ? ELEMENT[def.element].color : null,
         title: `${def.name}（${ok ? '建てられる' : '資材が足りない、または作業施設が動いていない'}）`,
       };
     });
-    body += palette({ title: '施設を建てる <small>押してからマスを選ぶ。うすいものは今は建てられない</small>', cells, key: 'side-build', attr: 'act', rows: 3 });
+    body += palette({ title: '施設を建てる <small>押してからマスを選ぶ。×は今は建てられない（押すと説明）</small>', cells, key: 'side-build', attr: 'act', rows: 3 });
     if ((s.sel?.type === 'build' || s.sel?.type === 'info') && s.sel.kind !== 'carry') {
       const def = FACILITIES[s.sel.kind];
       const why = s.sel.type === 'info' ? (def.requires && !requirementMet(s, s.sel.kind) ? `${FACILITIES[def.requires].name}が動いていないので、今は建てられません` : '資材が足りないので、今は建てられません') : 'マスを押すと建てます';
@@ -961,6 +982,7 @@ function renderSide(s) {
   const help = `<div class="card"><details class="help"><summary>遊び方</summary><ul>
     <li>モンスターを押してから、草地のマスを押すと置けます。R キーか「回転」で向きを変えます。攻撃は向いている方の、塗られたマスに届きます。</li>
     <li>置いたモンスターや施設を押すと選べます。別のマスを押すと移動、その場で回転もできます。戦闘中でも動かせますが、攻撃は溜め直しになります。</li>
+    <li>置いたモンスターや施設は、右クリックで外せます（置こうとしているときの右クリックは取り消し）。</li>
     <li>資源地（結晶）のまわり8マスに置くと資材 +2、攻撃範囲のマスに入れると +1。モンスターと同じ属性なら +1。</li>
     <li>資材で施設を建てます。資材が減ると、足りない施設のうち最後に建てたものが止まります。</li>
     <li>鍛冶場（製造施設）は、前の2マス（点線）に、攻撃範囲が鍛冶場に重なる向きでモンスターを置くと動きます。動いている間だけ剣の台座が建てられ、効果が出ます。作業中のモンスターも攻撃と生産をします。</li>

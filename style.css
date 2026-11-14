@@ -1124,3 +1124,46 @@ button.big {
   outline: 2px dashed #3cc8e6;
   outline-offset: -2px;
 }
+
+/* 今は使えないマス（建てられない施設）：斜線と× */
+.pop .pcell.ng img {
+  opacity: 0.45;
+  filter: grayscale(0.7);
+}
+.pcell.ng::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 6px;
+  background: repeating-linear-gradient(135deg, rgba(224, 69, 111, 0) 0 7px, rgba(224, 69, 111, 0.22) 7px 10px);
+  pointer-events: none;
+}
+.pcell.ng::before {
+  content: '×';
+  position: absolute;
+  right: 4px;
+  bottom: 1px;
+  z-index: 1;
+  color: #e0456f;
+  font-size: 20px;
+  font-weight: bold;
+  line-height: 1;
+  text-shadow: 0 0 2px #fff, 0 0 2px #fff;
+}
+/* 地図の下の、置くときの説明（高さを決めておき、出たり消えたりしても地図が動かないようにする） */
+.placebar {
+  margin-top: 8px;
+  min-height: 40px;
+  background: var(--panel);
+  border: 2px solid #e3d6f5;
+  border-radius: 14px;
+  padding: 4px 10px;
+  display: flex;
+  align-items: center;
+}
+.placebar .rotate-row {
+  align-items: center;
+}
+.placebar .hint {
+  margin: 0;
+}
