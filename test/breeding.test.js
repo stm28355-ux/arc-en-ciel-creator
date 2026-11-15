@@ -235,3 +235,22 @@ test('まとめて逃がす：使ったエレメントの半分が同じ属性�
   assert.ok(est.none > 0);
   assert.equal(Object.keys(est).filter((id) => !['none', 'water', 'fire', 'light'].includes(id)).length, 0, '段ごとの最初の属性か、自分の属性（無）');
 });
+
+test('進化の条件の文：効果のある敵を倒す条件は、その効果を出す施設をすべて名前で書く（2026-11-15：「凍えた敵」では分からなかった）', async () => {
+  const { EVOLUTIONS } = await import('../src/data/evolutions.js');
+  const { FACILITIES } = await import('../src/data/facilities.js');
+  const names = (test) => Object.values(FACILITIES).filter(test).map((f) => f.name);
+  const want = {
+    burnKills: names((f) => f.burn),
+    chillKills: names((f) => f.chill),
+    slowKills: names((f) => f.slow),
+    exposeKills: names((f) => f.expose),
+    workerClears: names((f) => f.type === 'production'),
+    swordKills: ['剣の台座'],
+    flagKills: ['追い風の旗'],
+  };
+  for (const [from, e] of Object.entries(EVOLUTIONS)) {
+    for (const name of want[e.stat] ?? []) assert.ok(e.text.includes(name), `${from}：「${e.text}」に ${name} がない`);
+    assert.ok(!e.text.includes('凍えた') && !e.text.includes('効果が乗った'), `${from}：分かりにくい言い方`);
+  }
+});

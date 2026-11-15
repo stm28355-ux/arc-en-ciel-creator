@@ -23,7 +23,7 @@ import { renderResearchScreen, onResearchAction } from './ui/researchScreen.js';
 import { renderFacilityScreen, onFacilityAction, facilityCostText, facilityPic } from './ui/facilityScreen.js';
 import { palette, keepScroll } from './ui/palette.js';
 
-const VERSION = 'v0.9.4';
+const VERSION = 'v0.9.5';
 // 地域マップの canvas は、1マス32を2倍の細かさで描く（画面の大きさは今までと同じ）
 const DRAW_SCALE = 2;
 const STEP = 1 / 60;

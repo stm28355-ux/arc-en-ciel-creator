@@ -423,6 +423,8 @@ function skillsBlock(api, m) {
   return `${rows}<p class="hint">技の属性は、その技を持っていたモンスターの属性。モンスターと同じ属性の技は ×1.2、敵の属性に強い技は ×1.2</p>`;
 }
 
+const COUNT_NOTE = '「倒す」「とどめを刺す」は、このモンスターの攻撃で敵を倒した数です（負けた回も数えます）。「攻略する」は、その地域に置いたまま勝ったときに数えます。';
+
 function evolutionBlock(m) {
   const e = evolutionOf(m);
   if (!e) return '';
@@ -430,6 +432,7 @@ function evolutionBlock(m) {
   return `<h4 class="dsec">進化 <small>→ ${MONSTERS[e.to].name}</small></h4>
     <p>条件：${e.text}（${p.have}/${p.need}）</p>
     <div class="bar"><i style="width:${(100 * p.have) / p.need}%"></i></div>
+    <p class="hint">${COUNT_NOTE}</p>
     <p class="hint">進化するとレベルは1に戻ります。自分の技は進化後の技に変わり、引き継いだ技は残ります。</p>
     <button class="primary" data-mact="evolve" data-uid="${m.uid}" ${p.ok ? '' : 'disabled'}>進化する</button>`;
 }
@@ -608,6 +611,7 @@ function evolvedHint(api, kind) {
   return `<p>${HINTS.evolved}。</p>
     <div class="parents">${src}</div>
     <p>進化の条件：<b>${e.text}</b></p>
+    <p class="hint">${COUNT_NOTE}</p>
     <p class="hint">${owned ? `進化元を${owned}体持っています。条件を満たすと、手持ちのくわしい情報から進化できます。` : '進化元を手に入れて条件を満たすと、手持ちのくわしい情報から進化できます。'}</p>`;
 }
 
