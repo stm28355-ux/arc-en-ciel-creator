@@ -23,7 +23,7 @@ import { renderResearchScreen, onResearchAction } from './ui/researchScreen.js';
 import { renderFacilityScreen, onFacilityAction, facilityCostText, facilityPic } from './ui/facilityScreen.js';
 import { palette, keepScroll } from './ui/palette.js';
 
-const VERSION = 'v0.9.0';
+const VERSION = 'v0.9.1';
 // 地域マップの canvas は、1マス32を2倍の細かさで描く（画面の大きさは今までと同じ）
 const DRAW_SCALE = 2;
 const STEP = 1 / 60;
@@ -782,7 +782,7 @@ function onFinish(s) {
 /** はじめて攻略したときに開く地域の知らせ */
 function opensNote(regionId) {
   if (REGIONS[regionId].finale)
-    return '<p class="big">表のクリア！</p><p class="hint">第4地方の魔王城を攻略しました。ここから先は、育てる・集める・研究を進めて、獲得ペースを上げていけます。</p>';
+    return '<p class="big">表のクリア！</p><p class="hint">フィラッシュ混沌地のサーモルン魔王城を攻略しました。ここから先は、育てる・集める・研究を進めて、獲得ペースを上げていけます。</p>';
   const names = opensAfter(regionId).map((id) => REGIONS[id].name);
   return names.length ? `<p><span class="badge">${names.join('・')}が開きました</span></p>` : '';
 }

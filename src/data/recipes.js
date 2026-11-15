@@ -16,12 +16,12 @@ export const RECIPES = [
   // 9属性を同じ量ずつ（合計18〜54）→ アルカンシエル（虹）
   { kind: 'arcenciel', special: { none: 1, wind: 1, earth: 1, water: 1, thunder: 1, fire: 1, ice: 1, light: 1, dark: 1 } },
   // 地域のボス：その地域のエレメントの比率をぴったり合わせる（森 風2:土1:無1 など）
-  { kind: 'forestlord', special: { wind: 2, earth: 1, none: 1 }, hint: '森の比率（風2・土1・無1）で、ぴったり合わせる' },
-  { kind: 'riverdragon', special: { water: 2, none: 1, earth: 1 }, hint: '川の比率（水2・無1・土1）で、ぴったり合わせる' },
-  { kind: 'volcanoking', special: { fire: 2, earth: 1, thunder: 1 }, hint: '火山の比率（炎2・土1・雷1）で、ぴったり合わせる' },
-  { kind: 'twinking', special: { fire: 2, ice: 2, none: 1 }, hint: '混成の比率（炎2・氷2・無1）で、ぴったり合わせる' },
-  { kind: 'sanctuaryguard', special: { light: 3, fire: 1 }, hint: '聖域の比率（光3・炎1）で、ぴったり合わせる' },
-  { kind: 'borderking', special: { light: 1, dark: 1 }, hint: '境界の比率（光1・闇1）で、ぴったり合わせる' },
+  { kind: 'forestlord', special: { wind: 2, earth: 1, none: 1 }, hint: 'ポーカ森林の比率（風2・土1・無1）で、ぴったり合わせる' },
+  { kind: 'riverdragon', special: { water: 2, none: 1, earth: 1 }, hint: 'キロット川の比率（水2・無1・土1）で、ぴったり合わせる' },
+  { kind: 'volcanoking', special: { fire: 2, earth: 1, thunder: 1 }, hint: 'レオジン火山の比率（炎2・土1・雷1）で、ぴったり合わせる' },
+  { kind: 'twinking', special: { fire: 2, ice: 2, none: 1 }, hint: 'ルアップ混山の比率（炎2・氷2・無1）で、ぴったり合わせる' },
+  { kind: 'sanctuaryguard', special: { light: 3, fire: 1 }, hint: 'マグパロ聖域の比率（光3・炎1）で、ぴったり合わせる' },
+  { kind: 'borderking', special: { light: 1, dark: 1 }, hint: 'ハチマチ境界の比率（光1・闇1）で、ぴったり合わせる' },
   { kind: 'plasma', special: { thunder: 1, light: 1 }, hint: '雷と光を同じ量で、ぴったり合わせる' },
   { kind: 'reishow', special: { ice: 3, dark: 1 }, hint: '氷3・闇1で、ぴったり合わせる' },
 
@@ -353,3 +353,17 @@ export const HINTS = {
   fusion: '融合で生まれる',
   rare: '特別な組み合わせの融合でだけ生まれる',
 };
+
+/**
+ * 特殊な調合の作り方の文（図鑑に出す）。どれも同じ量なら「○・○を同じ量ずつ」、比率がちがえば「○2・○1の比率で」と、入れる量の例
+ * （2026-11-15：前は全部「同じ量ずつ」と出していて、かわのりゅう（水2・無1・土1）などで図鑑とちがっていた）
+ */
+export function specialText(ratio) {
+  const NAME = { none: '無', wind: '風', earth: '土', water: '水', thunder: '雷', fire: '炎', ice: '氷', light: '光', dark: '闇' };
+  const entries = Object.entries(ratio);
+  const sum = entries.reduce((a, [, n]) => a + n, 0);
+  const k = Math.ceil(MIX_MIN_TOTAL / sum);
+  const example = entries.map(([e, n]) => `${NAME[e]}${n * k}`).join('・');
+  if (entries.every(([, n]) => n === entries[0][1])) return `${entries.map(([e]) => NAME[e]).join('・')}を同じ量ずつ（例：${example}）`;
+  return `${entries.map(([e, n]) => `${NAME[e]}${n}`).join('・')}の比率で、ぴったり合わせる（例：${example}）`;
+}

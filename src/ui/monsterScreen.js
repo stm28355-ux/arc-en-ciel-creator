@@ -6,7 +6,7 @@ import { MONSTERS } from '../data/monsters.js';
 import { FLAVOR } from '../data/flavor.js';
 import { spriteImg } from './spriteImage.js';
 import { palette, keepScroll } from './palette.js';
-import { RECIPES, HINTS, MIX_MIN_TOTAL, MIX_MAX_TOTAL, MIX_ELEMENTS } from '../data/recipes.js';
+import { RECIPES, HINTS, MIX_MIN_TOTAL, MIX_MAX_TOTAL, MIX_ELEMENTS, specialText } from '../data/recipes.js';
 import { FAMILY_ORDER, RARE_FUSIONS, familyName } from '../data/families.js';
 import { REGIONS } from '../data/regions.js';
 import { EVOLUTIONS, EVOLVED_FROM } from '../data/evolutions.js';
@@ -476,7 +476,7 @@ function recipeText(kind) {
     return `${MONSTERS[p].name}と${MONSTERS[q].name}を融合`;
   }
   const r = RECIPES.find((x) => x.kind === kind);
-  if (r.special) return `調合錬成で、${Object.keys(r.special).map(n).join('・')}を同じ量ずつ`;
+  if (r.special) return `調合錬成で、${specialText(r.special)}`;
   if (r.types === 1) return `調合錬成で、${n(r.first)}だけ`;
   if (r.types === 2) return `調合錬成で、${n(r.first)}が一番多く、${n(r.second)}が二番目`;
   return `調合錬成で、3種類以上・${n(r.first)}が一番多い`;

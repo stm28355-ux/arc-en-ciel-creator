@@ -176,3 +176,36 @@ test('進化の条件の記録：属性・やけど・地域・資源地のと�
   assert.equal(evolutionProgress(m).ok, true, 'メタルスパイダー：闇の資源地のとなりで攻略');
   assert.equal(evolve(s, m.uid).kind, 'deathmetalspider');
 });
+
+test('図鑑の作り方：200体すべてで、図鑑の文どおりに作ると本当にそのモンスターが生まれる（2026-11-15）', async () => {
+  const { checkRecipes } = await import('../tools/check-recipes.mjs');
+  assert.deepEqual(checkRecipes(), []);
+});
+
+test('図鑑の作り方：特殊な調合は本当の比率を出す（かわのりゅうは水2・無1・土1。前は「同じ量ずつ」と出ていた）', async () => {
+  const { RECIPES, specialText } = await import('../src/data/recipes.js');
+  const { mixResult } = await import('../src/core/alchemy.js');
+  const NAME = { none: '無', wind: '風', earth: '土', water: '水', thunder: '雷', fire: '炎', ice: '氷', light: '光', dark: '闇' };
+  assert.equal(specialText(RECIPES.find((r) => r.kind === 'riverdragon').special), '水2・無1・土1の比率で、ぴったり合わせる（例：水6・無3・土3）');
+  for (const r of RECIPES.filter((x) => x.special)) {
+    const text = specialText(r.special);
+    const equal = new Set(Object.values(r.special)).size === 1;
+    assert.equal(text.includes('同じ量ずつ'), equal, `${r.kind}：同じ量かどうか`);
+    // 例の量をそのまま入れると、そのモンスターが生まれる
+    const mix = Object.fromEntries([...text.matchAll(/([無風土水雷炎氷光闇])(\d+)/g)].slice(-Object.keys(r.special).length).map(([, n, v]) => [Object.keys(NAME).find((k) => NAME[k] === n), Number(v)]));
+    assert.equal(mixResult(mix).kind, r.kind, `${r.kind}：例の量 ${JSON.stringify(mix)}`);
+  }
+});
+
+test('地域の名前を変えたあとも、進化の条件と特殊な調合のヒントは今の名前を使う', async () => {
+  const { REGIONS } = await import('../src/data/regions.js');
+  const { EVOLUTIONS } = await import('../src/data/evolutions.js');
+  const { RECIPES } = await import('../src/data/recipes.js');
+  for (const e of Object.values(EVOLUTIONS)) {
+    const m = e.stat.match(/^clears:(.+)$/);
+    if (m) assert.ok(e.text.includes(REGIONS[m[1]].name), e.text);
+  }
+  assert.ok(EVOLUTIONS.demon.text.includes(REGIONS.castle.name));
+  const boss = { forestlord: 'forest', riverdragon: 'river', volcanoking: 'volcano', twinking: 'mixed', sanctuaryguard: 'sanctuary', borderking: 'boundary' };
+  for (const [kind, id] of Object.entries(boss)) assert.ok(RECIPES.find((r) => r.kind === kind).hint.startsWith(REGIONS[id].name), kind);
+});
