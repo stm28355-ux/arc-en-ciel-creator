@@ -483,6 +483,22 @@ function recipeText(kind) {
 }
 
 /** まだ手に入れていないモンスターのヒント */
+/**
+ * まだ手に入れていない「特別な組み合わせ」のモンスターのヒント：親になる2体を出す（2026-11-15 企画者の注文：中身が分からないので、もう少しヒントを）。
+ * 図鑑に載っている親は名前と絵、まだの親は影と系統・位階だけ
+ */
+function rareParentsHint(api, kind) {
+  const { save } = api;
+  const [p, q] = RARE_FUSIONS.find((r) => r.kind === kind).parents;
+  const one = (k) =>
+    save.codex[k]
+      ? `<div class="parent">${pic(k, 64)}<div><b>${MONSTERS[k].name}</b><span>${famRank(k)}</span></div></div>`
+      : `<div class="parent">${pic(k, 64, 'silhouette')}<div><b>？？？</b><span>${famRank(k)}</span><span class="hint">まだ図鑑にない</span></div></div>`;
+  return `<p>${HINTS.rare}。親になるのは、この2体です。</p>
+    <div class="parents">${one(p)}<span class="times">×</span>${one(q)}</div>
+    <p class="hint">まだ図鑑にない親は、影と系統・位階だけ出ます。2体を融合すると、生まれるモンスターの候補に「特別な組み合わせ！」と出ます。</p>`;
+}
+
 function hintText(kind) {
   const d = MONSTERS[kind];
   if (d.evolved) return HINTS.evolved;
@@ -532,7 +548,7 @@ function codexDetail(api, kind, n) {
         ${known ? `<p class="hint">手持ち ${owned}体</p>` : ''}
       </div>
     </div>`;
-  if (!known) return `${head}<h4 class="dsec">ヒント</h4><p>${hintText(kind)}</p>`;
+  if (!known) return `${head}<h4 class="dsec">ヒント</h4>${def.rare ? rareParentsHint(api, kind) : `<p>${hintText(kind)}</p>`}`;
   const cost = codexCost(kind);
   const evo = EVOLUTIONS[kind];
   const evoText = evo ? `<h4 class="dsec">進化</h4><p>${save.codex[evo.to] ? MONSTERS[evo.to].name : '？？？'}に進化する：${evo.text}</p>` : '';
