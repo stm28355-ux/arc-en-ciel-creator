@@ -12,7 +12,7 @@ import { nextDir, DIR_NAME } from './core/shape.js';
 import { createBattle, startBattle, step, pace, paceBag, waveSummary, rechargeUnit } from './core/battle.js';
 import { loadSave, writeSave, clearSave, regionSave, newSave } from './core/save.js';
 import { draw, CELL, facilityIcon, FACILITY_COLOR } from './ui/render.js';
-import { renderMonsterScreen, onMonsterAction } from './ui/monsterScreen.js';
+import { renderMonsterScreen, onMonsterAction, sortedRoster } from './ui/monsterScreen.js';
 import { spriteImg, facilityImg, nodeImg } from './ui/spriteImage.js';
 import { applyBackground } from './ui/background.js';
 import { recordBattle, skillsOf } from './core/breeding.js';
@@ -23,7 +23,7 @@ import { renderResearchScreen, onResearchAction } from './ui/researchScreen.js';
 import { renderFacilityScreen, onFacilityAction, facilityCostText, facilityPic } from './ui/facilityScreen.js';
 import { palette, keepScroll } from './ui/palette.js';
 
-const VERSION = 'v0.9.3';
+const VERSION = 'v0.9.4';
 // 地域マップの canvas は、1マス32を2倍の細かさで描く（画面の大きさは今までと同じ）
 const DRAW_SCALE = 2;
 const STEP = 1 / 60;
@@ -872,7 +872,7 @@ function renderSide(s) {
   if (s.tab === 'monster') {
     if (!save.roster.length) body += '<div class="card"><p>手持ちのモンスターがいません。「モンスター」→「錬成」で作りましょう。</p></div>';
     else {
-      const cells = save.roster.map((r) => {
+      const cells = sortedRoster(save).map((r) => {
         const def = MONSTERS[r.kind];
         const p = placedMonster(s, r.uid);
         const sel = (s.sel?.type === 'monster' && s.sel.uid === r.uid) || placed?.uid === r.uid;

@@ -14,6 +14,7 @@ import { mixResult, canPay, pay, codexCost, levelUpCost, levelUpPlan, levelEleme
 import { levelCap, researchedLevel, mixElements, LIMITS } from '../core/research.js';
 import { RESEARCH, MIX_UNLOCK } from '../data/research.js';
 import { addMonster } from '../core/save.js';
+import { release, releaseRefund, addSpent, RELEASE_RATE } from '../core/release.js';
 import { skillsOf, fusionCandidates, fusionRule, fusionMembers, inheritableSkills, fuse, evolutionOf, evolutionProgress, evolve, MAX_SKILLS } from '../core/breeding.js';
 
 /**
@@ -57,6 +58,44 @@ export function onMonsterAction(api, state, act, data) {
     case 'filter':
       state.filter = data.v;
       return true;
+    case 'sort':
+      // 並び（入手順・レベル順）。地域マップのパレットも同じ並びにするので、セーブに残す
+      save.settings ??= {};
+      save.settings.rosterSort = data.v;
+      api.persist();
+      return true;
+    case 'release-mode':
+      state.releasing = !state.releasing;
+      state.picked = [];
+      state.released = null;
+      return true;
+    case 'release-pick':
+      state.picked = state.picked.includes(data.uid) ? state.picked.filter((u) => u !== data.uid) : [...state.picked, data.uid];
+      return true;
+    case 'release-shown':
+      // 今パレットに出ているモンスターを全部選ぶ（属性で絞りこんでから使う）
+      state.picked = [...new Set([...state.picked, ...shownRoster(save, state).map((m) => m.uid)])];
+      return true;
+    case 'release-clear':
+      state.picked = [];
+      return true;
+    case 'release-go': {
+      const list = save.roster.filter((m) => state.picked.includes(m.uid));
+      if (!list.length) return false;
+      const refund = releaseRefund(list);
+      const placed = list.filter((m) => whereIs(save, m.uid)).length;
+      api.confirm(
+        `${list.length}体を逃がしますか？ エレメントが戻ります（${refundText(refund)}）。${placed ? `配置中の${placed}体は地域から外れます。` : ''}もとには戻せません。`,
+        () => {
+          state.released = { n: list.length, refund: release(save, state.picked) };
+          state.picked = [];
+          api.persist();
+          api.rerender();
+        },
+        '逃がす',
+      );
+      return false;
+    }
     case 'family':
       state.family = data.v;
       return true;
@@ -76,6 +115,7 @@ export function onMonsterAction(api, state, act, data) {
       const plan = levelUpPlan(save.elements, MONSTERS[m.kind].element, m.level, steps, levelCap(save));
       if (plan.to <= m.level) return false;
       save.elements = pay(save.elements, plan.payment);
+      addSpent(m, plan.payment);
       m.level = plan.to;
       api.persist();
       return true;
@@ -115,7 +155,7 @@ export function onMonsterAction(api, state, act, data) {
       const allowed = mixElements(save);
       if (!r.kind || !canPay(save.elements, state.mix) || Object.entries(state.mix).some(([id, n]) => n > 0 && !allowed.includes(id))) return false;
       save.elements = pay(save.elements, state.mix);
-      addMonster(save, r.kind, r.level);
+      addMonster(save, r.kind, r.level, state.mix);
       state.born = r.kind;
       // 同じ配合をもう一度作りやすいように、持っている分までに減らして残す
       for (const id of Object.keys(state.mix)) state.mix[id] = Math.min(state.mix[id], Math.floor(save.elements[id] ?? 0));
@@ -172,7 +212,7 @@ export function onMonsterAction(api, state, act, data) {
       const cost = codexCost(data.kind);
       if (!save.codex[data.kind] || !canPay(save.elements, cost)) return false;
       save.elements = pay(save.elements, cost);
-      addMonster(save, data.kind);
+      addMonster(save, data.kind, 1, cost);
       state.born = data.kind;
       api.persist();
       return true;
@@ -217,9 +257,33 @@ function elementTabs(state) {
   );
 }
 
+/** 手持ちの並び（セーブの設定：入手順 'got' か レベル順 'level'）。地域マップのパレットでも使う */
+export function sortedRoster(save) {
+  const list = [...save.roster];
+  if (save.settings?.rosterSort === 'level') list.sort((a, b) => b.level - a.level || MONSTERS[a.kind].name.localeCompare(MONSTERS[b.kind].name, 'ja'));
+  return list;
+}
+/** 今パレットに出ている手持ち（属性で絞りこんだもの） */
+function shownRoster(save, state) {
+  return sortedRoster(save).filter((m) => state.filter === 'all' || MONSTERS[m.kind].element === state.filter);
+}
+/** 並びを変えるボタン */
+function sortTabs(save) {
+  const cur = save.settings?.rosterSort === 'level' ? 'level' : 'got';
+  return `<span class="ptab-sep">並び</span>${[
+    ['got', '入手順'],
+    ['level', 'レベル順'],
+  ]
+    .map(([v, t]) => `<button data-mact="sort" data-v="${v}" class="${cur === v ? 'on' : ''}">${t}</button>`)
+    .join('')}`;
+}
+const refundText = (refund) =>
+  Object.entries(refund)
+    .map(([id, n]) => `${ELEMENT[id].name}${n}`)
+    .join('・') || 'なし';
+
 function rosterCells(save, state, act, selOf) {
-  return save.roster
-    .filter((m) => state.filter === 'all' || MONSTERS[m.kind].element === state.filter)
+  return shownRoster(save, state)
     .map((m) => {
       const where = whereIs(save, m.uid);
       const evo = evolutionProgress(m)?.ok;
@@ -246,10 +310,40 @@ function rosterView(api, state) {
   const { save } = api;
   if (!save.roster.length) return `<div class="detail"><p>まだ仲間がいません。「錬成」で最初の仲間を作りましょう。</p></div>`;
   if (!save.roster.some((m) => m.uid === state.selected)) state.selected = save.roster[0].uid;
+  state.picked ??= [];
+  const title = `手持ち <button class="mini ${state.releasing ? 'on' : ''}" data-mact="release-mode">${state.releasing ? '逃がすのをやめる' : 'まとめて逃がす'}</button>`;
+  const tabs = elementTabs(state) + sortTabs(save);
+  if (state.releasing) {
+    const cells = rosterCells(save, state, 'release-pick', (m) => (state.picked.includes(m.uid) ? '逃がす' : false));
+    const left = palette({ title, tabs, cells, foot: `${state.picked.length}体を選んでいる`, key: 'roster' });
+    return `<div class="palette-layout">${left}<section class="detail">${releasePanel(api, state)}</section></div>`;
+  }
   const cells = rosterCells(save, state, 'select', (m) => m.uid === state.selected);
-  const left = palette({ title: '手持ち', tabs: elementTabs(state), cells, foot: `${cells.length} / ${save.roster.length} 体`, key: 'roster' });
+  const left = palette({ title, tabs, cells, foot: `${cells.length} / ${save.roster.length} 体`, key: 'roster' });
   const sel = save.roster.find((m) => m.uid === state.selected);
   return `<div class="palette-layout">${left}<section class="detail">${bornBanner(state, 'が生まれました！')}${rosterDetail(api, sel)}</section></div>`;
+}
+
+/** まとめて逃がす：選んだモンスターと、戻るエレメント */
+function releasePanel(api, state) {
+  const { save } = api;
+  const list = save.roster.filter((m) => state.picked.includes(m.uid));
+  const refund = releaseRefund(list);
+  const placed = list.filter((m) => whereIs(save, m.uid)).length;
+  const names = list
+    .slice(0, 40)
+    .map((m) => `<span class="chip">${MONSTERS[m.kind].name} Lv${m.level}</span>`)
+    .join(' ');
+  const done = state.released ? `<div class="born-line">${state.released.n}体を逃がしました。エレメントが戻りました（${refundText(state.released.refund)}）。</div>` : '';
+  return `${done}<h3>まとめて逃がす</h3>
+    <p class="hint">左のパレットで、逃がすモンスターを押して選びます（もう一度押すと外す）。逃がすと、そのモンスターに使ったエレメント（作ったとき・レベルアップ・融合した親の分）の${Math.round(RELEASE_RATE * 100)}%が、同じ属性で戻ります。</p>
+    <div class="row"><button data-mact="release-shown">表示中を全部選ぶ</button><button data-mact="release-clear" ${list.length ? '' : 'disabled'}>選んだのを外す</button></div>
+    <h4 class="dsec">選んだモンスター <small>${list.length}体</small></h4>
+    <div class="row">${names || '<span class="hint">まだ選んでいません</span>'}${list.length > 40 ? ` <span class="hint">ほか${list.length - 40}体</span>` : ''}</div>
+    <h4 class="dsec">戻るエレメント</h4>
+    <div class="row">${list.length ? api.costText(refund) || '<span class="hint">なし</span>' : '<span class="hint">—</span>'}</div>
+    ${placed ? `<p class="hint neg">配置中の${placed}体は、地域から外れます</p>` : ''}
+    <div class="row" style="margin-top:12px"><button class="primary" data-mact="release-go" ${list.length ? '' : 'disabled'}>逃がす（${list.length}体）</button><button data-mact="release-mode">やめる</button></div>`;
 }
 
 function rosterDetail(api, sel) {

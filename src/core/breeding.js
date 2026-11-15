@@ -3,6 +3,8 @@ import { MONSTERS } from '../data/monsters.js';
 import { EVOLUTIONS } from '../data/evolutions.js';
 import { ENEMIES } from '../data/enemies.js';
 import { FAMILY_TABLE, FUSION_RANK_UP, RARE_FUSIONS, pairKey } from '../data/families.js';
+import { CODEX_COST } from '../data/recipes.js';
+import { levelUpCost, levelElements, LEVEL_TIER5_FROM } from './alchemy.js';
 
 export const MAX_SKILLS = 3;
 
@@ -82,10 +84,29 @@ export function fuse(save, uidA, uidB, resultKind, extra = []) {
   const keep = [...new Set(extra)].filter((k) => pool.includes(k));
   if (keep.length > MAX_SKILLS - 1) throw new Error(`引き継げる技は${MAX_SKILLS - 1}つまで`);
   removeMonsters(save, [uidA, uidB]);
-  const child = { uid: `m${save.nextUid++}`, kind: resultKind, level: 1, skills: [resultKind, ...keep], stats: {} };
+  // 親2体に使ったエレメントは子に引き継ぐ（逃がしたときに半分戻る。記録のない古いモンスターは見積もり）
+  const spent = {};
+  for (const p of [a, b]) for (const [id, n] of Object.entries(p.spent ?? estimateSpent(p))) spent[id] = (spent[id] ?? 0) + n;
+  const child = { uid: `m${save.nextUid++}`, kind: resultKind, level: 1, skills: [resultKind, ...keep], stats: {}, spent };
   save.roster.push(child);
   save.codex[resultKind] = true;
   return child;
+}
+
+/**
+ * 記録（m.spent）のない古いモンスター（v0.9.4 より前）に使ったエレメントの見積もり：図鑑錬成の値段＋レベルアップの値段。
+ * 払う属性は段ごとの決まりから（自分の属性が使える段は自分の属性、でなければその段の最初の属性）。
+ * 「どの属性でもよい」段（61から先）は無にする（逃がしたときに別の属性に化けないように）
+ */
+export function estimateSpent(m) {
+  const el = MONSTERS[m.kind].element;
+  const spent = { ...(CODEX_COST[m.kind] ?? {}) };
+  for (let l = 1; l < m.level; l++) {
+    const tier = levelElements(l);
+    const id = l >= LEVEL_TIER5_FROM ? 'none' : tier.includes(el) ? el : tier[0];
+    spent[id] = (spent[id] ?? 0) + levelUpCost(l);
+  }
+  return spent;
 }
 
 export function removeMonsters(save, uids) {

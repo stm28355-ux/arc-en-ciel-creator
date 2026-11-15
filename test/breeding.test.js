@@ -209,3 +209,29 @@ test('地域の名前を変えたあとも、進化の条件と特殊な調合�
   const boss = { forestlord: 'forest', riverdragon: 'river', volcanoking: 'volcano', twinking: 'mixed', sanctuaryguard: 'sanctuary', borderking: 'boundary' };
   for (const [kind, id] of Object.entries(boss)) assert.ok(RECIPES.find((r) => r.kind === kind).hint.startsWith(REGIONS[id].name), kind);
 });
+
+test('まとめて逃がす：使ったエレメントの半分が同じ属性で戻る。配置からも外れる。融合の子は親2体の分を引き継ぐ（2026-11-15）', async () => {
+  const { release, releaseRefund, addSpent, estimateSpent } = await import('../src/core/release.js');
+  const s = newSave();
+  s.elements = { ...s.elements, none: 0, wind: 0 };
+  const a = addMonster(s, 'slime', 1, { none: 10 });
+  const b = addMonster(s, 'bat', 1, { wind: 11 });
+  addSpent(a, { none: 3, wind: 4 }); // レベルアップで払った分
+  assert.deepEqual(releaseRefund([a]), { none: 6, wind: 2 }, '13の半分は6（切り捨て）、4の半分は2');
+  // 融合：子は親2体に使った分を持つ
+  const child = fuse(s, a.uid, b.uid, fusionCandidates(a, b)[0].kind, []);
+  assert.deepEqual(child.spent, { none: 13, wind: 15 });
+  // 配置していても逃がせて、配置から外れる
+  s.regions.grassland = { layout: { monsters: [{ uid: child.uid, kind: child.kind, x: 1, y: 1, dir: 'up' }], facilities: [] } };
+  const refund = release(s, [child.uid]);
+  assert.deepEqual(refund, { none: 6, wind: 7 });
+  assert.equal(s.elements.none, 6);
+  assert.equal(s.elements.wind, 7);
+  assert.equal(s.roster.length, 0);
+  assert.equal(s.regions.grassland.layout.monsters.length, 0);
+  // 記録のない古いモンスターは見積もり（図鑑錬成の値段＋レベルアップ。61から先は無）
+  const old = { uid: 'x', kind: 'slime', level: 62, skills: ['slime'], stats: {} };
+  const est = estimateSpent(old);
+  assert.ok(est.none > 0);
+  assert.equal(Object.keys(est).filter((id) => !['none', 'water', 'fire', 'light'].includes(id)).length, 0, '段ごとの最初の属性か、自分の属性（無）');
+});

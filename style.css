@@ -1187,3 +1187,17 @@ button.big {
   opacity: 0.75;
   font-size: 11px;
 }
+
+/* パレットの見出しの小さなボタン（まとめて逃がす）と、並びの区切り */
+.pop .ptitle button.mini {
+  font-size: 12px;
+  padding: 1px 10px;
+  margin-left: 8px;
+  vertical-align: 2px;
+}
+.ptab-sep {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0 2px 0 8px;
+  align-self: center;
+}

@@ -55,9 +55,12 @@ export function clearSave() {
   }
 }
 
-/** モンスターを手持ちに加え、図鑑に載せる。skills = 持っている技（最初は自分の技だけ）、stats = 進化の条件に使う戦闘の記録 */
-export function addMonster(save, kind, level = 1) {
-  const m = { uid: `m${save.nextUid++}`, kind, level, skills: [kind], stats: {} };
+/**
+ * モンスターを手持ちに加え、図鑑に載せる。skills = 持っている技（最初は自分の技だけ）、stats = 進化の条件に使う戦闘の記録
+ * spent = 作るのに払ったエレメント（逃がしたときに半分戻る。src/core/release.js）
+ */
+export function addMonster(save, kind, level = 1, spent = {}) {
+  const m = { uid: `m${save.nextUid++}`, kind, level, skills: [kind], stats: {}, spent: { ...spent } };
   save.roster.push(m);
   save.codex[kind] = true;
   return m;
