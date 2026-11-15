@@ -499,6 +499,24 @@ function rareParentsHint(api, kind) {
     <p class="hint">まだ図鑑にない親は、影と系統・位階だけ出ます。2体を融合すると、生まれるモンスターの候補に「特別な組み合わせ！」と出ます。</p>`;
 }
 
+/**
+ * まだ手に入れていない進化のモンスターのヒント：進化元と進化の条件（2026-11-15 企画者の注文）。
+ * 進化元が図鑑に載っていれば絵と名前、まだなら影と系統・位階と、進化元の作り方のヒント
+ */
+function evolvedHint(api, kind) {
+  const { save } = api;
+  const from = EVOLVED_FROM[kind];
+  const e = EVOLUTIONS[from];
+  const src = save.codex[from]
+    ? `<div class="parent">${pic(from, 64)}<div><small>進化元</small><b>${MONSTERS[from].name}</b><span>${famRank(from)}</span></div></div>`
+    : `<div class="parent">${pic(from, 64, 'silhouette')}<div><small>進化元</small><b>？？？</b><span>${famRank(from)}</span><span class="hint">${MONSTERS[from].rare ? HINTS.rare : hintText(from)}</span></div></div>`;
+  const owned = save.roster.filter((m) => m.kind === from).length;
+  return `<p>${HINTS.evolved}。</p>
+    <div class="parents">${src}</div>
+    <p>進化の条件：<b>${e.text}</b></p>
+    <p class="hint">${owned ? `進化元を${owned}体持っています。条件を満たすと、手持ちのくわしい情報から進化できます。` : '進化元を手に入れて条件を満たすと、手持ちのくわしい情報から進化できます。'}</p>`;
+}
+
 function hintText(kind) {
   const d = MONSTERS[kind];
   if (d.evolved) return HINTS.evolved;
@@ -548,7 +566,7 @@ function codexDetail(api, kind, n) {
         ${known ? `<p class="hint">手持ち ${owned}体</p>` : ''}
       </div>
     </div>`;
-  if (!known) return `${head}<h4 class="dsec">ヒント</h4>${def.rare ? rareParentsHint(api, kind) : `<p>${hintText(kind)}</p>`}`;
+  if (!known) return `${head}<h4 class="dsec">ヒント</h4>${def.rare ? rareParentsHint(api, kind) : def.evolved ? evolvedHint(api, kind) : `<p>${hintText(kind)}</p>`}`;
   const cost = codexCost(kind);
   const evo = EVOLUTIONS[kind];
   const evoText = evo ? `<h4 class="dsec">進化</h4><p>${save.codex[evo.to] ? MONSTERS[evo.to].name : '？？？'}に進化する：${evo.text}</p>` : '';
